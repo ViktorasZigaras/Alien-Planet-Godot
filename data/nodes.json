@@ -1,22 +1,31 @@
 {
   "standard_tooling": {
     "name": "Standard Tooling",
-    "tree": "technical",
+    "tree": "industry",
     "resource": "research",
     "cost": 4,
     "requires": [],
-    "effect": "Unlock Production District and Workshop."
+    "effect": "Production District, Workshop and Engineer training.",
+    "unlocks": [
+      "Production District",
+      "Workshop",
+      "Engineer"
+    ]
   },
   "precision_assembly": {
     "name": "Precision Assembly",
-    "tree": "technical",
+    "tree": "industry",
     "resource": "research",
     "cost": 8,
     "requires": [
       "standard_tooling",
       "technical_education"
     ],
-    "effect": "Staffed Workshop: Industry 3 → 4."
+    "effect": "Workshop output +1 Industry; unlock Mine improvements.",
+    "unlocks": [
+      "Mine",
+      "Workshop +1 Industry"
+    ]
   },
   "technical_education": {
     "name": "Technical Education",
@@ -24,17 +33,105 @@
     "resource": "influence",
     "cost": 4,
     "requires": [],
-    "effect": "Train Workers as Specialists or Administrators."
+    "effect": "Enable training and Administrator qualification.",
+    "unlocks": [
+      "Administrator",
+      "Training service"
+    ]
   },
   "field_coordination": {
     "name": "Field Coordination",
-    "tree": "social",
+    "tree": "exploration",
     "resource": "influence",
     "cost": 6,
     "requires": [
       "technical_education",
       "standard_tooling"
     ],
-    "effect": "Mobile population supply reach: 3 → 5."
+    "effect": "Extend mobile population supply reach from 3 to 5.",
+    "unlocks": [
+      "Population supply reach 5"
+    ]
+  },
+  "cultivation": {
+    "name": "Cultivation",
+    "tree": "biology",
+    "resource": "research",
+    "cost": 4,
+    "requires": [],
+    "effect": "Train Farmers: +1 Food at food-producing tile jobs.",
+    "unlocks": [
+      "Farmer"
+    ]
+  },
+  "closed_ecology": {
+    "name": "Closed Ecology",
+    "tree": "biology",
+    "resource": "research",
+    "cost": 8,
+    "requires": [
+      "cultivation"
+    ],
+    "effect": "Build an Agriculture District and staffed Greenhouse.",
+    "unlocks": [
+      "Agriculture District",
+      "Greenhouse"
+    ]
+  },
+  "field_security": {
+    "name": "Field Security",
+    "tree": "military",
+    "resource": "research",
+    "cost": 4,
+    "requires": [],
+    "effect": "Train Security cohorts for the Guard Post. No combat in this demo.",
+    "unlocks": [
+      "Security"
+    ]
+  },
+  "perimeter_defence": {
+    "name": "Perimeter Defence",
+    "tree": "military",
+    "resource": "research",
+    "cost": 8,
+    "requires": [
+      "field_security"
+    ],
+    "effect": "Security District, Guard Post and Watchtower. Staffing generates Influence; no combat yet.",
+    "unlocks": [
+      "Security District",
+      "Guard Post",
+      "Watchtower"
+    ]
+  },
+  "field_methods": {
+    "name": "Field Methods",
+    "tree": "exploration",
+    "resource": "research",
+    "cost": 4,
+    "requires": [],
+    "effect": "Scientist training, Research District, Research Lab and Survey Beacon.",
+    "unlocks": [
+      "Scientist",
+      "Research District",
+      "Research Lab",
+      "Survey Beacon"
+    ]
+  },
+  "civic_exchange": {
+    "name": "Civic Exchange",
+    "tree": "social",
+    "resource": "influence",
+    "cost": 6,
+    "requires": [
+      "technical_education"
+    ],
+    "effect": "Merchant training, Civic District, Exchange and Trade Post.",
+    "unlocks": [
+      "Merchant",
+      "Civic District",
+      "Exchange",
+      "Trade Post"
+    ]
   }
 }

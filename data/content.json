@@ -1,0 +1,221 @@
+{
+  "trees": {
+    "biology": "Biology",
+    "industry": "Industry",
+    "military": "Military",
+    "exploration": "Exploration / Research",
+    "social": "Social"
+  },
+  "qualifications": {
+    "Worker": {
+      "resource": "",
+      "requires": "",
+      "tile_bonus": 0,
+      "trainable": false
+    },
+    "Specialist": {
+      "resource": "research",
+      "requires": "technical_education",
+      "tile_bonus": 0,
+      "trainable": true
+    },
+    "Farmer": {
+      "resource": "food",
+      "requires": "cultivation",
+      "tile_bonus": 1,
+      "trainable": true
+    },
+    "Engineer": {
+      "resource": "industry",
+      "requires": "standard_tooling",
+      "tile_bonus": 1,
+      "trainable": true
+    },
+    "Merchant": {
+      "resource": "credits",
+      "requires": "civic_exchange",
+      "tile_bonus": 1,
+      "trainable": true
+    },
+    "Scientist": {
+      "resource": "research",
+      "requires": "field_methods",
+      "tile_bonus": 1,
+      "trainable": true
+    },
+    "Administrator": {
+      "resource": "influence",
+      "requires": "technical_education",
+      "tile_bonus": 1,
+      "trainable": true
+    },
+    "Security": {
+      "resource": "influence",
+      "requires": "field_security",
+      "tile_bonus": 0,
+      "trainable": true
+    }
+  },
+  "districts": {
+    "production": {
+      "name": "Production District",
+      "requires": "standard_tooling",
+      "building": "workshop"
+    },
+    "agriculture": {
+      "name": "Agriculture District",
+      "requires": "closed_ecology",
+      "building": "greenhouse"
+    },
+    "research": {
+      "name": "Research District",
+      "requires": "field_methods",
+      "building": "research_lab"
+    },
+    "civic": {
+      "name": "Civic District",
+      "requires": "civic_exchange",
+      "building": "exchange"
+    },
+    "security": {
+      "name": "Security District",
+      "requires": "perimeter_defence",
+      "building": "guard_post"
+    }
+  },
+  "buildings": {
+    "lab": {
+      "name": "Field Lab",
+      "resource": "research",
+      "output": 1,
+      "specialists": {
+        "Specialist": 3,
+        "Scientist": 3
+      },
+      "upkeep": 0
+    },
+    "civic": {
+      "name": "Civic Office",
+      "resource": "influence",
+      "output": 2,
+      "specialists": {},
+      "eligible": [
+        "Administrator"
+      ],
+      "upkeep": 0
+    },
+    "training": {
+      "name": "Training Module",
+      "resource": "",
+      "output": 0,
+      "specialists": {},
+      "upkeep": 0
+    },
+    "workshop": {
+      "name": "Workshop",
+      "resource": "industry",
+      "output": 3,
+      "specialists": {
+        "Engineer": 4
+      },
+      "upkeep": 1,
+      "district": "production",
+      "requires": "standard_tooling",
+      "upgrade": "precision_assembly"
+    },
+    "greenhouse": {
+      "name": "Greenhouse",
+      "resource": "food",
+      "output": 3,
+      "specialists": {
+        "Farmer": 4
+      },
+      "upkeep": 1,
+      "district": "agriculture",
+      "requires": "closed_ecology"
+    },
+    "research_lab": {
+      "name": "Research Lab",
+      "resource": "research",
+      "output": 3,
+      "specialists": {
+        "Scientist": 4,
+        "Specialist": 4
+      },
+      "upkeep": 1,
+      "district": "research",
+      "requires": "field_methods"
+    },
+    "exchange": {
+      "name": "Exchange",
+      "resource": "credits",
+      "output": 3,
+      "specialists": {
+        "Merchant": 4
+      },
+      "upkeep": 1,
+      "district": "civic",
+      "requires": "civic_exchange"
+    },
+    "guard_post": {
+      "name": "Guard Post",
+      "resource": "influence",
+      "output": 2,
+      "specialists": {
+        "Security": 3,
+        "Administrator": 3
+      },
+      "upkeep": 1,
+      "district": "security",
+      "requires": "perimeter_defence"
+    }
+  },
+  "improvements": {
+    "road": {
+      "name": "Road",
+      "requires": "",
+      "yield": {},
+      "site": "land"
+    },
+    "farm": {
+      "name": "Farm",
+      "requires": "",
+      "yield": {
+        "food": 1
+      },
+      "site": "flat"
+    },
+    "mine": {
+      "name": "Mine",
+      "requires": "precision_assembly",
+      "yield": {
+        "industry": 1
+      },
+      "site": "hills"
+    },
+    "survey_beacon": {
+      "name": "Survey Beacon",
+      "requires": "field_methods",
+      "yield": {
+        "research": 1
+      },
+      "site": "land"
+    },
+    "trade_post": {
+      "name": "Trade Post",
+      "requires": "civic_exchange",
+      "yield": {
+        "credits": 1
+      },
+      "site": "land"
+    },
+    "watchtower": {
+      "name": "Watchtower",
+      "requires": "perimeter_defence",
+      "yield": {
+        "influence": 1
+      },
+      "site": "land"
+    }
+  }
+}

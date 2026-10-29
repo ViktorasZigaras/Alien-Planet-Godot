@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "rulesVersion": 1,
+  "schemaVersion": 5,
+  "rulesVersion": 5,
   "turn": 1,
   "resources": {
     "food": 12,
@@ -606,5 +606,8 @@
   "warnings": [],
   "log": [
     "Expedition ready. Select Main Base to inspect its four cohorts."
-  ]
+  ],
+  "improvements": {},
+  "movementQueues": {},
+  "nextCohortNumber": 1
 }

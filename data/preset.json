@@ -34,5 +34,10 @@
     "credits": 2
   },
   "workshopTurns": 2,
-  "workshopUpkeep": 1
+  "workshopUpkeep": 1,
+  "improvementCost": {
+    "industry": 1
+  },
+  "improvementTurns": 1,
+  "growthFoodCost": 20
 }

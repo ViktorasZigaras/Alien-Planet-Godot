@@ -35,7 +35,7 @@ func run() -> void:
 		state = result.state
 		var comparable = state.duplicate(true)
 		comparable.erase("log")
-		check(same(comparable, step.state), "Entire simulation state matches HTML, step %d: %s" % [i, str(step.command)])
+		check(same(comparable, Rules.migrate_save(step.state)), "Entire simulation state matches HTML, step %d: %s" % [i, str(step.command)])
 		check(Rules.validate(state).is_empty(), "State invariants after step %d: %s" % [i, Rules.validate(state)])
 		var roundtrip = JSON.parse_string(JSON.stringify(state))
 		check(Rules.validate(roundtrip).is_empty() and same(roundtrip, state), "Save roundtrip step %d" % i)
