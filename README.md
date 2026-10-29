@@ -1,6 +1,29 @@
+## Version 0.5 — living terrain visual evaluation
+
+Run `project.godot` with Godot 4.5.1 Standard and press F5. Open **3D Model lab** in the toolbar:
+
+- **Terrain hexes**: six textured studies with vegetation sway, moving water highlights and sparse ambient sprites.
+- **Terrain landscape**: seven joined hexes with stable colour/prop variation.
+- Toggle **Wind / water / ambient motion** to pause; toggle **Surface texture / ambient sprites** for a simpler surface comparison.
+- **Population rigs**: the 13-bone reusable walking rig and eight refined outfits from the preceding batches.
+
+This source release includes the previously local 0.4 and 0.4.1 model work. The strategy map stays 2D; these are isolated visual studies with no economy or save changes. Procedural textures use native Godot resources and require no network access.
+
+The sections below record earlier development stages and their status at that time.
+
+## Local 0.4.1 — refined population shapes
+
+Same 13-bone rig; each outfit now has 65–68 chamfered geometric pieces instead of 25–28 boxes. Open **3D Model lab** for the updated models and shared Walk/Stop. Terrain animation ideas remain discussion only.
+
+## Local 0.4 — 3D model lab
+
+Open **3D Model lab** from the toolbar. Compare six terrain studies, a 13-bone skeleton and eight sprite-inspired geometric outfits. Walk/Stop, view-angle and gait-speed controls share the reusable rig. The playable strategy map remains 2D. See [Model Lab Notes](docs/Model_Lab_Notes.md) for asset reuse and limits.
+
+This 0.4 stage was initially local; it is included in the 0.5 source release.
+
 # Alien Planet — Godot
 
-A development branch of the small settlement sandbox in [Alien-Planet](https://github.com/ViktorasZigaras/Alien-Planet), implemented in native GDScript and Godot Controls. It is an experimental game shell, with provisional rules and a more convenient interface. The current cloud working copy includes the seven changes and the technology batch described below; these changes have not been uploaded to GitHub yet. No balancing or opponent strategy was added.
+A development branch of the small settlement sandbox in [Alien-Planet](https://github.com/ViktorasZigaras/Alien-Planet), implemented in native GDScript and Godot Controls. It is an experimental game shell, with provisional rules and a more convenient interface. Version 0.5 includes the gameplay, technology and model-study batches described below. No balancing or opponent strategy was added.
 
 ## Run
 

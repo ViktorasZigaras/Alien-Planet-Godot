@@ -3,6 +3,7 @@ extends Control
 const Rules = preload("res://scripts/game_rules.gd")
 const MapView = preload("res://scripts/hex_map.gd")
 const Art = preload("res://scripts/starter_art.gd")
+const ModelLab = preload("res://scripts/model_lab.gd")
 const QUICK_SAVE = "user://alien_planet_quicksave.json"
 var state: Dictionary
 var selected_tile = "2,3"
@@ -33,6 +34,8 @@ var district_choice = "production"
 var tech_dialog: AcceptDialog
 var tech_tabs: TabContainer
 var tech_pages: Dictionary = {}
+var model_lab
+
 
 func _ready() -> void:
 	state = Rules.initial_state()
@@ -90,7 +93,7 @@ func build_ui() -> void:
 	title.custom_minimum_size.x = 255
 	header.add_child(title)
 	label(title, "ALIEN PLANET", 26, Color("e5ebdf"))
-	label(title, "GODOT / EXPEDITION SANDBOX 0.3 LOCAL", 11, Color("d5b77a"))
+	label(title, "GODOT / EXPEDITION SANDBOX 0.5", 11, Color("d5b77a"))
 	for key in Rules.RESOURCES:
 		var box = VBoxContainer.new()
 		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -119,6 +122,7 @@ func build_ui() -> void:
 	button(tools, "Import save…", func(): load_dialog.popup_centered_ratio(0.75))
 	button(tools, "Reset", func(): reset_dialog.popup_centered())
 	button(tools, "Technology", func(): tech_dialog.popup_centered(Vector2i(1060,730)))
+	button(tools, "3D Model lab", open_model_lab).name = "OpenModelLab"
 	var spacer = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools.add_child(spacer)
@@ -651,7 +655,7 @@ func reset_game() -> void:
 func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
-	if save_dialog.visible or load_dialog.visible or reset_dialog.visible or help_dialog.visible or tech_dialog.visible:
+	if save_dialog.visible or load_dialog.visible or reset_dialog.visible or help_dialog.visible or tech_dialog.visible or (is_instance_valid(model_lab) and model_lab.visible):
 		return
 	if get_viewport().gui_get_focus_owner() is LineEdit or get_viewport().gui_get_focus_owner() is OptionButton:
 		return
@@ -664,3 +668,9 @@ func _input(event: InputEvent) -> void:
 	elif event.keycode == KEY_SPACE and not event.ctrl_pressed:
 		issue({"type": "endTurn"})
 		get_viewport().set_input_as_handled()
+
+func open_model_lab() -> void:
+	if not is_instance_valid(model_lab):
+		model_lab = ModelLab.new()
+		add_child(model_lab)
+	model_lab.open()

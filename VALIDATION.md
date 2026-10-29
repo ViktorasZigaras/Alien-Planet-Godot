@@ -36,3 +36,24 @@ The original artwork remains unchanged and is loaded from numbered base64 text c
 - Save version 5 migration preserves older Production Districts and projects in progress.
 - Population sprite atlas was produced by the built-in image generator with transparent background enabled. The original PNG is copied unchanged into the project; per-role atlas rectangles select sprites without raster editing. It is static artwork, not an animation sheet.
 - Physical desktop testing remains pending. No combat, opponent logic or economy balancing was introduced. This batch has not been uploaded to GitHub.
+
+## Local 0.4 — 3D model lab
+
+- Existing suites: 239 rules + 142 mechanics + 90 native UI + 507 technology checks passed.
+- New model-lab suite: 131 checks passed. Total: **1,109**, zero failures.
+- Real OpenGL compatibility rendering under Mesa software rendering produced both collages. Inspected the actual neutral comparison and walking lineup; corrected terrain face winding and reviewed framing, outfit references and shared pose.
+- Reusable 13-bone Skeleton3D, rigid attachments, walk/stop reset, unchanged game state, shortcut isolation and hidden-preview suspension checked.
+- No gameplay 3D conversion, foot IK, advanced prop poses or physical Windows testing claimed. No new executable or GitHub upload.
+
+## Local 0.4.1 — chamfered detail pass
+
+- 165 model-lab checks pass, including unchanged 13 bones, the unchanged bare rig, and 2–3× geometric-piece budgets for all eight outfits.
+- All 978 prior rules/mechanics/native-UI/technology checks pass again: **1,143 total**, zero failures.
+- Actual OpenGL neutral/walking collages regenerated and inspected. First-pass collages preserved separately. No terrain-animation or crowd-performance claim.
+
+## Version 0.5 — terrain atmosphere
+
+- Model/terrain lab: 245 checks pass, including motion/detail switches, bounded sprite counts, unchanged simulation and hidden-preview activity.
+- Prior rules/mechanics/UI/technology suites: 978 checks pass again; **1,223 total**, zero failures.
+- Actual OpenGL compatibility renders exercise both shaders and native procedural textures. Six-tile and joined-landscape views reviewed; a short animation preview is captured from the same assets.
+- No economy/save changes, strategy-map 3D conversion, executable export or hardware performance benchmark.
