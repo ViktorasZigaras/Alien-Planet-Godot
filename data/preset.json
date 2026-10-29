@@ -1,0 +1,38 @@
+{
+  "width": 9,
+  "height": 7,
+  "start": {
+    "food": 12,
+    "industry": 0,
+    "credits": 12,
+    "research": 0,
+    "influence": 0
+  },
+  "landing": {
+    "food": 2,
+    "credits": 2
+  },
+  "foodPerCohort": 1,
+  "workRange": 2,
+  "movement": {
+    "cohort": 1,
+    "rover": 2
+  },
+  "supply": {
+    "cohort": 3,
+    "rover": 5
+  },
+  "extendedReach": 5,
+  "trainingCost": 4,
+  "trainingTurns": 2,
+  "districtCost": {
+    "industry": 2
+  },
+  "districtTurns": 1,
+  "workshopCost": {
+    "industry": 6,
+    "credits": 2
+  },
+  "workshopTurns": 2,
+  "workshopUpkeep": 1
+}

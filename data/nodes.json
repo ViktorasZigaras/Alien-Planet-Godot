@@ -1,0 +1,40 @@
+{
+  "standard_tooling": {
+    "name": "Standard Tooling",
+    "tree": "technical",
+    "resource": "research",
+    "cost": 4,
+    "requires": [],
+    "effect": "Unlock Production District and Workshop."
+  },
+  "precision_assembly": {
+    "name": "Precision Assembly",
+    "tree": "technical",
+    "resource": "research",
+    "cost": 8,
+    "requires": [
+      "standard_tooling",
+      "technical_education"
+    ],
+    "effect": "Staffed Workshop: Industry 3 → 4."
+  },
+  "technical_education": {
+    "name": "Technical Education",
+    "tree": "social",
+    "resource": "influence",
+    "cost": 4,
+    "requires": [],
+    "effect": "Train Workers as Specialists or Administrators."
+  },
+  "field_coordination": {
+    "name": "Field Coordination",
+    "tree": "social",
+    "resource": "influence",
+    "cost": 6,
+    "requires": [
+      "technical_education",
+      "standard_tooling"
+    ],
+    "effect": "Mobile population supply reach: 3 → 5."
+  }
+}
