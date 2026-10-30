@@ -12,6 +12,7 @@ func run() -> void:
 	await process_frame
 	app.open_model_lab()
 	var lab = app.model_lab
+	while not lab.built: await process_frame
 	lab.pages.current_tab = 2
 	for frame in range(30): await process_frame
 	await RenderingServer.frame_post_draw

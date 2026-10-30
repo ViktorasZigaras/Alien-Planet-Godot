@@ -1,0 +1,1 @@
+These tests document the previous v0.1–v0.5 simulation, including the original HTML comparison trace. They are historical specifications, not the current v0.6 test suite: the approved economy, roster, geography and movement changes deliberately replace their expected behavior. Current checks are `../test_batch.gd`, `../test_batch_ui.gd` and `../test_model_lab.gd`.

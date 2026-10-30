@@ -1,3 +1,41 @@
+# Alien Planet — Godot 0.7
+
+Open `project.godot` in Godot 4.5.1 Standard, press F5, then choose **Pixel / top-down** or **3D / isometric** above the map. Both views control the same simulation. Click inspects; left/middle drag pans; wheel zooms; right-click moves/replaces the route, Shift appends. Use **Motion** to compare animated/static 3D. Its footer shows FPS, draw calls and visible figures.
+
+The 3D view has animated water/foliage, interpolated walking/rolling travel, saved last-movement facing and one rendered person per occupied hex (the most recently selected/used). Rover equipment displays the vehicle; work suits surround the actual 13-bone person. District platforms are smaller than a tile, buildings stand individually on them, deposits remain visible at one side and people stand toward the front.
+
+**3D Model lab → World asset catalogue** inspects all 113 sprite/model variants using a single preview viewport. Eleven distinct professions, work/reinforced suits, arms, a five-joint Rover, all current workplaces, districts, improvements, settlements and deposits have matching low-resolution transparent sprites and reusable models. Sprite baking is a development script, not a user setup step. Pixel terrain retains the original starter-reference art.
+
+This source release also includes the previously local **0.6 economy/biome/equipment/technology batch**. New saves use schema 7; versions 1–6 migrate. No standalone executable is included; physical hardware play testing remains for the user. Read [Dual-view and performance notes](docs/Dual_View_07_Notes.md) and [Economy batch notes](docs/Batch_06_Notes.md) for provisional choices and limitations.
+
+Current checks: `tests/test_batch.gd`, `tests/test_batch_ui.gd`, `tests/test_model_lab.gd`, `tests/test_world.gd` (1,001 checks in total). Run with `godot --headless --path . --script tests/<name>.gd` after editor import. Actual renders and illustrative before/after software-renderer timings were also reviewed.
+
+---
+
+Earlier version notes follow; their upload status and rules describe those earlier stages.
+
+# Alien Planet — Godot 0.6 (local working version)
+
+Open `project.godot` in Godot 4.5.1 Standard and press F5. This batch adds a 24×16 biome test map, click-and-drag panning, six-resource economy, automatic town growth and medical care, eleven professions, combinable equipment, powered workplaces with tier 1–2 slots, twenty technologies and revised movement queues. All values are provisional.
+
+Start at Main Base: select a person, choose a job, equip a Work Suit to become a builder, or use the Expedition Driver to explore. **Technology** shows the five research areas and their requirements. **Fit map** shows the whole world; wheel zooms and left drag pans. **Yields** shows potential/worked output. Resident controls include equipment and Clear specialty. Buildings and tools spend secondary Industry; a Workshop converts Minerals into more Industry. Read [Batch 0.6 notes](docs/Batch_06_Notes.md) for exact prototype choices and limits.
+
+The existing **3D Model lab** is unchanged and remains an isolated asset study. Soldier combat capability values are previews; opponents/combat resolution are still future work. New profession portraits temporarily reuse existing sprites. Saves use schema 6 and migrate versions 1–5.
+
+**Not uploaded.** GitHub still contains the previously authorised version 0.5. No standalone executable is included. The original HTML prototype is unchanged.
+
+Current checks (after editor import):
+
+```sh
+godot --headless --path . --script tests/test_batch.gd
+godot --headless --path . --script tests/test_batch_ui.gd
+godot --headless --path . --script tests/test_model_lab.gd
+```
+
+---
+
+The following sections describe earlier versions, with the rules and upload status they had at the time. Version 0.6 replaces their economy, roster, map and movement specifications.
+
 ## Version 0.5 — living terrain visual evaluation
 
 Run `project.godot` with Godot 4.5.1 Standard and press F5. Open **3D Model lab** in the toolbar:

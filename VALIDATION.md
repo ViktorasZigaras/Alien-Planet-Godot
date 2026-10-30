@@ -1,3 +1,25 @@
+# Current version 0.7
+
+**1,001 checks pass:** 421 simulation/content/migration, 21 native UI/save/navigation, 247 model-lab and 312 dual-world/art checks. These cover lazy/reused 3D construction, grouped terrain instances, same-state view switching, last-used stack visibility, five-bone vehicle wheels, humanoids inside suits for every profession, 3D picking/panning, authoritative movement/facing traces, tween/motion controls, hidden world suspension (including beneath the showcase), the single-viewport catalogue, all 113 nonempty transparent sprites and schema 6→7 migration. Earlier 1–5 migration remains tested in the batch suite.
+
+Actual OpenGL renders inspected both directions and the larger map. Shader/mesh winding corrected in the first sprite bake. Native headless startup/import succeeds. A before/after comparison uses the exact previous 0.6 git snapshot and the same software-renderer configuration; the timings and limitations are in `docs/Dual_View_07_Notes.md` and `docs/Performance_07_Software_Renderer.json`. No physical Windows/GPU testing or executable export is claimed.
+
+This source upload includes the previously local 0.6 batch. The historical results below are not added to the current 1,001-check total.
+
+---
+
+# Current local version 0.6
+
+**687 checks pass, zero failures:** 421 simulation/content/migration checks, 21 native UI/navigation/save checks and 245 unchanged model-lab checks. Godot 4.5.1 headless editor import and native scene startup succeed. Actual OpenGL compatibility captures of the landing view, biome overview and technology window were inspected under Mesa llvmpipe/Xvfb; all new icons load, and the region colours and compact grid are visible. No physical Windows play test or executable export is claimed.
+
+Simulation checks cover six resources, biome geography and deterministic seed variation, all five deposit-yield examples, independent hill/forest effects, river adjacency/crossing, entering/following/leaving roads, partial-step queue persistence, atomic rejection/replacement, equipment withdrawal/return and combinations for every profession, builder eligibility, construction/training, building/specialist/retained-stock prerequisites, all 20 nodes' reachability, tier 2 job slots, conversion input use, generator startup, medical surplus/growth, both neutral-site rewards and schema 1–5 migration. UI checks exercise click vs drag, expanded-map fit, state isolation, deployment, map move signal, new save/load and failed-import preservation. Model-lab checks retain the previous skeleton, geometry, terrain-motion and isolation assertions.
+
+Previous simulation suites are preserved in `tests/legacy_v5` as historical specifications. Their old HTML-parity/resource/movement expectations are superseded; they are **not** included in the current 687 total. The earlier results below describe their respective versions only.
+
+No code has been uploaded for version 0.6. GitHub remains at authorised version 0.5 (`e5e9d0`).
+
+---
+
 # Godot port validation
 
 Engine: Godot 4.5.1 stable, Linux x86_64, Compatibility renderer.

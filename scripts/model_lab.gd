@@ -4,6 +4,7 @@ const RigScene = preload("res://assets/models/population_rig.tscn")
 const Rig = preload("res://scripts/population_rig.gd")
 const Terrain = preload("res://scripts/terrain_study.gd")
 const Parts = preload("res://scripts/model_parts.gd")
+const Catalogue = preload("res://scripts/asset_catalogue.gd")
 const Art = preload("res://scripts/starter_art.gd")
 var pages: TabContainer
 var rigs: Array = []
@@ -17,6 +18,12 @@ var stop_button: Button
 var motion_label: Label
 var yaw = -0.45
 var speed = 1.0
+var built = false
+var construction_ms = 0.0
+var catalogue_world: Node3D
+var catalogue_actor: Node3D
+var catalogue_entries = []
+var catalogue_selector: OptionButton
 
 func text(parent: Node, value: String, size: int = 15, color: Color = Color("dce7e6")) -> Label:
 	var label = Label.new()
@@ -34,6 +41,7 @@ func action(parent: Node, title: String, callback: Callable) -> Button:
 	return button
 
 func _ready() -> void:
+	var build_start = Time.get_ticks_usec()
 	name = "ModelLab"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	z_index = 20
@@ -109,24 +117,36 @@ func _ready() -> void:
 	var terrain_grid = GridContainer.new()
 	terrain_grid.columns = 3
 	terrain_page.add_child(terrain_grid)
-	for kind in Terrain.KINDS: terrain_card(terrain_grid,kind,260)
+	for kind in Terrain.KINDS:
+		terrain_card(terrain_grid,kind,260)
+		update_activity()
+		await get_tree().process_frame
 	var people_page = page("Population rigs")
 	text(people_page,"Left: actual 3D study. Right: existing sprite reference. All outfits share the rig and walk cycle.",16)
 	var people_grid = GridContainer.new()
 	people_grid.columns = 3
 	people_page.add_child(people_grid)
-	for role in Rig.ROLES: person_card(people_grid,role,220)
+	for role in Rig.ROLES:
+		person_card(people_grid,role,220)
+		update_activity()
+		await get_tree().process_frame
 	var compare = page("Comparison collage")
 	text(compare,"01  TERRAIN / same hex scale",19,Color("ead7aa"))
 	var terrain_row = GridContainer.new()
 	terrain_row.columns = 6
 	compare.add_child(terrain_row)
-	for kind in Terrain.KINDS: terrain_card(terrain_row,kind,210)
+	for kind in Terrain.KINDS:
+		terrain_card(terrain_row,kind,210)
+		update_activity()
+		await get_tree().process_frame
 	text(compare,"02  PEOPLE / same rig, camera and gait / sprite references at right",19,Color("ead7aa"))
 	var compare_grid = GridContainer.new()
 	compare_grid.columns = 3
 	compare.add_child(compare_grid)
-	for role in Rig.ROLES: person_card(compare_grid,role,250)
+	for role in Rig.ROLES:
+		person_card(compare_grid,role,250)
+		update_activity()
+		await get_tree().process_frame
 	var landscape = page("Terrain landscape")
 	text(landscape,"Seven joined hexes / shared assets / colour variation / living patches",18)
 	var landscape_stage = stage(landscape,680,false)
@@ -143,9 +163,21 @@ func _ready() -> void:
 		tile.position = Vector3(1.5*site[0],0,sqrt(3.0)*(site[1]+site[0]*0.5))
 		landscape_stage.add_child(tile)
 		terrains.append(tile)
-	text(layout,"Walk animates every visible person in place. Stop restores the same neutral stance. Desert and fungal hexes are proposals only.",13,Color("9fbbc2"))
+	var catalogue = page("World asset catalogue")
+	text(catalogue,"All current professions / gear / vehicles / buildings / improvements / resources",18)
+	catalogue_entries = Catalogue.entries()
+	catalogue_selector = OptionButton.new()
+	catalogue_selector.name = "WorldAssetChoice"
+	for entry in catalogue_entries: catalogue_selector.add_item(entry.label)
+	catalogue.add_child(catalogue_selector)
+	catalogue_world = stage(catalogue,470,true)
+	catalogue_selector.item_selected.connect(show_asset)
+	show_asset(0)
+	text(layout,"One animated 3D viewport in the asset catalogue. World geometry and pixel sprites share these models. Shadows/MSAA disabled in studies to reduce preview cost.",13,Color("9fbbc2"))
 	pages.tab_changed.connect(func(_index): update_activity.call_deferred())
 	visibility_changed.connect(update_activity)
+	built = true
+	construction_ms = (Time.get_ticks_usec()-build_start)/1000.0
 	update_activity.call_deferred()
 
 func page(title: String) -> VBoxContainer:
@@ -187,7 +219,8 @@ func stage(parent: Node, height: int, person: bool) -> Node3D:
 	var viewport = SubViewport.new()
 	viewport.size = Vector2i(320,height)
 	viewport.own_world_3d = true
-	viewport.msaa_3d = Viewport.MSAA_2X
+	viewport.msaa_3d = Viewport.MSAA_DISABLED
+	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	container.add_child(viewport)
 	viewports.append(viewport)
 	var environment = WorldEnvironment.new()
@@ -204,7 +237,7 @@ func stage(parent: Node, height: int, person: bool) -> Node3D:
 	sun.rotation_degrees = Vector3(-42,-35,0)
 	sun.light_color = Color("ffe6be")
 	sun.light_energy = 0.95
-	sun.shadow_enabled = true
+	sun.shadow_enabled = false
 	viewport.add_child(sun)
 	var fill = DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-20,140,0)
@@ -260,10 +293,12 @@ func person_card(parent: Node, role: String, height: int) -> void:
 
 func walk() -> void:
 	for rig in rigs: rig.walk()
+	if is_instance_valid(catalogue_actor) and catalogue_actor.has_method("walk"): catalogue_actor.walk()
 	motion_label.text = "Walking · shared in-place gait"
 
 func stop() -> void:
 	for rig in rigs: rig.stop()
+	if is_instance_valid(catalogue_actor) and catalogue_actor.has_method("stop"): catalogue_actor.stop()
 	if motion_label: motion_label.text = "Stopped · in-place gait"
 
 func close() -> void:
@@ -275,6 +310,7 @@ func open() -> void:
 	update_activity()
 
 func update_activity() -> void:
+	if is_instance_valid(catalogue_actor): catalogue_actor.set_process(catalogue_world.get_viewport().get_parent().is_visible_in_tree())
 	for viewport in viewports:
 		var active = viewport.get_parent().is_visible_in_tree()
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if active else SubViewport.UPDATE_DISABLED
@@ -282,3 +318,15 @@ func update_activity() -> void:
 			if rig.get_viewport() == viewport: rig.set_process(active)
 		for tile in terrains:
 			if tile.get_viewport() == viewport: tile.atmosphere.set_process(active)
+
+func show_asset(index: int) -> void:
+	if is_instance_valid(catalogue_actor): catalogue_actor.free()
+	var entry = catalogue_entries[index]
+	catalogue_actor = Catalogue.create(entry)
+	catalogue_world.add_child(catalogue_actor)
+	var camera = catalogue_world.get_viewport().get_camera_3d()
+	var person = entry.kind == "person"
+	camera.size = 2.7 if person else 2.85
+	camera.position = Vector3(3,2,5) if person else Vector3(3.2,3.4,4.6)
+	camera.look_at(Vector3(0,1.0 if person else 0.10,0),Vector3.UP)
+	update_activity()

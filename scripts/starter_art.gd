@@ -49,6 +49,9 @@ static func roster() -> Texture2D:
 	return texture
 
 static func icon(key: String) -> Texture2D:
+	var game_sprite = world_icon("person_"+key+"_0_0")
+	if game_sprite != null: return game_sprite
+	key = {"Biologist":"Farmer","Extractor":"Engineer","Medic":"Scientist","Soldier":"Security","Explorer":"Specialist","Artist":"Merchant","rover":"rover"}.get(key,key)
 	if population_regions.is_empty(): population_regions = JSON.parse_string(FileAccess.get_file_as_string("res://data/population_sprites.json"))
 	if population_regions.has(key):
 		if population_icons.has(key): return population_icons[key]
@@ -67,6 +70,21 @@ static func icon(key: String) -> Texture2D:
 	atlas.region = CROPS.get(key, CROPS.Worker)
 	return atlas
 
+static var world_texture: Texture2D
+static var world_regions: Dictionary = {}
+static var world_cache: Dictionary = {}
+static func world_icon(key: String) -> Texture2D:
+	if world_regions.is_empty() and FileAccess.file_exists("res://data/world_sprites.json"): world_regions = JSON.parse_string(FileAccess.get_file_as_string("res://data/world_sprites.json"))
+	if not world_regions.has(key): return null
+	if world_cache.has(key): return world_cache[key]
+	if world_texture == null: world_texture = load("res://assets/world/pixel_world.png")
+	var data = world_regions[key]
+	var atlas = AtlasTexture.new()
+	atlas.atlas = world_texture
+	atlas.region = Rect2(data[0],data[1],data[2],data[3])
+	world_cache[key] = atlas
+	return atlas
+
 static var resource_cache: Dictionary = {}
 
 static func resource_icon(key: String) -> Texture2D:
@@ -76,6 +94,6 @@ static func resource_icon(key: String) -> Texture2D:
 	if key in ["food", "industry"]:
 		result = icon(key)
 	else:
-		result = load("res://assets/icons/%s.svg" % key)
+		result = load("res://assets/icons/%s.svg" % {"science":"research"}.get(key,key))
 	resource_cache[key] = result
 	return result

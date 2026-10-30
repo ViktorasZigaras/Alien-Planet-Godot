@@ -1,10 +1,17 @@
 extends RefCounted
 ## Small code-native mesh helpers shared by the model studies.
 
-static func material(color: Color) -> StandardMaterial3D:
+static var materials: Dictionary = {}
+static var shapes: Dictionary = {}
+
+static func material(color: Color, double_sided: bool = false) -> StandardMaterial3D:
+	var key = color.to_html()+str(double_sided)
+	if materials.has(key): return materials[key]
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = 0.88
+	if double_sided: mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	materials[key] = mat
 	return mat
 
 static func mesh(parent: Node3D, shape: Mesh, position: Vector3, color: Color) -> MeshInstance3D:
@@ -16,17 +23,23 @@ static func mesh(parent: Node3D, shape: Mesh, position: Vector3, color: Color) -
 	return node
 
 static func box(parent: Node3D, position: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
+	var key = "box"+str(size)
+	if shapes.has(key): return mesh(parent,shapes[key],position,color)
 	var shape = BoxMesh.new()
 	shape.size = size
+	shapes[key] = shape
 	return mesh(parent, shape, position, color)
 
 static func cylinder(parent: Node3D, position: Vector3, radius: float, height: float, color: Color, sides: int = 6, top: float = -1.0) -> MeshInstance3D:
+	var key = "cylinder"+str([radius,height,sides,top])
+	if shapes.has(key): return mesh(parent,shapes[key],position,color)
 	var shape = CylinderMesh.new()
 	shape.bottom_radius = radius
 	shape.top_radius = radius if top < 0 else top
 	shape.height = height
 	shape.radial_segments = sides
 	shape.rings = 1
+	shapes[key] = shape
 	return mesh(parent, shape, position, color)
 
 static func joint(parent: Node3D, radius: float, color: Color) -> MeshInstance3D:
@@ -38,6 +51,11 @@ static func joint(parent: Node3D, radius: float, color: Color) -> MeshInstance3D
 	return mesh(parent, shape, Vector3.ZERO, color)
 
 static func softened(parent: Node3D, position: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
+	var key = "soft"+str(size)
+	if shapes.has(key):
+		var cached = mesh(parent,shapes[key],position,color)
+		cached.material_override = material(color,true)
+		return cached
 	# Eight-sided cross-section and inset end rings: a rounded-looking, still
 	# faceted solid. One geometric piece, no extra bones or texture dependency.
 	var hx = size.x * 0.5
@@ -67,7 +85,8 @@ static func softened(parent: Node3D, position: Vector3, size: Vector3, color: Co
 		if normal.dot(centre) < 0: normal = -normal
 		st.set_normal(normal)
 		for vertex in triangle: st.add_vertex(vertex)
-	var result = mesh(parent,st.commit(),position,color)
+	shapes[key] = st.commit()
+	var result = mesh(parent,shapes[key],position,color)
 	# Explicit normals keep small chamfers readable from both sides.
-	result.material_override.cull_mode = BaseMaterial3D.CULL_DISABLED
+	result.material_override = material(color,true)
 	return result

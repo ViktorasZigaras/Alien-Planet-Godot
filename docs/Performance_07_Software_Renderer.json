@@ -1,0 +1,68 @@
+{
+  "environment": "Godot 4.5.1 GL Compatibility, Mesa llvmpipe software rendering, Xvfb, 1440x900; 45 frame samples per stage; illustrative single runs, not physical GPU benchmarks",
+  "baseline_06": {
+    "full_prepare_ms": 202.692,
+    "lab_0": {
+      "max_ms": 169.489,
+      "median_ms": 95.431,
+      "p95_ms": 112.321
+    },
+    "lab_1": {
+      "max_ms": 253.667,
+      "median_ms": 191.583,
+      "p95_ms": 252.342
+    },
+    "lab_2": {
+      "max_ms": 324.194,
+      "median_ms": 231.211,
+      "p95_ms": 279.929
+    },
+    "open_call_ms": 202.68,
+    "reopen_call_ms": 1.198
+  },
+  "version_07": {
+    "default_draw_calls": 192,
+    "default_visible_figures": 3,
+    "full_prepare_ms": 1374.138,
+    "lab_0": {
+      "max_ms": 46.044,
+      "median_ms": 36.776,
+      "p95_ms": 41.255
+    },
+    "lab_1": {
+      "max_ms": 95.145,
+      "median_ms": 58.927,
+      "p95_ms": 71.12
+    },
+    "lab_2": {
+      "max_ms": 69.224,
+      "median_ms": 57.126,
+      "p95_ms": 67.172
+    },
+    "open_call_ms": 8.774,
+    "reopen_call_ms": 0.696,
+    "stress_draw_calls": 1688,
+    "stress_visible_figures": 21,
+    "world_all_motion_off": {
+      "max_ms": 47.508,
+      "median_ms": 42.634,
+      "p95_ms": 46.464
+    },
+    "world_build_ms": 199.718,
+    "world_default": {
+      "max_ms": 36.552,
+      "median_ms": 20.509,
+      "p95_ms": 29.333
+    },
+    "world_stress": {
+      "max_ms": 62.664,
+      "median_ms": 46.647,
+      "p95_ms": 57.827
+    },
+    "world_stress_stopped": {
+      "max_ms": 64.208,
+      "median_ms": 44.217,
+      "p95_ms": 57.427
+    }
+  }
+}

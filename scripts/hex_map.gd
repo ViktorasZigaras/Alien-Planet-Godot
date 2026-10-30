@@ -5,6 +5,7 @@ signal tile_selected(key: String)
 signal move_requested(key: String, append: bool)
 signal hover_changed(key: String)
 const Rules = preload("res://scripts/game_rules.gd")
+const Catalogue = preload("res://scripts/asset_catalogue.gd")
 const Art = preload("res://scripts/starter_art.gd")
 var state: Dictionary = {}
 var selected_tile = "2,3"
@@ -15,12 +16,16 @@ var hovered = ""
 var zoom = 1.0
 var pan = Vector2.ZERO
 var dragging = false
+var press_position = Vector2.ZERO
+var drag_distance = 0.0
+var left_down = false
 var supply: Dictionary = {}
 var route: Dictionary = {}
 var font: Font
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	clip_contents = true
 	focus_mode = Control.FOCUS_ALL
 	font = ThemeDB.fallback_font
@@ -44,11 +49,22 @@ func fit_map() -> void:
 	pan = Vector2.ZERO
 	queue_redraw()
 
+func map_dimensions() -> Vector2:
+	if state.is_empty(): return Vector2(910,550)
+	return Vector2(140+sqrt(3.0)*36*(state.map.width-1+(state.map.height-1)/2.0),150+54*(state.map.height-1))
+
+func focus_tile(key: String) -> void:
+	zoom = 2.8
+	pan = Vector2.ZERO
+	pan += size/2-map_origin()-centre(state.tiles[key])*map_scale()
+	queue_redraw()
+
 func map_scale() -> float:
-	return maxf(0.1, minf(size.x / 910.0, size.y / 550.0)) * zoom
+	var dims = map_dimensions()
+	return maxf(0.1,minf(size.x/dims.x,size.y/dims.y))*zoom
 
 func map_origin() -> Vector2:
-	return (size - Vector2(910, 550) * map_scale()) / 2.0 + pan
+	return (size - map_dimensions() * map_scale()) / 2.0 + pan
 
 func centre(t: Dictionary) -> Vector2:
 	return Vector2(70 + sqrt(3.0)*36*(t.q+t.r/2.0), 75 + 54*t.r)
@@ -58,7 +74,7 @@ func polygon(t: Dictionary) -> PackedVector2Array:
 	var c = centre(t)
 	for i in range(6):
 		var a = deg_to_rad(60*i-30)
-		points.append(c+Vector2(cos(a), sin(a))*34)
+		points.append(c+Vector2(cos(a), sin(a))*35.8)
 	return points
 
 func pick(local_point: Vector2) -> String:
@@ -70,28 +86,39 @@ func pick(local_point: Vector2) -> String:
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_MIDDLE:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				left_down = true
+				press_position = event.position
+				drag_distance = 0
+			else:
+				if left_down and drag_distance < 5:
+					var key = pick(event.position)
+					if key != "": tile_selected.emit(key)
+				left_down = false
+			grab_focus()
+			accept_event()
+		elif event.button_index == MOUSE_BUTTON_MIDDLE:
 			dragging = event.pressed
 			accept_event()
-		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-			var before = (event.position-map_origin()) / map_scale()
-			zoom = clampf(zoom * (1.12 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0/1.12), 0.7, 2.8)
-			pan += event.position - (map_origin() + before * map_scale())
+		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			var before = (event.position-map_origin())/map_scale()
+			zoom = clampf(zoom*(1.12 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0/1.12),0.7,6.0)
+			pan += event.position-(map_origin()+before*map_scale())
 			queue_redraw()
 			accept_event()
-		elif event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			var key = pick(event.position)
-			if not key.is_empty():
-				if event.button_index == MOUSE_BUTTON_RIGHT:
-					move_requested.emit(key, event.shift_pressed)
-				else:
-					tile_selected.emit(key)
-				grab_focus()
+			if key != "": move_requested.emit(key,event.shift_pressed)
 			accept_event()
 	elif event is InputEventMouseMotion:
-		if dragging:
-			pan += event.relative
-			queue_redraw()
+		if left_down and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and event.button_mask & MOUSE_BUTTON_MASK_LEFT == 0:
+			left_down = false
+		if dragging or left_down:
+			drag_distance += event.relative.length()
+			if dragging or drag_distance >= 5:
+				pan += event.relative
+				queue_redraw()
 		else:
 			var key = pick(event.position)
 			if key != hovered:
@@ -113,34 +140,54 @@ func _draw() -> void:
 		elif t.relief == "hills": colour = Color("6b5d4b")
 		if hovered == t.id: colour = colour.lightened(0.12)
 		draw_colored_polygon(poly, colour)
-		var painted = draw_terrain(t,poly)
+		draw_terrain(t,poly)
 		var edge = Color("263c3f")
 		if overlay != "none" and supply.get(t.id, INF) <= Rules.reach(state, overlay): edge = Color("88ae98")
 		if selected_tile == t.id: edge = Color("f5cd82")
 		var outline = poly.duplicate()
 		outline.append(poly[0])
 		draw_polyline(outline, edge, 3 if selected_tile == t.id else 1.0, true)
-		if not painted and t.feature == "forest":
-			for dx in [-12, 0, 12]:
-				draw_colored_polygon(PackedVector2Array([c+Vector2(dx-8, 9), c+Vector2(dx, -16), c+Vector2(dx+8, 9)]), Color("73926a"))
-		elif not painted and t.relief == "hills":
-			draw_colored_polygon(PackedVector2Array([c+Vector2(-20, 11), c+Vector2(-3, -14), c+Vector2(7, 0), c+Vector2(15, -7), c+Vector2(25, 11)]), Color("b4a085"))
-		elif not painted and t.baseTerrain == "water":
-			for dy in [-8, 0, 8]: draw_line(c+Vector2(-15, dy), c+Vector2(15, dy), Color("426d86"), 1)
+		if t.feature == "forest": draw_world_sprite("overlay_forest",c+Vector2(0,-9),Vector2(78,78))
+		if t.relief == "hills": draw_world_sprite("overlay_hills",c+Vector2(0,-7),Vector2(78,78))
+		if t.baseTerrain == "water":
+			for dy in [-8,0,8]: draw_line(c+Vector2(-15,dy),c+Vector2(15,dy),Color("426d86"),1)
 		text_at(t.id, c+Vector2(0, 25), 10, Color("d5dfd0"))
 		var site = Rules.site_at(state, t.id)
 		var district = Rules.district_at(state, t.id)
-		if not site.is_empty() or not district.is_empty():
-			var key = site.id if not site.is_empty() else "district_"+district.type
-			draw_icon(key, Rect2(c-Vector2(25, 28), Vector2(50, 44)))
+		if not site.is_empty(): draw_world_sprite("settlement_main" if site.id == "main" else "settlement_field",c+Vector2(0,-3),Vector2(85,85))
+		if not district.is_empty():
+			draw_world_sprite("district_"+district.type,c,Vector2(85,85))
+			var buildings = state.buildings.values().filter(func(b): return b.get("districtId","") == district.id)
+			for i in range(buildings.size()): draw_world_sprite("building_%s_%d" % [buildings[i].type,buildings[i].tier],c+Vector2(-10+i*20,-9),Vector2(70,70))
 		if state.constructionProject != null and state.constructionProject.targetTileId == t.id:
 			text_at("BUILD", c+Vector2(0, 1), 12, Color("ffdb96"))
+	for edge_key in state.rivers:
+		var ends = edge_key.split("|")
+		var a = centre(state.tiles[ends[0]])
+		var b = centre(state.tiles[ends[1]])
+		var mid = (a+b)/2
+		var side = (b-a).normalized().orthogonal()*18
+		draw_line(mid-side,mid+side,Color("163c58"),6,true)
+		draw_line(mid-side,mid+side,Color("65bdd9"),3,true)
+	for t in state.tiles.values():
+		if t.bonus != "":
+			var resource = Rules.content().bonuses[t.bonus].yields.keys()[0]
+			draw_world_sprite("bonus_"+t.bonus,centre(t)+Vector2(-17,-14),Vector2(54,54))
+	for key in state.neutralSites:
+		var c = centre(state.tiles[key])
+		draw_world_sprite("building_exchange_1" if state.neutralSites[key].resource == "culture" else "building_research_lab_1",c,Vector2(85,85))
+		text_at(state.neutralSites[key].name,c+Vector2(0,-35),11,Color("e3c5e9"))
 	draw_improvements()
 	for tile in state.tiles.values():
 		draw_worker(tile)
 	if show_yields:
 		for tile in state.tiles.values():
 			draw_yield(tile)
+	var people = Rules.visible_people(state)
+	for tile in people:
+		var c = state.cohorts[people[tile]]
+		if c.state.kind == "mobile" or (c.state.get("job") is String and c.state.job.begins_with("tile:")): continue
+		draw_world_sprite(Catalogue.person_key(c),centre(state.tiles[tile])+Vector2(0,2),Vector2(48,48))
 	draw_queued_route()
 	if not route.is_empty() and route.path.size() > 1:
 		for i in range(route.path.size()-1):
@@ -153,15 +200,15 @@ func _draw() -> void:
 		var same = units.filter(func(v): return v.tileId == u.tileId)
 		var offset = (same.find(u) - (same.size()-1)/2.0)*23.0
 		var c = centre(state.tiles[u.tileId]) + Vector2(offset, -3)
-		draw_circle(c, 20, Color("142b34"))
+
 		draw_arc(c, 20, 0, TAU, 32, Color("f5cc82") if selected_unit == u.id else Color("a2ccd6"), 2, true)
 		var key = "rover" if u.classId == "rover" else state.cohorts[u.id].qualification
-		draw_icon(key, Rect2(c-Vector2(17, 19), Vector2(34, 36)))
+		draw_world_sprite(Catalogue.person_key(state.cohorts[u.id]),c+Vector2(0,-9),Vector2(60,60))
 	for site in state.settlements.values():
 		text_at(site.name, centre(state.tiles[site.tileId])+Vector2(0, -40), 13, Color("ffe7b6"))
 	draw_set_transform(Vector2.ZERO)
-	draw_string(font, Vector2(18, size.y-32), "LEFT: inspect    RIGHT: queue route (Shift: append)    WHEEL: zoom    MIDDLE: pan", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("9db1b8"))
-	draw_string(font, Vector2(18, size.y-13), "Main Base is the only supply source · Field Station supply cost 4", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("738d98"))
+	draw_string(font, Vector2(18, size.y-32), "CLICK: inspect   DRAG: pan   RIGHT: move (Shift: append)   WHEEL: zoom", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("9db1b8"))
+	draw_string(font, Vector2(18, size.y-13), "Climate regions guide terrain and deposits · Fit map for the whole test world", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("738d98"))
 
 func text_at(text: String, pos: Vector2, font_size: int, colour: Color) -> void:
 	draw_string(font, pos-Vector2(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x/2, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
@@ -180,15 +227,16 @@ func draw_yield(tile: Dictionary) -> void:
 	if output.is_empty():
 		return
 	var c = centre(tile) + Vector2(0, 8)
-	var width = output.size() * 30.0
-	draw_style_box(yield_backplate(), Rect2(c-Vector2(width/2+3, 12), Vector2(width+6, 20)))
-	var x = c.x-width/2
+	var columns = mini(2,output.size())
+	var width = columns*27.0
+	var rows = ceili(output.size()/2.0)
+	draw_style_box(yield_backplate(),Rect2(c-Vector2(width/2+3,12),Vector2(width+6,rows*17+3)))
+	var i = 0
 	for key in output:
-		var texture = Art.resource_icon(key)
-		if texture != null:
-			draw_texture_rect(texture, Rect2(Vector2(x, c.y-10), Vector2(15, 16)), false)
-		draw_string(font, Vector2(x+16, c.y+3), str(int(output[key])), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("fff2cd"))
-		x += 30
+		var pos = c+Vector2(-width/2+(i%2)*27,-10+floori(i/2.0)*17)
+		draw_texture_rect(Art.resource_icon(key),Rect2(pos,Vector2(13,14)),false)
+		draw_string(font,pos+Vector2(14,12),str(int(output[key])),HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("fff2cd"))
+		i += 1
 
 func yield_backplate() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
@@ -208,18 +256,14 @@ func draw_worker(tile: Dictionary) -> void:
 	draw_polyline(ring, colour, 1.8, true)
 	draw_style_box(yield_backplate(), Rect2(c+Vector2(-31,-28), Vector2(62,16)))
 	text_at(worker.name, c+Vector2(0,-16), 9, colour)
-	draw_icon(worker.qualification, Rect2(c+Vector2(-9,-11), Vector2(18,21)))
+	draw_world_sprite(Catalogue.person_key(worker),c+Vector2(0,-4),Vector2(48,48))
 
 func draw_improvements() -> void:
 	for key in state.get("improvements", {}):
 		var flags = state.improvements[key]
 		var c = centre(state.tiles[key])
-		if flags.get("farm", false):
-			draw_rect(Rect2(c+Vector2(-22,-10),Vector2(44,23)),Color("533c26"))
-			for row in range(5):
-				draw_line(c+Vector2(-20,-8+row*4),c+Vector2(20,-8+row*4),Color("a7b662"),2)
 		for improvement in flags:
-			if improvement not in ["road","farm"] and flags[improvement]: draw_icon("improvement_"+improvement,Rect2(c+Vector2(-20,-22),Vector2(40,37)))
+			if improvement != "road" and flags[improvement]: draw_world_sprite("improvement_"+improvement,c+Vector2(0,-3),Vector2(80,80))
 		if flags.get("road", false):
 			var linked = false
 			for neighbour in Rules.neighbours(state,key):
@@ -247,14 +291,21 @@ func draw_queued_route() -> void:
 func draw_terrain(tile: Dictionary, points: PackedVector2Array) -> bool:
 	var texture = Art.roster()
 	if texture == null: return false
-	var kind = "water" if tile.baseTerrain == "water" else "forest" if tile.feature == "forest" else "hills" if tile.relief == "hills" else "plains"
+	var kind = "water" if tile.baseTerrain == "water" else "plains"
 	var crop = Art.CROPS["terrain_"+kind]
 	var c = centre(tile)
-	var half_width = sqrt(3.0)*34.0/2.0
+	var half_width = sqrt(3.0)*35.8/2.0
 	var uv = PackedVector2Array()
 	for point in points:
-		var local = Vector2((point.x-c.x+half_width)/(half_width*2.0),(point.y-c.y+34.0)/68.0)
+		var local = Vector2((point.x-c.x+half_width)/(half_width*2.0),(point.y-c.y+35.8)/71.6)
 		uv.append((crop.position+local*crop.size)/texture.get_size())
-	var tint = Color(1.1,1.1,1.1) if hovered == tile.id else Color.WHITE
+	var tint = {"plains":Color("c4ceac"),"grassland":Color("9bc58d"),"desert":Color("e3bb7a"),"tundra":Color("b8cbd1"),"fungal":Color("ba99ca"),"water":Color.WHITE}[tile.baseTerrain]
+	if hovered == tile.id: tint = tint.lightened(0.15)
 	draw_polygon(points,PackedColorArray([tint]),uv,texture)
+	var wash = {"desert":Color(0.8,0.56,0.24,0.48),"tundra":Color(0.7,0.8,0.85,0.52),"fungal":Color(0.51,0.25,0.63,0.45)}.get(tile.baseTerrain,Color.TRANSPARENT)
+	if wash.a > 0: draw_colored_polygon(points,wash)
 	return true
+
+func draw_world_sprite(key: String,at: Vector2,dimensions: Vector2) -> void:
+	var texture = Art.world_icon(key)
+	if texture != null: draw_texture_rect(texture,Rect2(at-dimensions/2,dimensions),false)

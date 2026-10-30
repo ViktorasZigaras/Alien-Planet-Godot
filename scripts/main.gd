@@ -3,6 +3,7 @@ extends Control
 const Rules = preload("res://scripts/game_rules.gd")
 const MapView = preload("res://scripts/hex_map.gd")
 const Art = preload("res://scripts/starter_art.gd")
+const WorldView = preload("res://scripts/world_map.gd")
 const ModelLab = preload("res://scripts/model_lab.gd")
 const QUICK_SAVE = "user://alien_planet_quicksave.json"
 var state: Dictionary
@@ -11,6 +12,10 @@ var selected_unit = ""
 var selected_cohort = "pop_a"
 var overlay = "cohort"
 var map_view
+var pixel_view
+var world_view
+var map_host: Control
+var view_selector: OptionButton
 var resource_labels: Dictionary = {}
 var turn_label: Label
 var status_label: Label
@@ -29,7 +34,7 @@ var help_dialog: AcceptDialog
 var end_button: Button
 var support_selector: OptionButton
 var refreshing = false
-var training_target = "Specialist"
+var training_target = "Biologist"
 var district_choice = "production"
 var tech_dialog: AcceptDialog
 var tech_tabs: TabContainer
@@ -42,6 +47,7 @@ func _ready() -> void:
 	apply_theme()
 	build_ui()
 	render()
+	map_view.call_deferred("focus_tile","2,3")
 	status("Expedition ready. Select a person at Main Base, or a mobile unit below the map.")
 
 func apply_theme() -> void:
@@ -90,10 +96,10 @@ func build_ui() -> void:
 	var header = HBoxContainer.new()
 	layout.add_child(header)
 	var title = VBoxContainer.new()
-	title.custom_minimum_size.x = 255
+	title.custom_minimum_size.x = 220
 	header.add_child(title)
 	label(title, "ALIEN PLANET", 26, Color("e5ebdf"))
-	label(title, "GODOT / EXPEDITION SANDBOX 0.5", 11, Color("d5b77a"))
+	label(title, "GODOT / EXPEDITION SANDBOX 0.7", 11, Color("d5b77a"))
 	for key in Rules.RESOURCES:
 		var box = VBoxContainer.new()
 		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -138,8 +144,20 @@ func build_ui() -> void:
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.custom_minimum_size.x = 580
 	content.add_child(left)
-	var map_tools = HBoxContainer.new()
+	var map_tools = HFlowContainer.new()
 	left.add_child(map_tools)
+	view_selector = OptionButton.new()
+	view_selector.name = "MapMode"
+	view_selector.add_item("Pixel / top-down")
+	view_selector.add_item("3D / isometric")
+	view_selector.item_selected.connect(set_map_mode)
+	map_tools.add_child(view_selector)
+	var motion = CheckButton.new()
+	motion.name = "WorldMotion"
+	motion.text = "Motion"
+	motion.button_pressed = true
+	motion.toggled.connect(func(on): if is_instance_valid(world_view): world_view.set_animation(on))
+	map_tools.add_child(motion)
 	label(map_tools, "Supply", 12, Color("a5bbc2")).custom_minimum_size.x = 48
 	var support = OptionButton.new()
 	support_selector = support
@@ -158,14 +176,16 @@ func build_ui() -> void:
 	hover_label = label(map_tools, "", 12, Color("afc5cd"))
 	hover_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hover_label.clip_text = true
-	map_view = MapView.new()
-	map_view.name = "HexMap"
-	map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	map_view.custom_minimum_size = Vector2(500, 330)
-	map_view.tile_selected.connect(select_tile)
-	map_view.move_requested.connect(func(key, append): select_tile(key); issue({"type": "queueMove", "unitId": selected_unit, "target": key, "append": append}))
-	map_view.hover_changed.connect(show_hover)
-	left.add_child(map_view)
+	map_host = Control.new()
+	map_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	map_host.custom_minimum_size = Vector2(500,330)
+	left.add_child(map_host)
+	pixel_view = MapView.new()
+	pixel_view.name = "HexMap"
+	map_host.add_child(pixel_view)
+	pixel_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	connect_map(pixel_view)
+	map_view = pixel_view
 	milestones_label = label(left, "", 12, Color("c2d3b2"))
 	label(left, "MOBILE UNITS  ·  Right-click: queue route / Shift: append", 12, Color("d5b77a"))
 	var mobile_scroll = ScrollContainer.new()
@@ -211,7 +231,7 @@ func build_ui() -> void:
 	add_child(reset_dialog)
 	help_dialog = AcceptDialog.new()
 	help_dialog.title = "Alien Planet — quick controls"
-	help_dialog.dialog_text = "Left-click a hex to inspect it. Select a mobile unit below the map.\nRight-click a destination to queue a route; Shift+right-click appends a waypoint.\nUse Move here for immediate movement, or Cancel movement queue to stop.\nWheel zooms; middle-drag pans; Fit map restores the view.\n\nAt Main Base select a cohort, then change its job. Empty buildings do nothing.\nDevelop Technical Education, train a Specialist, then assign the lab again.\nDevelop Standard Tooling; make a Worker idle; select a site and build.\nProduction District: 2 Industry / 1 turn. Workshop: 6 Industry + 2 Credits / 2 turns.\nField Coordination lets population reach Field Station. Join it and assign its lab.\n\nSpace: End Turn     Ctrl+S: Quick save     Ctrl+L: Quick load\nOlder HTML/Godot saves can be imported; new saves use schema 5.\nTown growth costs 20 Food and creates an idle Worker.\nIdle Workers build Roads or Farms for 1 Industry / 1 turn.\nRoads cost 1/3 movement to enter; worked Farms add 1 Food.\nToggle Yields to inspect potential output. Cyan markers name the tile worker.\nUse Technology for five area tabs, two capabilities each.\nTraining also requires Technical Education and the role’s own capability.\nAll numbers are provisional. No opponents or combat."
+	help_dialog.dialog_text = "Click: inspect. Left or middle drag: pan. Wheel: zoom. Fit map: overview.\nRight-click: replace route and move now. Shift+right-click: append waypoint.\nHard terrain and river crossings cost more; unfinished steps retain progress.\nRoad-to-road: ⅓ move. Entering/leaving roads uses normal destination terrain.\n\nPeople keep their professions and can combine equipment from town stocks.\nWork Suit: builder capability. Rover: transport for any profession.\nSelect a resident to assign a tile/building slot, train, equip or deploy.\nIndustry manufactures equipment and builds infrastructure. Workshops convert Minerals.\nBuildings and districts use Energy; unpowered facilities produce nothing.\nTown growth = Food output − consumption − population + medical reduction.\nGrowth reaches 20: a new Worker. Surplus medicine adds to growth.\nNeutral sites: explicit Visit, once per person/site; Merchants receive double.\n\nTechnology: five groups, four capabilities each; inspect prerequisite explanations.\nSpace: End Turn. Ctrl+S/L: quick save/load. Saves use schema 7; older saves migrate.\nNumbers are provisional. Combat values are a preview; no opponents yet."
 	add_child(help_dialog)
 	tech_dialog = AcceptDialog.new()
 	tech_dialog.title = "Technology — expedition capabilities"
@@ -319,6 +339,7 @@ func select_tile(key: String) -> void:
 	render()
 
 func select_mobile(key: String) -> void:
+	state = Rules.command(state,{"type":"focusPerson","cohortId":key}).state
 	selected_unit = key
 	var u = Rules.mobile(state, key)
 	selected_tile = u.tileId
@@ -360,8 +381,7 @@ func render() -> void:
 	render_development()
 	render_report()
 	render_mobile()
-	var flags = ["✓ Tooling" if "standard_tooling" in state.completed else "○ Tooling", "✓ Specialist" if state.cohorts.values().any(func(c): return c.qualification == "Specialist") else "○ Specialist", "✓ Reach 5" if "field_coordination" in state.completed else "○ Reach 5", "✓ Station lab" if state.cohorts.values().any(func(c): return c.state.get("job") == "building:lab_field" and c.qualification == "Specialist") else "○ Station lab"]
-	milestones_label.text = "    ".join(flags)
+	milestones_label.text = "Temperate · Lush · Dry · Cold · Fungal · Coastal   |   24 × 16 test world"
 	refreshing = false
 
 func render_mobile() -> void:
@@ -380,153 +400,155 @@ func render_mobile() -> void:
 func render_orders() -> void:
 	clear(orders)
 	var t = state.tiles[selected_tile]
-	var site = Rules.site_at(state, selected_tile)
-	var district = Rules.district_at(state, selected_tile)
-	heading(orders, site.name if not site.is_empty() else Rules.content().districts[district.type].name if not district.is_empty() else "Hex "+selected_tile)
-	label(orders, "%s · %s%s%s · supply cost %s" % [selected_tile, t.baseTerrain, " / hills" if t.relief == "hills" else "", " / forest" if t.feature == "forest" else "", str(Rules.supply_field(state).get(selected_tile, "∞"))], 12, Color("a3bac2"))
-	var flags = state.improvements.get(selected_tile, {})
-	if flags.get("road", false): label(orders, "Road: enter for ⅓ movement (also lowers supply-path cost).", 12, Color("dcc49a"))
-	for improvement in flags:
-		if improvement == "road" or not flags[improvement]: continue
-		var definition = Rules.content().improvements[improvement]
-		var yields = []
-		for resource in definition.yield: yields.append("+%d %s" % [definition.yield[resource],resource])
-		label(orders,definition.name+": "+", ".join(yields)+" when worked.",12,Color("adc98b"))
-	var tile_worker = Rules.worker_at(state, selected_tile)
-	if not tile_worker.is_empty():
-		label(orders, "Worked by %s · %s · %s" % [tile_worker.name, tile_worker.qualification, state.settlements[tile_worker.state.settlementId].name], 13, Color("86d8e1"))
-	var u = Rules.mobile(state, selected_unit)
+	var site = Rules.site_at(state,selected_tile)
+	var district = Rules.district_at(state,selected_tile)
+	heading(orders,site.name if not site.is_empty() else "Hex "+selected_tile)
+	label(orders,"%s · %s biome · %s%s%s" % [selected_tile,t.biome,t.baseTerrain," / hills" if t.relief == "hills" else ""," / forest" if t.feature == "forest" else ""],12)
+	if t.bonus != "": label(orders,Rules.content().bonuses[t.bonus].name+" · "+Rules.yield_text(Rules.content().bonuses[t.bonus].yields),12,Color("e4c47e"))
+	var flags = state.improvements.get(selected_tile,{})
+	for imp in flags:
+		if flags[imp]: label(orders,Rules.content().improvements[imp].name,12)
+	label(orders,"Tile: "+Rules.yield_text(Rules.map_yield(state,selected_tile)),12)
+	var worker = Rules.worker_at(state,selected_tile)
+	if not worker.is_empty(): label(orders,"Worked by "+worker.name+" · "+worker.qualification+" · "+state.settlements[worker.home].name,12,Color("86d8e1"))
+	if state.neutralSites.has(selected_tile):
+		var n = state.neutralSites[selected_tile]
+		heading(orders,n.name)
+		label(orders,"Inhabited neutral site · +%d %s per visitor; Merchant ×2. Once per person/site." % [n.amount,n.resource],12)
+	var u = Rules.mobile(state,selected_unit)
 	if not u.is_empty():
 		divider(orders)
-		heading(orders, "Moving: "+u.name)
-		var route = Rules.path(state, u.tileId, selected_tile, u.classId)
-		label(orders, "At %s · %.2f movement left · supply reach %d\n%s" % [u.tileId, u.movementRemaining, Rules.reach(state, u.classId), "Destination path cost %.2f" % route.cost if not route.is_empty() else "No path inside supply range."], 13)
-		var cmd = {"type": "move", "unitId": selected_unit, "target": selected_tile}
-		command_button(orders, "Move here", cmd)
-		command_button(orders, "Queue route to here", {"type":"queueMove","unitId":u.id,"target":selected_tile})
-		command_button(orders, "Append destination to route", {"type":"queueMove","unitId":u.id,"target":selected_tile,"append":true})
+		heading(orders,u.name+" · "+state.cohorts[u.id].qualification)
+		label(orders,"At %s · %.2f movement left" % [u.tileId,u.movementRemaining],12)
+		command_button(orders,"Move / replace route",{"type":"queueMove","unitId":u.id,"target":selected_tile})
+		command_button(orders,"Append waypoint",{"type":"queueMove","unitId":u.id,"target":selected_tile,"append":true})
 		if state.movementQueues.has(u.id):
-			label(orders, "Queued: "+" → ".join(state.movementQueues[u.id]), 12, Color("88e3e7"))
-			command_button(orders, "Cancel movement queue", {"type":"cancelMove","unitId":u.id})
-		var blocked = Rules.reason(state, cmd)
-		if not blocked.is_empty(): label(orders, blocked, 12, Color("c2ab89"))
-		if u.classId == "cohort": command_button(orders, "Join settlement", {"type": "join", "cohortId": u.id})
-		button(orders, "Deselect unit", func(): selected_unit = ""; render())
+			label(orders,"Destination %s · %d steps · %.2f move paid toward next step" % [state.movementQueues[u.id].back(),state.movementQueues[u.id].size(),state.moveProgress.get(u.id,0.0)],12,Color("88e3e7"))
+			command_button(orders,"Cancel route",{"type":"cancelMove","unitId":u.id})
+		command_button(orders,"Join settlement",{"type":"join","cohortId":u.id})
+		command_button(orders,"Visit inhabited site",{"type":"visit","cohortId":u.id})
+		button(orders,"Deselect unit",func(): selected_unit = ""; render())
 	if not site.is_empty():
+		var ledger = Rules.economy(state)
+		var g = ledger.towns[site.id]
+		heading(orders,"Growth %d / 20 (%+d/turn)" % [site.growth,g.growth])
+		label(orders,"Food %d − consumption %d − size %d + medical %d" % [g.food,g.consumption,g.penalty,g.medicine],12)
+		label(orders,"20 growth creates a Worker automatically; Food stock is shared. Mobile people count toward their home town.",11)
 		divider(orders)
-		heading(orders, "Town action")
-		command_button(orders, "Grow population  ·  20 Food", {"type":"grow","settlementId":site.id})
-		label(orders, "Creates one idle Worker here. Each cohort consumes 1 Food/turn.", 12, Color("b4c99c"))
+		heading(orders,"Residents")
+		for role in Rules.content().qualifications:
+			var people = state.cohorts.values().filter(func(c): return c.state.get("settlementId") == site.id and c.qualification == role)
+			if people.is_empty(): continue
+			label(orders,"%s (%d)" % [role,people.size()],12,Color("d5b77a"))
+			for c in people:
+				var row = HBoxContainer.new()
+				orders.add_child(row)
+				icon(row,c.qualification)
+				var id = c.id
+				var node = button(row,("● " if selected_cohort == id else "")+c.name+" · "+c.state.kind,func(): select_person(id))
+				node.set_meta("cohort_id",id)
+				node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if state.cohorts.has(selected_cohort): render_cohort(state.cohorts[selected_cohort],district)
 		divider(orders)
-		heading(orders, "Residents — select a person")
-		var count = 0
-		for c in state.cohorts.values():
-			if c.state.get("settlementId") != site.id:
-				continue
-			count += 1
-			var row = HBoxContainer.new()
-			orders.add_child(row)
-			icon(row, c.qualification)
-			var node = button(row, ("● " if selected_cohort == c.id else "") + c.name + " · " + c.qualification, func(): selected_cohort = c.id; render())
-			node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			node.set_meta("cohort_id", c.id)
-		if count == 0:
-			label(orders, "Empty station. Bring a mobile cohort onto this hex, then Join settlement.", 13)
+		heading(orders,"Equipment stock")
+		for item in Rules.content().equipment:
+			var d = Rules.content().equipment[item]
+			command_button(orders,"%s (%d) · make for %d Industry" % [d.name,state.equipment[site.id].get(item,0),d.cost],{"type":"manufacture","settlementId":site.id,"item":item})
 		divider(orders)
-		heading(orders, "Facilities")
+		heading(orders,"Facilities")
 		for b in state.buildings.values():
-			if b.settlementId == site.id:
-				var employee = "unstaffed"
-				for c in state.cohorts.values():
-					if c.state.get("job") == "building:"+b.id: employee = c.name
-				if b.type == "training": employee = "busy" if state.trainingProject != null else "available"
-				label(orders, Rules.building_name(b)+" · "+employee, 12, Color("aac0c7"))
-				var definition = Rules.content().buildings[b.type]
-				if definition.resource != "":
-					var bonuses = []
-					for role in definition.specialists: bonuses.append("%s %d" % [role,definition.specialists[role]])
-					label(orders,"Staffed: +%d %s%s · upkeep %d Credits" % [definition.output,definition.resource," ("+", ".join(bonuses)+")" if not bonuses.is_empty() else "",definition.upkeep],11,Color("9db5ad"))
+			if b.settlementId != site.id: continue
+			var d = Rules.content().buildings[b.type]
+			var staff = []
+			for c in state.cohorts.values():
+				if c.state.get("job") is String and c.state.job.begins_with("building:"+b.id+"#"): staff.append(c.name)
+			label(orders,"%s · T%d · %d/%d staff" % [Rules.building_name(b),b.tier,staff.size(),Rules.slots(b)],13)
+			label(orders,"%s · %d Energy/t · passive +%d %s; worked +%d/slot%s" % [ledger.status.get(b.id,""),d.upkeep*(2 if b.tier == 2 else 1),d.passive,d.resource,d.output+(1 if b.tier == 2 else 0)," · consumes Minerals 1:1" if d.get("input","") == "minerals" else ""],11)
+			if not staff.is_empty(): label(orders,", ".join(staff),11)
+			if d.has("upgrade"): command_button(orders,"Upgrade to tier 2 · 6 Industry",{"type":"upgrade","buildingId":b.id})
 	if not district.is_empty():
-		var contained = Rules.content().districts[district.type].building
-		var definition = Rules.content().buildings[contained]
-		var built = state.buildings.has(Rules.building_key(district.settlementId,contained))
-		label(orders, "%s: one staffed job; %d Credit upkeep/turn." % [definition.name,definition.upkeep] if built else "Empty district. Build its "+definition.name+" using an idle Worker or Engineer.",13)
-	if not selected_cohort.is_empty() and state.cohorts.has(selected_cohort):
-		render_cohort(state.cohorts[selected_cohort], district)
-	if site.is_empty() and district.is_empty():
-		var output = Rules.map_yield(state, selected_tile)
-		var parts = []
-		for k in output: parts.append("%s +%d" % [k, output[k]])
-		label(orders, "Tile job: "+", ".join(parts) if not output.is_empty() else "No ordinary terrain job here.", 12, Color("a0b8aa"))
-	if state.trainingProject != null:
-		project_progress("Training "+state.trainingProject.qualification, state.trainingProject.turnsRemaining, 2)
-	if state.constructionProject != null:
-		project_progress(Rules.order_name(state.constructionProject.order,state.constructionProject.get("districtType","production")), state.constructionProject.turnsRemaining, Rules.project_duration(state.constructionProject.order))
+		heading(orders,Rules.content().districts[district.type].name)
+		label(orders,"1 Energy/turn. Select an idle suited resident to build here.",12)
+	if site.is_empty() and state.cohorts.has(selected_cohort): render_cohort(state.cohorts[selected_cohort],district)
+	if state.trainingProject != null: project_progress("Training "+state.trainingProject.qualification,state.trainingProject.turnsRemaining,2)
+	if state.constructionProject != null: project_progress(Rules.order_name(state.constructionProject.order,state.constructionProject.get("districtType","production")),state.constructionProject.turnsRemaining,Rules.project_duration(state.constructionProject.order))
 
-func render_cohort(c: Dictionary, district: Dictionary) -> void:
+func render_cohort(c: Dictionary,district: Dictionary) -> void:
 	divider(orders)
-	heading(orders, c.name + " · " + c.qualification)
+	heading(orders,c.name+" · "+c.qualification)
 	var st = c.state
+	var gear = []
+	for item in c.equipment: gear.append(Rules.content().equipment[item].name)
+	label(orders,"Equipment: "+(", ".join(gear) if not gear.is_empty() else "none"),12)
+	var combat = Rules.combat_profile(c)
+	label(orders,"Capability preview: attack %d / defence %d. Combat pending." % [combat.attack,combat.defence],11)
 	if st.kind != "resident":
-		label(orders, "State: "+st.kind+". This cohort cannot hold a resident job right now.", 13)
+		label(orders,"State: "+st.kind,12)
 		return
-	label(orders, "Resident at "+state.settlements[st.settlementId].name, 12, Color("aac0c7"))
+	label(orders,"Resident at "+state.settlements[st.settlementId].name,12)
 	var option = OptionButton.new()
 	option.name = "JobAssignment"
-	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	option.fit_to_longest_item = false
 	option.add_item("Idle / no job")
-	option.set_item_metadata(0, null)
-	for j in Rules.list_jobs(state, st.settlementId):
-		var index = option.item_count
-		var blocked = Rules.reason(state, {"type": "assign", "cohortId": c.id, "job": j.id})
-		option.add_item(j.label + (" [occupied]" if Rules.occupied(state, j.id, c.id) else ""))
-		option.set_item_metadata(index, j.id)
-		option.set_item_disabled(index, not blocked.is_empty())
-		option.get_popup().set_item_tooltip(index, blocked)
-		if j.id == st.job: option.select(index)
-	option.item_selected.connect(func(index): issue({"type": "assign", "cohortId": c.id, "job": option.get_item_metadata(index)}))
+	option.set_item_metadata(0,null)
+	var jobs = Rules.list_jobs(state,st.settlementId)
+	var groups = {}
+	for j in jobs:
+		var group = state.tiles[j.id.substr(5)].baseTerrain.capitalize() if j.type == "tile" else Rules.content().buildings[j.type].name
+		if not groups.has(group): groups[group] = []
+		groups[group].append(j)
+	for group in groups:
+		option.add_separator("%s (%d)" % [group,groups[group].size()])
+		for j in groups[group]:
+			var i = option.item_count
+			option.add_item(j.label)
+			option.set_item_metadata(i,j.id)
+			var block = Rules.reason(state,{"type":"assign","cohortId":c.id,"job":j.id})
+			option.set_item_disabled(i,block != "")
+			option.get_popup().set_item_tooltip(i,block)
+			if j.id == st.job: option.select(i)
+	option.item_selected.connect(func(i): issue({"type":"assign","cohortId":c.id,"job":option.get_item_metadata(i)}))
 	orders.add_child(option)
-	command_button(orders, "Mobilise as map unit", {"type": "mobilise", "cohortId": c.id})
+	for item in Rules.content().equipment:
+		var d = Rules.content().equipment[item]
+		command_button(orders,("Return " if item in c.equipment else "Equip ")+d.name+" (%d in stock)" % state.equipment[st.settlementId].get(item,0),{"type":"equip","cohortId":c.id,"item":item})
+	command_button(orders,"Deploy equipped person",{"type":"mobilise","cohortId":c.id})
+	command_button(orders,"Clear specialty",{"type":"clearSpecialty","cohortId":c.id})
 	if c.qualification == "Worker":
-		heading(orders,"Training qualification")
+		heading(orders,"Profession training")
 		var training = OptionButton.new()
 		training.name = "TrainingQualification"
 		training.fit_to_longest_item = false
-		for qualification in Rules.content().qualifications:
-			var definition = Rules.content().qualifications[qualification]
-			if not definition.trainable: continue
-			var index = training.item_count
-			training.add_item(qualification+" / "+definition.resource.capitalize())
-			training.set_item_metadata(index,qualification)
-			training.get_popup().set_item_tooltip(index,Rules.training_reason(state,qualification))
-			if qualification == training_target: training.select(index)
-		training.item_selected.connect(func(index): training_target = training.get_item_metadata(index); render())
+		for role in Rules.content().qualifications:
+			if role == "Worker": continue
+			var i = training.item_count
+			training.add_item(role)
+			training.set_item_metadata(i,role)
+			training.get_popup().set_item_tooltip(i,Rules.training_reason(state,role))
+			if role == training_target: training.select(i)
+		training.item_selected.connect(func(i): training_target = training.get_item_metadata(i); render())
 		orders.add_child(training)
-		command_button(orders,"Train "+training_target+" · 4 Credits / 2 turns",{"type":"train","cohortId":c.id,"qualification":training_target})
-		var blocked = Rules.training_reason(state,training_target)
-		if not blocked.is_empty(): label(orders,blocked,12,Color("cbb089"))
-	if c.qualification in ["Worker","Engineer"]:
-		heading(orders,"Construction — selected "+c.qualification)
-		if st.job != null: label(orders,"Set this cohort to Idle before building.",12,Color("d4bc8c"))
-		var district_select = OptionButton.new()
-		district_select.name = "DistrictType"
-		district_select.fit_to_longest_item = false
+		command_button(orders,"Train "+training_target+" · 2 Industry / 2 turns",{"type":"train","cohortId":c.id,"qualification":training_target})
+		heading(orders,Rules.training_reason(state,training_target))
+	if Rules.builder(c):
+		heading(orders,"Builder orders")
+		if st.job != null: label(orders,"Choose Idle before construction.",12)
+		var choice = OptionButton.new()
+		choice.name = "DistrictType"
+		choice.fit_to_longest_item = false
 		for kind in Rules.content().districts:
-			var index = district_select.item_count
-			district_select.add_item(Rules.content().districts[kind].name)
-			district_select.set_item_metadata(index,kind)
-			if kind == district_choice: district_select.select(index)
-		district_select.item_selected.connect(func(index): district_choice = district_select.get_item_metadata(index); render())
-		orders.add_child(district_select)
-		var district_cmd = {"type":"build","order":"district","cohortId":c.id,"target":selected_tile}
-		if district_choice != "production": district_cmd.districtType = district_choice
-		command_button(orders,"Build "+Rules.content().districts[district_choice].name+" · 2 Ind / 1 turn",district_cmd)
+			var i = choice.item_count
+			choice.add_item(Rules.content().districts[kind].name)
+			choice.set_item_metadata(i,kind)
+			if kind == district_choice: choice.select(i)
+		choice.item_selected.connect(func(i): district_choice = choice.get_item_metadata(i); render())
+		orders.add_child(choice)
+		command_button(orders,"Build district · 2 Industry / 1 turn",{"type":"build","order":"district","districtType":district_choice,"cohortId":c.id,"target":selected_tile})
 		if not district.is_empty():
-			var building = Rules.content().districts[district.type].building
-			command_button(orders,"Build "+Rules.content().buildings[building].name+" · 6 Ind + 2 Cr / 2 turns",{"type":"build","order":building,"cohortId":c.id,"districtId":district.id})
-		for improvement in Rules.content().improvements:
-			command_button(orders,"Build "+Rules.content().improvements[improvement].name+" · 1 Ind / 1 turn",{"type":"improve","improvement":improvement,"cohortId":c.id,"target":selected_tile})
+			for kind in Rules.buildable_buildings():
+				if Rules.content().buildings[kind].district == district.type: command_button(orders,"Build "+Rules.content().buildings[kind].name+" · 6 Industry / 2 turns",{"type":"build","order":kind,"cohortId":c.id,"districtId":district.id})
+		for kind in Rules.content().improvements:
+			command_button(orders,"Build "+Rules.content().improvements[kind].name+" · 1 Industry / 1 turn",{"type":"improve","improvement":kind,"cohortId":c.id,"target":selected_tile})
 
 func project_progress(title: String, remaining, duration: int) -> void:
 	divider(orders)
@@ -541,7 +563,7 @@ func project_progress(title: String, remaining, duration: int) -> void:
 func render_development() -> void:
 	clear(development)
 	heading(development,"Technology view")
-	label(development,"%d / %d capabilities developed. Two starter technologies in each area; costs and yields are provisional." % [state.completed.size(),Rules.nodes().size()],13)
+	label(development,"%d / %d capabilities developed. Four starter technologies per area; costs and yields are provisional." % [state.completed.size(),Rules.nodes().size()],13)
 	var index = 0
 	for tree in Rules.content().trees:
 		var tab_index = index
@@ -573,6 +595,11 @@ func render_development() -> void:
 				var names = []
 				for pre in n.requires: names.append(Rules.nodes()[pre].name)
 				label(card,"Requires: "+" + ".join(names),13,Color("c9b995"))
+			var extra = []
+			for kind in n.buildings: extra.append("Building: "+Rules.content().buildings[kind].name)
+			for role in n.specialists: extra.append("Specialist: "+role)
+			for k in n.stocks: extra.append("Retained stock: %d %s" % [n.stocks[k],k])
+			if not extra.is_empty(): label(card," · ".join(extra),13,Color("c9b995"))
 			label(card,"Unlocks / effects: "+", ".join(n.unlocks),13,Color("9cceca"))
 			if key in state.completed:
 				label(card,"✓ Developed",14,Color("a5d29a"))
@@ -581,8 +608,8 @@ func render_development() -> void:
 				command_button(card,"Develop "+n.name,cmd)
 				var blocked = Rules.reason(state,cmd)
 				if not blocked.is_empty(): label(card,blocked,12,Color("c9a99a"))
-	label(development,"Farmer → Food\nEngineer → Industry\nMerchant → Credits\nScientist → Research\nAdministrator → Influence\nSecurity → Guard Post",13,Color("adc8b5"))
-	label(development,"Roads and Farms remain known starter improvements. Military content has no combat system yet.",12,Color("b9a88a"))
+	label(development,"Biologist → biological extraction\nExtractor → Minerals\nEngineer → conversion\nMedic → growth\nScientist → Science\nMerchant → site visits\nArtist → Culture",13,Color("adc8b5"))
+	label(development,"Roads and Farms are starter improvements. Military combat values are a preview; opponents and combat resolution come later.",12,Color("b9a88a"))
 
 func render_report() -> void:
 	clear(report)
@@ -640,7 +667,7 @@ func load_from(path: String) -> bool:
 	selected_unit = ""
 	selected_cohort = "pop_a"
 	render()
-	status("Save imported. Cohorts and orders preserved.")
+	status("Save imported; migrated people, equipment and orders are ready.")
 	return true
 
 func reset_game() -> void:
@@ -673,4 +700,39 @@ func open_model_lab() -> void:
 	if not is_instance_valid(model_lab):
 		model_lab = ModelLab.new()
 		add_child(model_lab)
+		model_lab.visibility_changed.connect(func():
+			if is_instance_valid(world_view):
+				world_view.suspended = model_lab.visible
+				world_view.update_activity())
 	model_lab.open()
+	if is_instance_valid(world_view):
+		world_view.suspended = true
+		world_view.update_activity()
+
+func connect_map(view: Control) -> void:
+	view.tile_selected.connect(select_tile)
+	view.move_requested.connect(func(key,append): select_tile(key); issue({"type":"queueMove","unitId":selected_unit,"target":key,"append":append}))
+	view.hover_changed.connect(show_hover)
+
+func set_map_mode(index: int) -> void:
+	var yields_on = map_view.show_yields
+	if index == 1 and not is_instance_valid(world_view):
+		world_view = WorldView.new()
+		world_view.name = "WorldMap"
+		map_host.add_child(world_view)
+		world_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		connect_map(world_view)
+		world_view.set_animation(find_child("WorldMotion",true,false).button_pressed)
+	pixel_view.visible = index == 0
+	if is_instance_valid(world_view): world_view.visible = index == 1
+	map_view = world_view if index == 1 else pixel_view
+	map_view.show_yields = yields_on
+	view_selector.select(index)
+	update_map()
+	map_view.focus_tile(selected_tile) if index == 1 else pixel_view.focus_tile(selected_tile)
+	status("3D isometric world: click/drag/zoom and right-click orders." if index == 1 else "Pixel top-down world.")
+
+func select_person(id: String) -> void:
+	state = Rules.command(state,{"type":"focusPerson","cohortId":id}).state
+	selected_cohort = id
+	render()

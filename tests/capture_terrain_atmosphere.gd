@@ -16,6 +16,7 @@ func run() -> void:
 	await process_frame
 	app.open_model_lab()
 	var lab = app.model_lab
+	while not lab.built: await process_frame
 	lab.pages.current_tab = 0
 	await settle(20)
 	for tile in lab.terrains:

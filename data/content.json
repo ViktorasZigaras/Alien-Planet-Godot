@@ -13,103 +13,99 @@
       "tile_bonus": 0,
       "trainable": false
     },
-    "Specialist": {
-      "resource": "research",
-      "requires": "technical_education",
-      "tile_bonus": 0,
-      "trainable": true
-    },
-    "Farmer": {
+    "Biologist": {
       "resource": "food",
       "requires": "cultivation",
+      "tile_bonus": 1,
+      "trainable": true
+    },
+    "Extractor": {
+      "resource": "minerals",
+      "requires": "extraction",
       "tile_bonus": 1,
       "trainable": true
     },
     "Engineer": {
       "resource": "industry",
       "requires": "standard_tooling",
-      "tile_bonus": 1,
-      "trainable": true
-    },
-    "Merchant": {
-      "resource": "credits",
-      "requires": "civic_exchange",
-      "tile_bonus": 1,
+      "tile_bonus": 0,
       "trainable": true
     },
     "Scientist": {
-      "resource": "research",
+      "resource": "science",
       "requires": "field_methods",
       "tile_bonus": 1,
+      "trainable": true
+    },
+    "Medic": {
+      "resource": "growth",
+      "requires": "clinical_practice",
+      "tile_bonus": 0,
+      "trainable": true
+    },
+    "Merchant": {
+      "resource": "culture",
+      "requires": "civic_exchange",
+      "tile_bonus": 0,
       "trainable": true
     },
     "Administrator": {
-      "resource": "influence",
+      "resource": "culture",
       "requires": "technical_education",
-      "tile_bonus": 1,
+      "tile_bonus": 0,
       "trainable": true
     },
-    "Security": {
-      "resource": "influence",
+    "Soldier": {
+      "resource": "",
       "requires": "field_security",
       "tile_bonus": 0,
       "trainable": true
-    }
-  },
-  "districts": {
-    "production": {
-      "name": "Production District",
-      "requires": "standard_tooling",
-      "building": "workshop"
     },
-    "agriculture": {
-      "name": "Agriculture District",
-      "requires": "closed_ecology",
-      "building": "greenhouse"
+    "Explorer": {
+      "resource": "science",
+      "requires": "surveying",
+      "tile_bonus": 0,
+      "trainable": true
     },
-    "research": {
-      "name": "Research District",
-      "requires": "field_methods",
-      "building": "research_lab"
-    },
-    "civic": {
-      "name": "Civic District",
-      "requires": "civic_exchange",
-      "building": "exchange"
-    },
-    "security": {
-      "name": "Security District",
-      "requires": "perimeter_defence",
-      "building": "guard_post"
+    "Artist": {
+      "resource": "culture",
+      "requires": "creative_practice",
+      "tile_bonus": 1,
+      "trainable": true
     }
   },
   "buildings": {
     "lab": {
       "name": "Field Lab",
-      "resource": "research",
+      "resource": "science",
       "output": 1,
       "specialists": {
-        "Specialist": 3,
-        "Scientist": 3
+        "Scientist": 2
       },
-      "upkeep": 0
+      "upkeep": 1,
+      "passive": 1,
+      "slots": 1
     },
     "civic": {
       "name": "Civic Office",
-      "resource": "influence",
-      "output": 2,
-      "specialists": {},
-      "eligible": [
-        "Administrator"
-      ],
-      "upkeep": 0
+      "resource": "culture",
+      "output": 1,
+      "specialists": {
+        "Administrator": 2
+      },
+      "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
+      "upgrade": "public_institutions"
     },
     "training": {
       "name": "Training Module",
       "resource": "",
       "output": 0,
       "specialists": {},
-      "upkeep": 0
+      "upkeep": 0,
+      "passive": 0,
+      "slots": 1
     },
     "workshop": {
       "name": "Workshop",
@@ -119,103 +115,281 @@
         "Engineer": 4
       },
       "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
       "district": "production",
       "requires": "standard_tooling",
-      "upgrade": "precision_assembly"
+      "upgrade": "precision_assembly",
+      "input": "minerals"
     },
     "greenhouse": {
       "name": "Greenhouse",
       "resource": "food",
       "output": 3,
       "specialists": {
-        "Farmer": 4
+        "Biologist": 4
       },
       "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
       "district": "agriculture",
-      "requires": "closed_ecology"
+      "requires": "closed_ecology",
+      "upgrade": "regenerative_care"
+    },
+    "clinic": {
+      "name": "Clinic",
+      "resource": "growth",
+      "output": 2,
+      "specialists": {
+        "Medic": 3
+      },
+      "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
+      "district": "agriculture",
+      "requires": "clinical_practice",
+      "upgrade": "regenerative_care"
     },
     "research_lab": {
       "name": "Research Lab",
-      "resource": "research",
+      "resource": "science",
       "output": 3,
       "specialists": {
-        "Scientist": 4,
-        "Specialist": 4
+        "Scientist": 4
       },
       "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
       "district": "research",
-      "requires": "field_methods"
+      "requires": "field_methods",
+      "upgrade": "instrumentation"
     },
     "exchange": {
       "name": "Exchange",
-      "resource": "credits",
-      "output": 3,
+      "resource": "culture",
+      "output": 2,
       "specialists": {
-        "Merchant": 4
+        "Merchant": 3
       },
       "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
       "district": "civic",
-      "requires": "civic_exchange"
+      "requires": "civic_exchange",
+      "upgrade": "public_institutions"
+    },
+    "atelier": {
+      "name": "Atelier",
+      "resource": "culture",
+      "output": 3,
+      "specialists": {
+        "Artist": 4
+      },
+      "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
+      "district": "civic",
+      "requires": "creative_practice",
+      "upgrade": "public_institutions"
     },
     "guard_post": {
       "name": "Guard Post",
-      "resource": "influence",
-      "output": 2,
+      "resource": "culture",
+      "output": 1,
       "specialists": {
-        "Security": 3,
-        "Administrator": 3
+        "Soldier": 2
       },
       "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
       "district": "security",
-      "requires": "perimeter_defence"
+      "requires": "perimeter_defence",
+      "upgrade": "defence_logistics"
+    },
+    "generator": {
+      "name": "Generator",
+      "resource": "energy",
+      "output": 4,
+      "specialists": {
+        "Engineer": 5
+      },
+      "upkeep": 1,
+      "passive": 1,
+      "slots": 1,
+      "district": "production",
+      "requires": "power_systems",
+      "upgrade": "precision_assembly",
+      "input": "minerals"
+    }
+  },
+  "districts": {
+    "production": {
+      "name": "Production District",
+      "requires": "standard_tooling",
+      "building": "workshop",
+      "upkeep": 1
+    },
+    "agriculture": {
+      "name": "Agriculture District",
+      "requires": "closed_ecology",
+      "building": "greenhouse",
+      "upkeep": 1
+    },
+    "research": {
+      "name": "Research District",
+      "requires": "field_methods",
+      "building": "research_lab",
+      "upkeep": 1
+    },
+    "civic": {
+      "name": "Civic District",
+      "requires": "civic_exchange",
+      "building": "exchange",
+      "upkeep": 1
+    },
+    "security": {
+      "name": "Security District",
+      "requires": "perimeter_defence",
+      "building": "guard_post",
+      "upkeep": 1
     }
   },
   "improvements": {
     "road": {
       "name": "Road",
       "requires": "",
-      "yield": {},
-      "site": "land"
+      "site": "land",
+      "yield": {}
     },
     "farm": {
       "name": "Farm",
       "requires": "",
+      "site": "flat",
       "yield": {
         "food": 1
-      },
-      "site": "flat"
+      }
     },
     "mine": {
       "name": "Mine",
-      "requires": "precision_assembly",
+      "requires": "extraction",
+      "site": "hills",
       "yield": {
-        "industry": 1
-      },
-      "site": "hills"
+        "minerals": 2
+      }
     },
     "survey_beacon": {
       "name": "Survey Beacon",
       "requires": "field_methods",
+      "site": "land",
       "yield": {
-        "research": 1
-      },
-      "site": "land"
+        "science": 1
+      }
     },
     "trade_post": {
       "name": "Trade Post",
       "requires": "civic_exchange",
+      "site": "land",
       "yield": {
-        "credits": 1
-      },
-      "site": "land"
+        "culture": 1
+      }
     },
     "watchtower": {
       "name": "Watchtower",
       "requires": "perimeter_defence",
+      "site": "land",
       "yield": {
-        "influence": 1
-      },
-      "site": "land"
+        "culture": 1
+      }
+    },
+    "fungal_garden": {
+      "name": "Fungal Garden",
+      "requires": "closed_ecology",
+      "site": "fungal",
+      "yield": {
+        "food": 2
+      }
+    },
+    "energy_tap": {
+      "name": "Energy Tap",
+      "requires": "power_systems",
+      "site": "land",
+      "yield": {
+        "energy": 2
+      }
+    },
+    "field_camp": {
+      "name": "Field Camp",
+      "requires": "surveying",
+      "site": "land",
+      "yield": {
+        "science": 1,
+        "food": 1
+      }
+    }
+  },
+  "equipment": {
+    "small_arms": {
+      "name": "Small Arms",
+      "cost": 3,
+      "requires": "field_security"
+    },
+    "rover": {
+      "name": "Rover",
+      "cost": 5,
+      "requires": "surveying"
+    },
+    "work_suit": {
+      "name": "Work Suit",
+      "cost": 2,
+      "requires": "standard_tooling"
+    },
+    "survey_kit": {
+      "name": "Survey Kit",
+      "cost": 3,
+      "requires": "precision_assembly"
+    },
+    "reinforced_suit": {
+      "name": "Reinforced Suit",
+      "cost": 4,
+      "requires": "protective_equipment"
+    }
+  },
+  "bonuses": {
+    "edible_flora": {
+      "name": "Edible Flora",
+      "yields": {
+        "food": 2
+      }
+    },
+    "oasis": {
+      "name": "Oasis Fruit",
+      "yields": {
+        "food": 2
+      }
+    },
+    "ore_seam": {
+      "name": "Ore Seam",
+      "yields": {
+        "minerals": 2
+      }
+    },
+    "geothermal_vent": {
+      "name": "Geothermal Vent",
+      "yields": {
+        "energy": 2
+      }
+    },
+    "alien_specimens": {
+      "name": "Alien Specimens",
+      "yields": {
+        "science": 1
+      }
+    },
+    "resonant_stones": {
+      "name": "Resonant Stones",
+      "yields": {
+        "culture": 1
+      }
     }
   }
 }

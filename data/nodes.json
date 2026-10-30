@@ -1,137 +1,366 @@
 {
+  "cultivation": {
+    "name": "Applied Biology",
+    "tree": "biology",
+    "resource": "science",
+    "cost": 4,
+    "requires": [],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Biologist training, Farm.",
+    "unlocks": [
+      "Biologist training",
+      "Farm"
+    ]
+  },
+  "closed_ecology": {
+    "name": "Managed Ecology",
+    "tree": "biology",
+    "resource": "science",
+    "cost": 8,
+    "requires": [
+      "cultivation"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Agriculture District, Greenhouse, Fungal Garden.",
+    "unlocks": [
+      "Agriculture District",
+      "Greenhouse",
+      "Fungal Garden"
+    ]
+  },
+  "clinical_practice": {
+    "name": "Clinical Practice",
+    "tree": "biology",
+    "resource": "science",
+    "cost": 8,
+    "requires": [
+      "cultivation"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Medic training, Clinic.",
+    "unlocks": [
+      "Medic training",
+      "Clinic"
+    ]
+  },
+  "regenerative_care": {
+    "name": "Regenerative Care",
+    "tree": "biology",
+    "resource": "science",
+    "cost": 12,
+    "requires": [
+      "clinical_practice",
+      "closed_ecology"
+    ],
+    "buildings": [
+      "greenhouse"
+    ],
+    "specialists": [
+      "Biologist"
+    ],
+    "stocks": {},
+    "effect": "Unlocks Tier 2 Clinic and Greenhouse.",
+    "unlocks": [
+      "Tier 2 Clinic and Greenhouse"
+    ]
+  },
   "standard_tooling": {
     "name": "Standard Tooling",
     "tree": "industry",
-    "resource": "research",
+    "resource": "science",
     "cost": 4,
     "requires": [],
-    "effect": "Production District, Workshop and Engineer training.",
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Engineer training, Production District, Workshop, Work Suit.",
     "unlocks": [
+      "Engineer training",
       "Production District",
       "Workshop",
-      "Engineer"
+      "Work Suit"
+    ]
+  },
+  "extraction": {
+    "name": "Material Extraction",
+    "tree": "industry",
+    "resource": "science",
+    "cost": 8,
+    "requires": [
+      "standard_tooling"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Extractor training, Mine.",
+    "unlocks": [
+      "Extractor training",
+      "Mine"
+    ]
+  },
+  "power_systems": {
+    "name": "Power Systems",
+    "tree": "industry",
+    "resource": "science",
+    "cost": 8,
+    "requires": [
+      "standard_tooling"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Generator, Energy Tap.",
+    "unlocks": [
+      "Generator",
+      "Energy Tap"
     ]
   },
   "precision_assembly": {
     "name": "Precision Assembly",
     "tree": "industry",
-    "resource": "research",
-    "cost": 8,
+    "resource": "science",
+    "cost": 12,
     "requires": [
       "standard_tooling",
-      "technical_education"
+      "extraction"
     ],
-    "effect": "Workshop output +1 Industry; unlock Mine improvements.",
-    "unlocks": [
-      "Mine",
-      "Workshop +1 Industry"
-    ]
-  },
-  "technical_education": {
-    "name": "Technical Education",
-    "tree": "social",
-    "resource": "influence",
-    "cost": 4,
-    "requires": [],
-    "effect": "Enable training and Administrator qualification.",
-    "unlocks": [
-      "Administrator",
-      "Training service"
-    ]
-  },
-  "field_coordination": {
-    "name": "Field Coordination",
-    "tree": "exploration",
-    "resource": "influence",
-    "cost": 6,
-    "requires": [
-      "technical_education",
-      "standard_tooling"
+    "buildings": [
+      "workshop"
     ],
-    "effect": "Extend mobile population supply reach from 3 to 5.",
-    "unlocks": [
-      "Population supply reach 5"
-    ]
-  },
-  "cultivation": {
-    "name": "Cultivation",
-    "tree": "biology",
-    "resource": "research",
-    "cost": 4,
-    "requires": [],
-    "effect": "Train Farmers: +1 Food at food-producing tile jobs.",
-    "unlocks": [
-      "Farmer"
-    ]
-  },
-  "closed_ecology": {
-    "name": "Closed Ecology",
-    "tree": "biology",
-    "resource": "research",
-    "cost": 8,
-    "requires": [
-      "cultivation"
+    "specialists": [
+      "Engineer"
     ],
-    "effect": "Build an Agriculture District and staffed Greenhouse.",
+    "stocks": {
+      "minerals": 4
+    },
+    "effect": "Unlocks Tier 2 Workshop and Generator, Survey Kit.",
     "unlocks": [
-      "Agriculture District",
-      "Greenhouse"
+      "Tier 2 Workshop and Generator",
+      "Survey Kit"
     ]
   },
   "field_security": {
     "name": "Field Security",
     "tree": "military",
-    "resource": "research",
+    "resource": "science",
     "cost": 4,
     "requires": [],
-    "effect": "Train Security cohorts for the Guard Post. No combat in this demo.",
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Soldier training, Small Arms.",
     "unlocks": [
-      "Security"
+      "Soldier training",
+      "Small Arms"
     ]
   },
   "perimeter_defence": {
     "name": "Perimeter Defence",
     "tree": "military",
-    "resource": "research",
+    "resource": "science",
     "cost": 8,
     "requires": [
       "field_security"
     ],
-    "effect": "Security District, Guard Post and Watchtower. Staffing generates Influence; no combat yet.",
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Security District, Guard Post, Watchtower.",
     "unlocks": [
       "Security District",
       "Guard Post",
       "Watchtower"
     ]
   },
+  "protective_equipment": {
+    "name": "Protective Equipment",
+    "tree": "military",
+    "resource": "science",
+    "cost": 12,
+    "requires": [
+      "field_security",
+      "standard_tooling"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Reinforced Suit.",
+    "unlocks": [
+      "Reinforced Suit"
+    ]
+  },
+  "defence_logistics": {
+    "name": "Defence Logistics",
+    "tree": "military",
+    "resource": "science",
+    "cost": 12,
+    "requires": [
+      "perimeter_defence",
+      "protective_equipment"
+    ],
+    "buildings": [
+      "guard_post"
+    ],
+    "specialists": [
+      "Soldier"
+    ],
+    "stocks": {},
+    "effect": "Unlocks Tier 2 Guard Post.",
+    "unlocks": [
+      "Tier 2 Guard Post"
+    ]
+  },
   "field_methods": {
     "name": "Field Methods",
     "tree": "exploration",
-    "resource": "research",
+    "resource": "science",
     "cost": 4,
     "requires": [],
-    "effect": "Scientist training, Research District, Research Lab and Survey Beacon.",
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Scientist training, Research District, Research Lab, Survey Beacon.",
     "unlocks": [
-      "Scientist",
+      "Scientist training",
       "Research District",
       "Research Lab",
       "Survey Beacon"
     ]
   },
+  "surveying": {
+    "name": "Planetary Surveying",
+    "tree": "exploration",
+    "resource": "science",
+    "cost": 8,
+    "requires": [
+      "field_methods"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Explorer training, Rover, Field Camp.",
+    "unlocks": [
+      "Explorer training",
+      "Rover",
+      "Field Camp"
+    ]
+  },
+  "field_coordination": {
+    "name": "Field Coordination",
+    "tree": "exploration",
+    "resource": "science",
+    "cost": 12,
+    "requires": [
+      "surveying",
+      "standard_tooling"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Extended supply reach.",
+    "unlocks": [
+      "Extended supply reach"
+    ]
+  },
+  "instrumentation": {
+    "name": "Scientific Instrumentation",
+    "tree": "exploration",
+    "resource": "science",
+    "cost": 12,
+    "requires": [
+      "field_methods",
+      "precision_assembly"
+    ],
+    "buildings": [
+      "research_lab"
+    ],
+    "specialists": [
+      "Scientist"
+    ],
+    "stocks": {
+      "minerals": 3
+    },
+    "effect": "Unlocks Tier 2 Research Lab.",
+    "unlocks": [
+      "Tier 2 Research Lab"
+    ]
+  },
+  "technical_education": {
+    "name": "Technical Education",
+    "tree": "social",
+    "resource": "culture",
+    "cost": 4,
+    "requires": [],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Administrator training, Training service.",
+    "unlocks": [
+      "Administrator training",
+      "Training service"
+    ]
+  },
   "civic_exchange": {
     "name": "Civic Exchange",
     "tree": "social",
-    "resource": "influence",
-    "cost": 6,
+    "resource": "culture",
+    "cost": 8,
     "requires": [
       "technical_education"
     ],
-    "effect": "Merchant training, Civic District, Exchange and Trade Post.",
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Merchant training, Civic District, Exchange, Trade Post.",
     "unlocks": [
-      "Merchant",
+      "Merchant training",
       "Civic District",
       "Exchange",
       "Trade Post"
+    ]
+  },
+  "creative_practice": {
+    "name": "Creative Practice",
+    "tree": "social",
+    "resource": "culture",
+    "cost": 8,
+    "requires": [
+      "technical_education"
+    ],
+    "buildings": [],
+    "specialists": [],
+    "stocks": {},
+    "effect": "Unlocks Artist training, Atelier.",
+    "unlocks": [
+      "Artist training",
+      "Atelier"
+    ]
+  },
+  "public_institutions": {
+    "name": "Public Institutions",
+    "tree": "social",
+    "resource": "culture",
+    "cost": 12,
+    "requires": [
+      "creative_practice",
+      "civic_exchange"
+    ],
+    "buildings": [
+      "exchange"
+    ],
+    "specialists": [
+      "Merchant"
+    ],
+    "stocks": {},
+    "effect": "Unlocks Tier 2 Exchange, Atelier and Civic Office.",
+    "unlocks": [
+      "Tier 2 Exchange, Atelier and Civic Office"
     ]
   }
 }

@@ -38,7 +38,7 @@ func build() -> void:
 	st.generate_normals()
 	var surface = MeshInstance3D.new()
 	surface.mesh = st.commit()
-	var mat = Parts.material(color)
+	var mat = Parts.material(color).duplicate()
 	mat.vertex_color_use_as_albedo = true
 	mat.albedo_color = Color.WHITE
 	surface.material_override = mat

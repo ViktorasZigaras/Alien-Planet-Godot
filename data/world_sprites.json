@@ -1,0 +1,680 @@
+{
+  "bonus_alien_specimens": [
+    560,
+    800,
+    80,
+    80
+  ],
+  "bonus_edible_flora": [
+    240,
+    800,
+    80,
+    80
+  ],
+  "bonus_geothermal_vent": [
+    480,
+    800,
+    80,
+    80
+  ],
+  "bonus_oasis": [
+    320,
+    800,
+    80,
+    80
+  ],
+  "bonus_ore_seam": [
+    400,
+    800,
+    80,
+    80
+  ],
+  "bonus_resonant_stones": [
+    640,
+    800,
+    80,
+    80
+  ],
+  "building_atelier_1": [
+    240,
+    640,
+    80,
+    80
+  ],
+  "building_atelier_2": [
+    320,
+    640,
+    80,
+    80
+  ],
+  "building_civic_1": [
+    720,
+    480,
+    80,
+    80
+  ],
+  "building_civic_2": [
+    0,
+    560,
+    80,
+    80
+  ],
+  "building_clinic_1": [
+    560,
+    560,
+    80,
+    80
+  ],
+  "building_clinic_2": [
+    640,
+    560,
+    80,
+    80
+  ],
+  "building_exchange_1": [
+    80,
+    640,
+    80,
+    80
+  ],
+  "building_exchange_2": [
+    160,
+    640,
+    80,
+    80
+  ],
+  "building_generator_1": [
+    560,
+    640,
+    80,
+    80
+  ],
+  "building_generator_2": [
+    640,
+    640,
+    80,
+    80
+  ],
+  "building_greenhouse_1": [
+    400,
+    560,
+    80,
+    80
+  ],
+  "building_greenhouse_2": [
+    480,
+    560,
+    80,
+    80
+  ],
+  "building_guard_post_1": [
+    400,
+    640,
+    80,
+    80
+  ],
+  "building_guard_post_2": [
+    480,
+    640,
+    80,
+    80
+  ],
+  "building_lab_1": [
+    560,
+    480,
+    80,
+    80
+  ],
+  "building_lab_2": [
+    640,
+    480,
+    80,
+    80
+  ],
+  "building_research_lab_1": [
+    720,
+    560,
+    80,
+    80
+  ],
+  "building_research_lab_2": [
+    0,
+    640,
+    80,
+    80
+  ],
+  "building_training_1": [
+    80,
+    560,
+    80,
+    80
+  ],
+  "building_training_2": [
+    160,
+    560,
+    80,
+    80
+  ],
+  "building_workshop_1": [
+    240,
+    560,
+    80,
+    80
+  ],
+  "building_workshop_2": [
+    320,
+    560,
+    80,
+    80
+  ],
+  "district_agriculture": [
+    720,
+    720,
+    80,
+    80
+  ],
+  "district_civic": [
+    80,
+    800,
+    80,
+    80
+  ],
+  "district_production": [
+    640,
+    720,
+    80,
+    80
+  ],
+  "district_research": [
+    0,
+    800,
+    80,
+    80
+  ],
+  "district_security": [
+    160,
+    800,
+    80,
+    80
+  ],
+  "improvement_energy_tap": [
+    480,
+    720,
+    80,
+    80
+  ],
+  "improvement_farm": [
+    0,
+    720,
+    80,
+    80
+  ],
+  "improvement_field_camp": [
+    560,
+    720,
+    80,
+    80
+  ],
+  "improvement_fungal_garden": [
+    400,
+    720,
+    80,
+    80
+  ],
+  "improvement_mine": [
+    80,
+    720,
+    80,
+    80
+  ],
+  "improvement_road": [
+    720,
+    640,
+    80,
+    80
+  ],
+  "improvement_survey_beacon": [
+    160,
+    720,
+    80,
+    80
+  ],
+  "improvement_trade_post": [
+    240,
+    720,
+    80,
+    80
+  ],
+  "improvement_watchtower": [
+    320,
+    720,
+    80,
+    80
+  ],
+  "overlay_forest": [
+    80,
+    880,
+    80,
+    80
+  ],
+  "overlay_hills": [
+    160,
+    880,
+    80,
+    80
+  ],
+  "person_Administrator_0_0": [
+    160,
+    320,
+    80,
+    80
+  ],
+  "person_Administrator_0_1": [
+    240,
+    320,
+    80,
+    80
+  ],
+  "person_Administrator_1_0": [
+    320,
+    320,
+    80,
+    80
+  ],
+  "person_Administrator_1_1": [
+    400,
+    320,
+    80,
+    80
+  ],
+  "person_Administrator_2_0": [
+    480,
+    320,
+    80,
+    80
+  ],
+  "person_Administrator_2_1": [
+    560,
+    320,
+    80,
+    80
+  ],
+  "person_Artist_0_0": [
+    0,
+    480,
+    80,
+    80
+  ],
+  "person_Artist_0_1": [
+    80,
+    480,
+    80,
+    80
+  ],
+  "person_Artist_1_0": [
+    160,
+    480,
+    80,
+    80
+  ],
+  "person_Artist_1_1": [
+    240,
+    480,
+    80,
+    80
+  ],
+  "person_Artist_2_0": [
+    320,
+    480,
+    80,
+    80
+  ],
+  "person_Artist_2_1": [
+    400,
+    480,
+    80,
+    80
+  ],
+  "person_Biologist_0_0": [
+    480,
+    0,
+    80,
+    80
+  ],
+  "person_Biologist_0_1": [
+    560,
+    0,
+    80,
+    80
+  ],
+  "person_Biologist_1_0": [
+    640,
+    0,
+    80,
+    80
+  ],
+  "person_Biologist_1_1": [
+    720,
+    0,
+    80,
+    80
+  ],
+  "person_Biologist_2_0": [
+    0,
+    80,
+    80,
+    80
+  ],
+  "person_Biologist_2_1": [
+    80,
+    80,
+    80,
+    80
+  ],
+  "person_Engineer_0_0": [
+    640,
+    80,
+    80,
+    80
+  ],
+  "person_Engineer_0_1": [
+    720,
+    80,
+    80,
+    80
+  ],
+  "person_Engineer_1_0": [
+    0,
+    160,
+    80,
+    80
+  ],
+  "person_Engineer_1_1": [
+    80,
+    160,
+    80,
+    80
+  ],
+  "person_Engineer_2_0": [
+    160,
+    160,
+    80,
+    80
+  ],
+  "person_Engineer_2_1": [
+    240,
+    160,
+    80,
+    80
+  ],
+  "person_Explorer_0_0": [
+    320,
+    400,
+    80,
+    80
+  ],
+  "person_Explorer_0_1": [
+    400,
+    400,
+    80,
+    80
+  ],
+  "person_Explorer_1_0": [
+    480,
+    400,
+    80,
+    80
+  ],
+  "person_Explorer_1_1": [
+    560,
+    400,
+    80,
+    80
+  ],
+  "person_Explorer_2_0": [
+    640,
+    400,
+    80,
+    80
+  ],
+  "person_Explorer_2_1": [
+    720,
+    400,
+    80,
+    80
+  ],
+  "person_Extractor_0_0": [
+    160,
+    80,
+    80,
+    80
+  ],
+  "person_Extractor_0_1": [
+    240,
+    80,
+    80,
+    80
+  ],
+  "person_Extractor_1_0": [
+    320,
+    80,
+    80,
+    80
+  ],
+  "person_Extractor_1_1": [
+    400,
+    80,
+    80,
+    80
+  ],
+  "person_Extractor_2_0": [
+    480,
+    80,
+    80,
+    80
+  ],
+  "person_Extractor_2_1": [
+    560,
+    80,
+    80,
+    80
+  ],
+  "person_Medic_0_0": [
+    0,
+    240,
+    80,
+    80
+  ],
+  "person_Medic_0_1": [
+    80,
+    240,
+    80,
+    80
+  ],
+  "person_Medic_1_0": [
+    160,
+    240,
+    80,
+    80
+  ],
+  "person_Medic_1_1": [
+    240,
+    240,
+    80,
+    80
+  ],
+  "person_Medic_2_0": [
+    320,
+    240,
+    80,
+    80
+  ],
+  "person_Medic_2_1": [
+    400,
+    240,
+    80,
+    80
+  ],
+  "person_Merchant_0_0": [
+    480,
+    240,
+    80,
+    80
+  ],
+  "person_Merchant_0_1": [
+    560,
+    240,
+    80,
+    80
+  ],
+  "person_Merchant_1_0": [
+    640,
+    240,
+    80,
+    80
+  ],
+  "person_Merchant_1_1": [
+    720,
+    240,
+    80,
+    80
+  ],
+  "person_Merchant_2_0": [
+    0,
+    320,
+    80,
+    80
+  ],
+  "person_Merchant_2_1": [
+    80,
+    320,
+    80,
+    80
+  ],
+  "person_Scientist_0_0": [
+    320,
+    160,
+    80,
+    80
+  ],
+  "person_Scientist_0_1": [
+    400,
+    160,
+    80,
+    80
+  ],
+  "person_Scientist_1_0": [
+    480,
+    160,
+    80,
+    80
+  ],
+  "person_Scientist_1_1": [
+    560,
+    160,
+    80,
+    80
+  ],
+  "person_Scientist_2_0": [
+    640,
+    160,
+    80,
+    80
+  ],
+  "person_Scientist_2_1": [
+    720,
+    160,
+    80,
+    80
+  ],
+  "person_Soldier_0_0": [
+    640,
+    320,
+    80,
+    80
+  ],
+  "person_Soldier_0_1": [
+    720,
+    320,
+    80,
+    80
+  ],
+  "person_Soldier_1_0": [
+    0,
+    400,
+    80,
+    80
+  ],
+  "person_Soldier_1_1": [
+    80,
+    400,
+    80,
+    80
+  ],
+  "person_Soldier_2_0": [
+    160,
+    400,
+    80,
+    80
+  ],
+  "person_Soldier_2_1": [
+    240,
+    400,
+    80,
+    80
+  ],
+  "person_Worker_0_0": [
+    0,
+    0,
+    80,
+    80
+  ],
+  "person_Worker_0_1": [
+    80,
+    0,
+    80,
+    80
+  ],
+  "person_Worker_1_0": [
+    160,
+    0,
+    80,
+    80
+  ],
+  "person_Worker_1_1": [
+    240,
+    0,
+    80,
+    80
+  ],
+  "person_Worker_2_0": [
+    320,
+    0,
+    80,
+    80
+  ],
+  "person_Worker_2_1": [
+    400,
+    0,
+    80,
+    80
+  ],
+  "settlement_field": [
+    0,
+    880,
+    80,
+    80
+  ],
+  "settlement_main": [
+    720,
+    800,
+    80,
+    80
+  ],
+  "vehicle_rover": [
+    480,
+    480,
+    80,
+    80
+  ]
+}

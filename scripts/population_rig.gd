@@ -13,7 +13,11 @@ const PALETTES = {
 	"Security": ["526579", "8297a5", "d7bd73"],
 	"Specialist": ["44727b", "465960", "76cbd1"]
 }
+const GAME_ROLES = ["Worker","Biologist","Extractor","Engineer","Scientist","Medic","Merchant","Administrator","Soldier","Explorer","Artist"]
 var role = "Rig"
+var work_suit = false
+var reinforced = false
+var small_arms = false
 var skeleton: Skeleton3D
 var walking = false
 var phase = 0.0
@@ -73,7 +77,7 @@ func build() -> void:
 		build_outfit()
 
 func build_outfit() -> void:
-	var colors = PALETTES[role]
+	var colors = {"Biologist":["68844e","b4cf74","e7dcb6"],"Extractor":["bf7736","e8c76a","bacbd0"],"Medic":["deded1","bd5350","cde9df"],"Soldier":["526579","8297a5","d7bd73"],"Explorer":["44727b","ba9d65","91d4c8"],"Artist":["8a5383","e5ac60","e8d8ca"]}.get(role,PALETTES.get(role,PALETTES.Worker))
 	var cloth = Color(colors[0])
 	var accent = Color(colors[1])
 	var light = Color(colors[2])
@@ -89,21 +93,21 @@ func build_outfit() -> void:
 	for side in [-1, 1]:
 		var suffix = "_l" if side < 0 else "_r"
 		Parts.softened(attachments["upper_arm"+suffix], Vector3(0, -0.155, 0), Vector3(0.19, 0.31, 0.23), cloth)
-		Parts.softened(attachments["forearm"+suffix], Vector3(0, -0.13, 0), Vector3(0.155, 0.25, 0.18), skin if role in ["Worker", "Farmer"] else cloth)
+		Parts.softened(attachments["forearm"+suffix], Vector3(0, -0.13, 0), Vector3(0.155, 0.25, 0.18), skin if role in ["Worker", "Farmer", "Biologist"] else cloth)
 		Parts.softened(attachments["forearm"+suffix], Vector3(0, -0.285, 0.015), Vector3(0.16, 0.12, 0.19), dark)
 		Parts.softened(attachments["thigh"+suffix], Vector3(0, -0.20, 0), Vector3(0.205, 0.40, 0.25), cloth.darkened(0.12))
 		Parts.softened(attachments["shin"+suffix], Vector3(0, -0.18, 0), Vector3(0.18, 0.35, 0.21), cloth.darkened(0.20))
 		Parts.softened(attachments["foot"+suffix], Vector3(0, -0.015, 0.075), Vector3(0.22, 0.14, 0.37), dark)
 		Parts.softened(attachments["thigh"+suffix], Vector3(0, -0.30, 0.14), Vector3(0.14, 0.13, 0.05), accent.darkened(0.2))
 	# Large readable props and panels, no fingers, facial rig or cloth simulation.
-	if role in ["Worker", "Farmer", "Specialist"]:
+	if role in ["Worker", "Farmer", "Biologist", "Specialist", "Explorer"]:
 		Parts.softened(attachments.spine, Vector3(0, 0.13, -0.25), Vector3(0.34, 0.35, 0.20), accent.darkened(0.25))
 		for side in [-1, 1]:
 			Parts.softened(attachments.spine, Vector3(side*0.17, 0.13, 0.18), Vector3(0.055, 0.43, 0.04), accent)
-	if role == "Worker" or role == "Farmer":
+	if role == "Worker" or role in ["Farmer","Biologist"]:
 		Parts.softened(attachments.forearm_r, Vector3(0.08, -0.30, 0), Vector3(0.045, 0.92, 0.045), Color("8e7048"))
 		Parts.softened(attachments.forearm_r, Vector3(0.08, -0.80, 0), Vector3(0.22, 0.24, 0.055) if role == "Worker" else Vector3(0.32, 0.08, 0.18), Color("8c9e9d"))
-	if role == "Farmer":
+	if role in ["Farmer","Biologist"]:
 		Parts.cylinder(attachments.head, Vector3(0, 0.26, 0), 0.26, 0.045, light, 8)
 		Parts.cylinder(attachments.head, Vector3(0, 0.33, 0), 0.16, 0.13, light, 6, 0.13)
 	if role == "Engineer":
@@ -126,16 +130,43 @@ func build_outfit() -> void:
 		Parts.softened(attachments.spine, Vector3(0, 0.10, 0.18), Vector3(0.045, 0.36, 0.03), accent)
 		for side in [-1, 1]:
 			Parts.softened(attachments.spine, Vector3(side*0.24, 0.30, 0), Vector3(0.11, 0.055, 0.31), accent)
-	if role == "Security":
+	if role in ["Security","Soldier"]:
 		Parts.softened(attachments.spine, Vector3(0, 0.13, 0.20), Vector3(0.43, 0.34, 0.11), accent)
 		Parts.softened(attachments.head, Vector3(0, 0.25, 0), Vector3(0.31, 0.10, 0.29), cloth)
 		for side in [-1, 1]:
 			Parts.softened(attachments["upper_arm_l" if side < 0 else "upper_arm_r"], Vector3(side*0.035, -0.05, 0), Vector3(0.25, 0.18, 0.28), accent)
-	if role == "Specialist":
+	if role in ["Specialist","Explorer"]:
 		Parts.softened(attachments.head, Vector3(-0.17, 0.10, 0), Vector3(0.08, 0.16, 0.18), accent)
 		Parts.softened(attachments.spine, Vector3(-0.12, 0.21, -0.36), Vector3(0.045, 0.68, 0.045), light)
 
 	add_outfit_details(cloth,accent,light,skin,dark)
+	add_game_equipment(accent)
+
+
+func add_game_equipment(accent: Color) -> void:
+	if role == "Medic":
+		Parts.box(attachments.spine,Vector3(0,0.12,0.22),Vector3(0.18,0.06,0.03),Color("bf4c46"))
+		Parts.box(attachments.spine,Vector3(0,0.12,0.23),Vector3(0.06,0.18,0.03),Color("bf4c46"))
+		Parts.box(attachments.pelvis,Vector3(0.28,0,0),Vector3(0.18,0.23,0.22),Color("d6d6bd"))
+	if role == "Extractor":
+		Parts.cylinder(attachments.head,Vector3(0,0.25,0),0.19,0.14,accent,8)
+		var drill = Parts.cylinder(attachments.forearm_r,Vector3(0,-0.42,0.12),0.09,0.38,Color("94a7b2"),6,0.01)
+		drill.rotation.x = PI/2
+	if role == "Artist":
+		Parts.box(attachments.forearm_l,Vector3(0,-0.31,0.1),Vector3(0.32,0.04,0.20),Color("b5a47d"))
+		Parts.cylinder(attachments.forearm_r,Vector3(0,-0.35,0.07),0.018,0.43,Color("dcc394"),5)
+	if small_arms:
+		Parts.box(attachments.spine,Vector3(0.20,0.03,0.28),Vector3(0.12,0.13,0.52),Color("343e49"))
+	if work_suit or reinforced:
+		var metal = Color("90a3a5") if not reinforced else Color("647c92")
+		# Exoskeleton rails follow the existing limbs; the clothed person stays inside.
+		Parts.box(attachments.spine,Vector3(0,0.10,-0.33),Vector3(0.48,0.47,0.18),metal)
+		for side in [-1,1]:
+			var suffix = "_l" if side < 0 else "_r"
+			Parts.box(attachments.spine,Vector3(side*0.32,0.28,0),Vector3(0.17,0.14,0.34),accent)
+			for label in ["upper_arm","forearm","thigh","shin"]:
+				Parts.box(attachments[label+suffix],Vector3(side*0.15,-0.16,-0.03),Vector3(0.07,0.32,0.10),metal)
+			Parts.cylinder(attachments["shin"+suffix],Vector3(side*0.14,0,0),0.11,0.10,accent,8).rotation.z = PI/2
 
 func add_outfit_details(cloth: Color, accent: Color, light: Color, skin: Color, dark: Color) -> void:
 	# Forty useful silhouette/wardrobe pieces per person, on the same bones.

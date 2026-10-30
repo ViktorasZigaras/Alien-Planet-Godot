@@ -19,8 +19,9 @@ func run() -> void:
 	app.get_node(".").find_child("OpenModelLab",true,false).pressed.emit()
 	await process_frame
 	var lab = app.model_lab
+	while not lab.built: await process_frame
 	check(lab.visible,"Toolbar opens model lab")
-	check(lab.pages.get_tab_count() == 4,"Four study pages")
+	check(lab.pages.get_tab_count() == 5,"Five study pages")
 	check(lab.rigs.size() == 18,"Rig and eight roles on population and collage pages")
 	for rig in lab.rigs:
 		check(rig.skeleton.get_bone_count() == 13,"Same 13 bones: "+rig.role)
@@ -51,14 +52,14 @@ func run() -> void:
 	app._input(event)
 	check(app.state.turn == turn,"Lab blocks End Turn shortcut")
 	check(JSON.stringify(app.state) == before,"Model studies do not mutate game state")
-	for index in range(4):
+	for index in range(5):
 		lab.pages.current_tab = index
 		await process_frame
 		await process_frame
 		var active = 0
 		for viewport in lab.viewports:
 			if viewport.render_target_update_mode == SubViewport.UPDATE_ALWAYS: active += 1
-		check(active == ([6,9,15,1][index]),"Only current page renders: "+str(index))
+		check(active == ([6,9,15,1,1][index]),"Only current page renders: "+str(index))
 	check(lab.terrains.size() == 19,"Twelve studies and seven connected hexes")
 	lab.terrain_motion.set_pressed(false)
 	for tile in lab.terrains:

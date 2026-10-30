@@ -1,37 +1,41 @@
 {
-  "width": 9,
-  "height": 7,
+  "width": 24,
+  "height": 16,
   "start": {
-    "food": 12,
-    "industry": 0,
-    "credits": 12,
-    "research": 0,
-    "influence": 0
+    "food": 30,
+    "minerals": 6,
+    "industry": 4,
+    "energy": 12,
+    "science": 0,
+    "culture": 0
   },
   "landing": {
-    "food": 2,
-    "credits": 2
+    "food": 3,
+    "minerals": 1,
+    "industry": 1,
+    "energy": 3,
+    "science": 1,
+    "culture": 1
   },
   "foodPerCohort": 1,
   "workRange": 2,
   "movement": {
     "cohort": 1,
-    "rover": 2
+    "rover": 3
   },
   "supply": {
-    "cohort": 3,
-    "rover": 5
+    "cohort": 100,
+    "rover": 100
   },
-  "extendedReach": 5,
-  "trainingCost": 4,
+  "extendedReach": 120,
+  "trainingCost": 2,
   "trainingTurns": 2,
   "districtCost": {
     "industry": 2
   },
   "districtTurns": 1,
   "workshopCost": {
-    "industry": 6,
-    "credits": 2
+    "industry": 6
   },
   "workshopTurns": 2,
   "workshopUpkeep": 1,
