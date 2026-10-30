@@ -13,6 +13,7 @@ void vertex() {
 void fragment() {
  float t = animated ? TIME : frozen_clock;
  float pattern = sin(world_pos.x*8.0+world_pos.z*6.0+t*1.3);
- ALBEDO = base_color.rgb * (water ? 1.0+0.10*pattern : 1.0);
+ float fleck = sin(world_pos.x*21.0+world_pos.z*17.0+t*0.7)*sin(world_pos.z*28.0-t);
+ ALBEDO = base_color.rgb * (water ? 1.0+0.045*pattern+0.025*fleck : 1.0);
  ROUGHNESS = water ? 0.5 : 0.9;
 }

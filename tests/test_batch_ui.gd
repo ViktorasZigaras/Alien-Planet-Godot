@@ -12,6 +12,12 @@ func run() -> void:
 	root.add_child(app)
 	await process_frame
 	await process_frame
+	app.map_view.focus_tile("4,3")
+	var old_size = app.map_view.size
+	app.map_view.size += Vector2(120,20)
+	var focused = app.map_view.map_origin()+app.map_view.centre(app.state.tiles["4,3"])*app.map_view.map_scale()
+	check(focused.distance_to(app.map_view.size/2) < 0.1,"Opening focus stays centred after layout resize")
+	app.map_view.size = old_size
 	check(app.resource_labels.size() == 6,"Six stock displays")
 	check(app.tech_tabs.get_tab_count() == 5,"Five technology tabs")
 	var initial = JSON.stringify(app.state)

@@ -67,14 +67,14 @@ func _ready() -> void:
 	env.environment.background_mode = Environment.BG_COLOR
 	env.environment.background_color = Color("15232c")
 	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.environment.ambient_light_color = Color("bbd0d9")
-	env.environment.ambient_light_energy = 0.65
+	env.environment.ambient_light_color = Color("b9ced4")
+	env.environment.ambient_light_energy = 0.73
 	world.add_child(env)
 	var light = DirectionalLight3D.new()
 	light.name = "Sun"
 	light.rotation_degrees = Vector3(-48,-30,0)
-	light.light_color = Color("ffe8c6")
-	light.light_energy = 0.9
+	light.light_color = Color("ffe5bf")
+	light.light_energy = 0.86
 	light.shadow_enabled = false
 	world.add_child(light)
 	camera = Camera3D.new()

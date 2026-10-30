@@ -10,7 +10,7 @@ var state: Dictionary
 var selected_tile = "2,3"
 var selected_unit = ""
 var selected_cohort = "pop_a"
-var overlay = "cohort"
+var overlay = "none"
 var map_view
 var pixel_view
 var world_view
@@ -47,7 +47,7 @@ func _ready() -> void:
 	apply_theme()
 	build_ui()
 	render()
-	map_view.call_deferred("focus_tile","2,3")
+	map_view.call_deferred("focus_tile","4,3")
 	status("Expedition ready. Select a person at Main Base, or a mobile unit below the map.")
 
 func apply_theme() -> void:
@@ -99,7 +99,7 @@ func build_ui() -> void:
 	title.custom_minimum_size.x = 220
 	header.add_child(title)
 	label(title, "ALIEN PLANET", 26, Color("e5ebdf"))
-	label(title, "GODOT / EXPEDITION SANDBOX 0.7", 11, Color("d5b77a"))
+	label(title, "GODOT / EXPEDITION SANDBOX 0.8", 11, Color("d5b77a"))
 	for key in Rules.RESOURCES:
 		var box = VBoxContainer.new()
 		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -148,8 +148,8 @@ func build_ui() -> void:
 	left.add_child(map_tools)
 	view_selector = OptionButton.new()
 	view_selector.name = "MapMode"
-	view_selector.add_item("Pixel / top-down")
-	view_selector.add_item("3D / isometric")
+	view_selector.add_item("Sprite A / symbolic")
+	view_selector.add_item("3D B / balanced")
 	view_selector.item_selected.connect(set_map_mode)
 	map_tools.add_child(view_selector)
 	var motion = CheckButton.new()

@@ -1,5 +1,6 @@
 extends SceneTree
 ## Reproducible native model-to-sprite bake; no runtime generation/download step.
+const Style = preload("res://scripts/visual_style.gd")
 const Catalogue = preload("res://scripts/asset_catalogue.gd")
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
@@ -43,6 +44,7 @@ func run() -> void:
 		await RenderingServer.frame_post_draw
 		var frame = viewport.get_texture().get_image()
 		frame.convert(Image.FORMAT_RGBA8)
+		frame = Style.sprite_finish(frame)
 		var at = Vector2i(i%10*80,floori(i/10.0)*80)
 		atlas.blit_rect(frame,Rect2i(0,0,80,80),at)
 		regions[e.key] = [at.x,at.y,80,80]
@@ -53,5 +55,11 @@ func run() -> void:
 	var file = FileAccess.open("res://data/world_sprites.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify(regions,"  "))
 	file.close()
-	print("BAKED ",entries.size()," sprites")
+	var ground = Image.create(480,320,false,Image.FORMAT_RGBA8)
+	for col in range(Style.SPRITE_TERRAIN.size()):
+		for row in range(4):
+			var texture = Style.procedural_ground(Style.SPRITE_TERRAIN.keys()[col],row)
+			ground.blit_rect(texture.get_image(),Rect2i(0,0,80,80),Vector2i(col*80,row*80))
+	ground.save_png("res://assets/world/symbolic_ground.png")
+	print("BAKED ",entries.size()," sprites and 24 ground variants")
 	quit()

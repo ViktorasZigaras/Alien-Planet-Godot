@@ -1,3 +1,13 @@
+# Current version 0.8
+
+**1,058 checks pass, zero failures:** 421 simulation/content/migration, 22 native UI (including camera centring across layout resize), 247 model-lab, 313 world/art and 55 visual-style checks. Style checks cover all 24 pre-baked terrain regions, resource reuse, palette separation, sprite contours/transparency and unchanged simulation. World checks still cover all 113 model/sprite variants and matching view behavior.
+
+Godot 4.5.1 headless editor import/start succeeds. Actual 1440×900 OpenGL opening captures were reviewed for Sprite A and 3D B. The capture uses the unmodified initial scene/state and asserts that view switching does not change simulation state. First noisy ground treatment and initial-layout camera drift were corrected. No current physical-hardware benchmark, Windows play test or executable export is claimed. Previous performance measurements remain historical, not a fresh speed comparison for these new visuals.
+
+Earlier validation records below describe their respective versions and are not added to the current total.
+
+---
+
 # Current version 0.7
 
 **1,001 checks pass:** 421 simulation/content/migration, 21 native UI/save/navigation, 247 model-lab and 312 dual-world/art checks. These cover lazy/reused 3D construction, grouped terrain instances, same-state view switching, last-used stack visibility, five-bone vehicle wheels, humanoids inside suits for every profession, 3D picking/panning, authoritative movement/facing traces, tween/motion controls, hidden world suspension (including beneath the showcase), the single-viewport catalogue, all 113 nonempty transparent sprites and schema 6→7 migration. Earlier 1–5 migration remains tested in the batch suite.

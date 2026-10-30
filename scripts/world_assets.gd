@@ -1,12 +1,16 @@
 class_name WorldAssets
 extends RefCounted
 ## Small readable shared geometry. Used by the live world and pixel sprite bake.
+const Style = preload("res://scripts/visual_style.gd")
+const Ground = preload("res://assets/shaders/world_ground.gdshader")
+const Atmosphere = preload("res://scripts/terrain_atmosphere.gd")
 const P = preload("res://scripts/model_parts.gd")
 const Rig = preload("res://scripts/population_rig.gd")
 const Rover = preload("res://scripts/rover_rig.gd")
 const Motion = preload("res://assets/shaders/world_motion.gdshader")
-const TERRAIN = {"plains":"809657","grassland":"6f994f","desert":"c5a16a","tundra":"aebabc","fungal":"8c739e","water":"407d9a"}
-const DISTRICTS = {"production":"ce9d55","agriculture":"91b966","research":"71bfc7","civic":"bb83b6","security":"9da9b4"}
+const TERRAIN = Style.WORLD_TERRAIN
+const DISTRICTS = Style.DISTRICT_ACCENTS
+static var ground_materials: Dictionary = {}
 static var motion_materials: Dictionary = {}
 static var hex_mesh: Mesh
 static func moving(color: Color,water: bool = false) -> ShaderMaterial:
@@ -32,10 +36,40 @@ static func hexagon(parent: Node3D,radius: float,color: Color,y: float = 0) -> M
 	n.material_override = P.material(color,true)
 	n.scale = Vector3(radius,1,radius)
 	return n
+static func ground(kind: String) -> ShaderMaterial:
+	if not ground_materials.has(kind):
+		var mat = ShaderMaterial.new()
+		mat.shader = Ground
+		mat.set_shader_parameter("soil",Color(TERRAIN[kind]))
+		mat.set_shader_parameter("cover",Color(Style.GROUND_COVER[kind]))
+		mat.set_shader_parameter("ground_noise",Atmosphere.noise())
+		ground_materials[kind] = mat
+	return ground_materials[kind]
+static func rock(parent: Node3D,position: Vector3,size: Vector3,color: Color) -> void:
+	var key = "style_b_rock"
+	if not P.shapes.has(key):
+		var st = SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var peak = Vector3(-0.15,0.95,0.08)
+		for i in range(8):
+			var a = float(i)*TAU/8
+			var b = float(i+1)*TAU/8
+			var radii = [0.90,1.12,0.80,1.0,0.87,1.05,0.75,0.95]
+			var points = [peak,Vector3(cos(b),0,sin(b))*radii[(i+1)%8],Vector3(cos(a),0,sin(a))*radii[i]]
+			var normal = (points[1]-points[0]).cross(points[2]-points[0]).normalized()
+			if normal.y < 0: normal = -normal
+			st.set_normal(normal)
+			for vertex in points: st.add_vertex(vertex)
+		P.shapes[key] = st.commit()
+	var node = P.mesh(parent,P.shapes[key],position,color)
+	node.material_override = P.material(color,true)
+	node.scale = size
 static func tree(parent: Node3D,pos: Vector3,color: Color) -> void:
 	P.cylinder(parent,pos+Vector3(0,0.18,0),0.045,0.36,Color("705b45"))
-	var leaf = P.cylinder(parent,pos+Vector3(0,0.49,0),0.24,0.65,color,6,0)
+	var leaf = P.cylinder(parent,pos+Vector3(0,0.49,0),0.24,0.65,color,7,0)
 	leaf.material_override = moving(color)
+	var tip = P.cylinder(parent,pos+Vector3(0,0.70,0),0.15,0.42,color.lightened(0.09),7,0)
+	tip.material_override = moving(color.lightened(0.09))
 static func terrain(t: Dictionary) -> Node3D:
 	var root = Node3D.new()
 	var color = Color(TERRAIN[t.baseTerrain])
@@ -43,6 +77,7 @@ static func terrain(t: Dictionary) -> Node3D:
 	if t.baseTerrain == "water":
 		base.material_override = moving(color,true)
 		return root
+	base.material_override = ground(t.baseTerrain)
 	for i in range(3):
 		var pos = Vector3(cos(i*2.4)*0.72,0.01,sin(i*2.4)*0.65)
 		if t.baseTerrain == "fungal":
@@ -51,10 +86,10 @@ static func terrain(t: Dictionary) -> Node3D:
 			cap.material_override = moving(Color("b68baf"))
 		else: P.box(root,pos,Vector3(0.12,0.03,0.10),color.lightened(0.08))
 	if t.relief == "hills":
-		P.cylinder(root,Vector3(0.46,0.13,-0.40),0.32,0.25,color.lightened(0.13),6,0.12)
-		P.cylinder(root,Vector3(-0.4,0.10,-0.45),0.20,0.20,color.darkened(0.10),5,0.10)
+		rock(root,Vector3(0.39,0,-0.35),Vector3(0.49,0.43,0.45),color.lightened(0.12))
+		rock(root,Vector3(-0.36,0,-0.40),Vector3(0.35,0.27,0.32),color.darkened(0.08))
 	if t.feature == "forest":
-		for pos in [Vector3(-0.53,0,-0.24),Vector3(0.40,0,-0.38),Vector3(0.48,0,0.32)]: tree(root,pos,Color("3e6a4e"))
+		for pos in [Vector3(-0.53,0,-0.24),Vector3(0.40,0,-0.38),Vector3(0.48,0,0.32)]: tree(root,pos,Color("335b43"))
 	return root
 static func district(kind: String) -> Node3D:
 	var root = Node3D.new()
@@ -65,7 +100,9 @@ static func building(kind: String,tier: int = 1) -> Node3D:
 	var root = Node3D.new()
 	var colors = {"lab":"8ac2c9","civic":"bb88bb","training":"b3a68b","workshop":"c7a06e","greenhouse":"87bd90","clinic":"d7d6c6","research_lab":"81b7cb","exchange":"b582ab","atelier":"d09ba5","guard_post":"91a2af","generator":"d3b45e"}
 	var color = Color(colors.get(kind,"b4b6ab"))
-	P.softened(root,Vector3(0,0.18,0),Vector3(0.63,0.34,0.53),color)
+	P.softened(root,Vector3(0,0.18,0),Vector3(0.63,0.34,0.53),Color("ccd0bf").lerp(color,0.18))
+	P.box(root,Vector3(0,0.04,0),Vector3(0.66,0.06,0.56),Color("465c65"))
+	P.box(root,Vector3(0,0.32,0.27),Vector3(0.60,0.04,0.025),color)
 	P.box(root,Vector3(0,0.12,0.285),Vector3(0.12,0.22,0.025),Color("3a5967"))
 	for side in [-1,1]: P.box(root,Vector3(side*0.21,0.22,0.28),Vector3(0.12,0.10,0.02),Color("a7d4d4"))
 	match kind:
@@ -106,6 +143,10 @@ static func settlement(main: bool = true) -> Node3D:
 		b.scale = Vector3.ONE*0.57
 		b.position = Vector3(-0.30+i*0.28,0.04,-0.15+0.1*(i%2))
 		root.add_child(b)
+	# The settlement's focal hab-spine is distinct from the low district workplaces.
+	P.softened(root,Vector3(0,0.43,-0.24),Vector3(0.25,0.78,0.24),Color("d4cfb5"))
+	P.box(root,Vector3(0,0.43,-0.10),Vector3(0.07,0.62,0.025),Color("516f7a"))
+	P.cylinder(root,Vector3(0,0.89,-0.24),0.13,0.20,Color("d5b56e"),8,0.045)
 	P.cylinder(root,Vector3(-0.38,0.43,-0.26),0.018,0.82,Color("d5d1b4"))
 	P.box(root,Vector3(-0.27,0.77,-0.26),Vector3(0.23,0.16,0.015),Color("ce9e56"))
 	return root

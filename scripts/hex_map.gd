@@ -4,6 +4,7 @@ extends Control
 signal tile_selected(key: String)
 signal move_requested(key: String, append: bool)
 signal hover_changed(key: String)
+const Style = preload("res://scripts/visual_style.gd")
 const Rules = preload("res://scripts/game_rules.gd")
 const Catalogue = preload("res://scripts/asset_catalogue.gd")
 const Art = preload("res://scripts/starter_art.gd")
@@ -22,6 +23,7 @@ var left_down = false
 var supply: Dictionary = {}
 var route: Dictionary = {}
 var font: Font
+var focus_key = ""
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -29,7 +31,9 @@ func _ready() -> void:
 	clip_contents = true
 	focus_mode = Control.FOCUS_ALL
 	font = ThemeDB.fallback_font
-	resized.connect(queue_redraw)
+	resized.connect(func():
+		if focus_key != "": focus_tile(focus_key)
+		else: queue_redraw())
 	mouse_exited.connect(func(): hovered = ""; hover_changed.emit(""); queue_redraw())
 
 func update_view(s: Dictionary, tile: String, unit: String, support: String) -> void:
@@ -45,6 +49,7 @@ func update_view(s: Dictionary, tile: String, unit: String, support: String) -> 
 	queue_redraw()
 
 func fit_map() -> void:
+	focus_key = ""
 	zoom = 1.0
 	pan = Vector2.ZERO
 	queue_redraw()
@@ -54,6 +59,7 @@ func map_dimensions() -> Vector2:
 	return Vector2(140+sqrt(3.0)*36*(state.map.width-1+(state.map.height-1)/2.0),150+54*(state.map.height-1))
 
 func focus_tile(key: String) -> void:
+	focus_key = key
 	zoom = 2.8
 	pan = Vector2.ZERO
 	pan += size/2-map_origin()-centre(state.tiles[key])*map_scale()
@@ -102,6 +108,7 @@ func _gui_input(event: InputEvent) -> void:
 			dragging = event.pressed
 			accept_event()
 		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			focus_key = ""
 			var before = (event.position-map_origin())/map_scale()
 			zoom = clampf(zoom*(1.12 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0/1.12),0.7,6.0)
 			pan += event.position-(map_origin()+before*map_scale())
@@ -117,6 +124,7 @@ func _gui_input(event: InputEvent) -> void:
 		if dragging or left_down:
 			drag_distance += event.relative.length()
 			if dragging or drag_distance >= 5:
+				focus_key = ""
 				pan += event.relative
 				queue_redraw()
 		else:
@@ -141,9 +149,9 @@ func _draw() -> void:
 		if hovered == t.id: colour = colour.lightened(0.12)
 		draw_colored_polygon(poly, colour)
 		draw_terrain(t,poly)
-		var edge = Color("263c3f")
-		if overlay != "none" and supply.get(t.id, INF) <= Rules.reach(state, overlay): edge = Color("88ae98")
-		if selected_tile == t.id: edge = Color("f5cd82")
+		var edge = Style.SPRITE_GRID
+		if overlay != "none" and supply.get(t.id, INF) <= Rules.reach(state, overlay): edge = Color("748a70")
+		if selected_tile == t.id: edge = Style.SELECTION
 		var outline = poly.duplicate()
 		outline.append(poly[0])
 		draw_polyline(outline, edge, 3 if selected_tile == t.id else 1.0, true)
@@ -151,7 +159,7 @@ func _draw() -> void:
 		if t.relief == "hills": draw_world_sprite("overlay_hills",c+Vector2(0,-7),Vector2(78,78))
 		if t.baseTerrain == "water":
 			for dy in [-8,0,8]: draw_line(c+Vector2(-15,dy),c+Vector2(15,dy),Color("426d86"),1)
-		text_at(t.id, c+Vector2(0, 25), 10, Color("d5dfd0"))
+		if t.id == selected_tile or t.id == hovered: text_at(t.id,c+Vector2(0,27),10,Color("fff1c9"))
 		var site = Rules.site_at(state, t.id)
 		var district = Rules.district_at(state, t.id)
 		if not site.is_empty(): draw_world_sprite("settlement_main" if site.id == "main" else "settlement_field",c+Vector2(0,-3),Vector2(85,85))
@@ -289,21 +297,13 @@ func draw_queued_route() -> void:
 		previous = steps[i]
 
 func draw_terrain(tile: Dictionary, points: PackedVector2Array) -> bool:
-	var texture = Art.roster()
-	if texture == null: return false
-	var kind = "water" if tile.baseTerrain == "water" else "plains"
-	var crop = Art.CROPS["terrain_"+kind]
+	var texture = Style.ground_texture(tile.baseTerrain,int(tile.q)*3+int(tile.r)*5)
 	var c = centre(tile)
-	var half_width = sqrt(3.0)*35.8/2.0
 	var uv = PackedVector2Array()
-	for point in points:
-		var local = Vector2((point.x-c.x+half_width)/(half_width*2.0),(point.y-c.y+35.8)/71.6)
-		uv.append((crop.position+local*crop.size)/texture.get_size())
-	var tint = {"plains":Color("c4ceac"),"grassland":Color("9bc58d"),"desert":Color("e3bb7a"),"tundra":Color("b8cbd1"),"fungal":Color("ba99ca"),"water":Color.WHITE}[tile.baseTerrain]
-	if hovered == tile.id: tint = tint.lightened(0.15)
+	var half_width = sqrt(3.0)*35.8/2.0
+	for point in points: uv.append(Vector2((point.x-c.x+half_width)/(half_width*2.0),(point.y-c.y+35.8)/71.6))
+	var tint = Color(1.12,1.12,1.12) if hovered == tile.id else Color.WHITE
 	draw_polygon(points,PackedColorArray([tint]),uv,texture)
-	var wash = {"desert":Color(0.8,0.56,0.24,0.48),"tundra":Color(0.7,0.8,0.85,0.52),"fungal":Color(0.51,0.25,0.63,0.45)}.get(tile.baseTerrain,Color.TRANSPARENT)
-	if wash.a > 0: draw_colored_polygon(points,wash)
 	return true
 
 func draw_world_sprite(key: String,at: Vector2,dimensions: Vector2) -> void:

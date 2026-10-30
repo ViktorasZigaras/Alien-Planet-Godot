@@ -1,3 +1,15 @@
+# Alien Planet — Godot 0.8
+
+Open `project.godot` in Godot 4.5.1 Standard and press F5. Choose **Sprite A / symbolic** or **3D B / balanced** above the map. Version 0.8 applies the selected Hybrid Studies directions to the actual game: rust/olive/violet terrain, teal water, pale industrial buildings, strong sprite contours and softer 3D materials/lighting.
+
+The continuing style contract and future change procedure are in [Visual Style 0.8](docs/Visual_Style_08.md). It explains palette, silhouettes, layer placement, object scale, sprite baking, animation limits and real screenshot capture. The gameplay and save format remain those of 0.7. The default supply overlay is Off; yields remain optional. Opening camera centring now survives initial layout resizing.
+
+**1,058 current checks pass**: 421 simulation, 22 UI, 247 model-lab, 313 world/art and 55 visual-style checks. Run `tests/test_visual_style.gd` alongside the four existing suites. Actual opening scenes in both directions were captured and reviewed with `tests/capture_opening.gd`; capture verifies unchanged default game state. No physical Windows test or standalone executable is claimed.
+
+---
+
+Earlier release notes follow.
+
 # Alien Planet — Godot 0.7
 
 Open `project.godot` in Godot 4.5.1 Standard, press F5, then choose **Pixel / top-down** or **3D / isometric** above the map. Both views control the same simulation. Click inspects; left/middle drag pans; wheel zooms; right-click moves/replaces the route, Shift appends. Use **Motion** to compare animated/static 3D. Its footer shows FPS, draw calls and visible figures.
