@@ -3,10 +3,16 @@ extends Control
 signal tile_selected(key: String)
 signal move_requested(key: String,append: bool)
 signal hover_changed(key: String)
+const X = preload("res://scripts/xeno_ecology.gd")
+const XModels = preload("res://scripts/xeno_models.gd")
+const XActor = preload("res://scripts/xeno_actor.gd")
+const Claims = preload("res://scripts/claim_map.gd")
 const R = preload("res://scripts/game_rules.gd")
 const A = preload("res://scripts/world_assets.gd")
 const Batch = preload("res://scripts/world_batch.gd")
 const Art = preload("res://scripts/starter_art.gd")
+var combat_sequence = -1
+var fx: Control
 var state: Dictionary = {}
 var selected_tile = "2,3"
 var selected_unit = ""
@@ -23,6 +29,9 @@ var terrain_root: Node3D
 var structure_root: Node3D
 var actors_root: Node3D
 var actors: Dictionary = {}
+var xeno_actors: Dictionary = {}
+var xeno_tiles: Dictionary = {}
+var xeno_tweens: Dictionary = {}
 var actor_tiles: Dictionary = {}
 var actor_loadouts: Dictionary = {}
 var tweens: Dictionary = {}
@@ -47,6 +56,8 @@ var metrics = ""
 var yaw = 0.0
 var pick_faces: Dictionary = {}
 func _ready() -> void:
+	fx = preload("res://scripts/combat_effects.gd").new()
+	add_child(fx)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
 	font = ThemeDB.fallback_font
@@ -110,15 +121,17 @@ func clear(root: Node) -> void:
 	for child in root.get_children(): child.free()
 func update_view(s: Dictionary,tile: String,unit: String,support: String) -> void:
 	state = s
+	fx.motion = animated
+	fx.receive(s.xenos,func(key):return screen(surface(key)+Vector3(0,0.4,0)))
 	selected_tile = tile
 	selected_unit = unit
 	overlay = support
 	supply = R.supply_field(s)
-	var signature = str(hash([s.tiles,s.rivers]))
+	var signature = str(hash([s.tiles.values().map(func(t):return [t.id,t.baseTerrain,t.biome,t.feature,t.relief,t.vegetation]),s.rivers,s.get("xenos",{}).get("nests",{}).values().map(func(n):return n.tile)]))
 	if signature != terrain_signature and not building:
 		terrain_signature = signature
 		build_terrain.call_deferred()
-	if built: update_structures(); update_actors()
+	if built: update_structures(); update_actors(); update_xenos(); animate_combat()
 	queue_redraw()
 func build_terrain() -> void:
 	if building: return
@@ -130,8 +143,10 @@ func build_terrain() -> void:
 	var templates = {}
 	var index = 0
 	for t in state.tiles.values():
-		var key = str([t.baseTerrain,t.feature,t.relief])
-		if not templates.has(key): templates[key] = A.terrain(t)
+		var appearance = t.duplicate()
+		if state.get("xenos",{}).get("nests",{}).values().any(func(n):return n.tile == t.id): appearance.feature = null
+		var key = str([appearance.baseTerrain,appearance.biome,appearance.feature,appearance.relief,appearance.vegetation])
+		if not templates.has(key): templates[key] = A.terrain(appearance)
 		var transform = Transform3D(Basis.IDENTITY,pos(t))
 		batch.collect(templates[key],transform)
 		index += 1
@@ -173,13 +188,14 @@ func build_terrain() -> void:
 	structure_signature = ""
 	update_structures()
 	update_actors()
+	update_xenos()
 	update_camera()
 	update_activity()
 	queue_redraw()
 func update_structures() -> void:
 	var towns = state.settlements.values().map(func(t): return [t.id,t.tileId])
 	var sites = state.neutralSites.keys()
-	var signature = str(hash([towns,state.districts,state.buildings,state.improvements,sites]))
+	var signature = str(hash([towns,state.districts,state.buildings,state.improvements,sites,state.get("claimOwners",{}),state.tiles.values().map(func(t):return [t.id,t.pollution,t.obstacle,t.vegetation,t.biomass]),state.get("xenos",{}).get("mass",{}),state.get("xenos",{}).get("nests",{}).values().map(func(n):return [n.id,n.tile,n.get("burned",false)])]))
 	if signature == structure_signature: return
 	structure_signature = signature
 	clear(structure_root)
@@ -194,6 +210,9 @@ func update_structures() -> void:
 	for town in state.settlements.values():
 		var model = A.settlement(town.id == "main")
 		model.position = surface(town.tileId)
+		var colour = Claims.COLORS[state.get("settlementOwners",{}).get(town.id,"blue")]
+		A.P.cylinder(model,Vector3(-0.43,0.35,0.02),0.014,0.70,Color("c4bda3"),6)
+		A.P.box(model,Vector3(-0.34,0.62,0.02),Vector3(0.19,0.11,0.015),colour)
 		batch.collect(model)
 		model.free()
 	for d in state.districts.values():
@@ -234,6 +253,43 @@ func update_structures() -> void:
 		model.position = surface(tile)
 		batch.collect(model)
 		model.free()
+	for t in state.tiles.values():
+		var layers = []
+		if t.pollution > 0: layers.append("pollution"+str(int(t.pollution)))
+		if t.obstacle != "": layers.append(t.obstacle)
+		if t.vegetation: layers.append("vegetation_"+t.biome)
+		if t.biomass > 0: layers.append("biomass")
+		for kind in layers:
+			var model = A.layer(kind,t); model.position = pos(t)
+			batch.collect(model); model.free()
+	if state.has("xenos"):
+		for tile in state.xenos.mass:
+			var mass = XModels.mass(state.tiles[tile].relief == "hills")
+			mass.position = pos(state.tiles[tile])
+			batch.collect(mass); mass.free()
+		for nest in state.xenos.nests.values():
+			var model = preload("res://scripts/asset_catalogue.gd").create({"kind":"burned"}) if nest.get("burned",false) else XModels.create("nest")
+			model.position = surface(nest.tile)
+			batch.collect(model); model.free()
+	var stones = {}
+	for edge in Claims.boundary(state.tiles,state.get("claimOwners",{})):
+		var colour = Claims.COLORS[edge.player]
+		var a = Vector3(edge.a.x,0,edge.a.y)
+		var b = Vector3(edge.b.x,0,edge.b.y)
+		var marker = Node3D.new()
+		marker.position = (a+b)/2+Vector3(0,0.025,0)
+		marker.rotation.y = atan2((b-a).x,(b-a).z)
+		A.P.box(marker,Vector3.ZERO,Vector3(0.012,0.012,1.0),colour.darkened(0.25))
+		batch.collect(marker); marker.free()
+		for point in [a,b]:
+			var key = str(point.snapped(Vector3.ONE*0.001))+edge.player
+			if stones.has(key): continue
+			stones[key] = true
+			var stone = Node3D.new()
+			stone.position = point
+			A.P.softened(stone,Vector3(0,0.055,0),Vector3(0.075,0.11,0.075),Color("b5b19e"))
+			A.P.box(stone,Vector3(0,0.11,0),Vector3(0.078,0.025,0.078),colour)
+			batch.collect(stone); stone.free()
 	batch.emit(structure_root)
 func update_actors() -> void:
 	var visible_people = R.visible_people(state)
@@ -358,19 +414,24 @@ func _gui_input(event: InputEvent) -> void:
 func set_animation(value: bool) -> void:
 	animated = value
 	for mat in A.motion_materials.values(): mat.set_shader_parameter("animated",value)
-	for actor in actors.values(): actor.set_process(value and is_visible_in_tree() and not suspended)
+	for actor in actors.values()+xeno_actors.values(): actor.set_process(value and is_visible_in_tree() and not suspended)
 	if not value:
 		for id in tweens:
 			tweens[id].kill()
 			actors[id].position = actor_position(actor_tiles[id])
 			actors[id].stop()
 		tweens.clear()
+		for id in xeno_tweens:
+			xeno_tweens[id].kill()
+			if state.xenos.units.has(id): xeno_actors[id].position = xeno_position(state.xenos.units[id])
+			xeno_actors[id].stop()
+		xeno_tweens.clear()
 func update_activity() -> void:
 	if viewport == null: return
 	var active = is_visible_in_tree() and not suspended
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if active else SubViewport.UPDATE_DISABLED
-	for actor in actors.values(): actor.set_process(active and animated)
-	for tween in tweens.values():
+	for actor in actors.values()+xeno_actors.values(): actor.set_process(active and animated)
+	for tween in tweens.values()+xeno_tweens.values():
 		if active: tween.play()
 		else: tween.pause()
 	set_process(active)
@@ -378,10 +439,11 @@ func _process(delta: float) -> void:
 	metrics_clock += delta
 	if metrics_clock > 0.5:
 		metrics_clock = 0
-		metrics = "3D · %d FPS · %d draw calls · %d figures · motion %s" % [Engine.get_frames_per_second(),viewport.get_render_info(Viewport.RENDER_INFO_TYPE_VISIBLE,Viewport.RENDER_INFO_DRAW_CALLS_IN_FRAME),actors.size(),"on" if animated else "off"]
+		metrics = "3D · %d FPS · %d draw calls · %d figures · motion %s" % [Engine.get_frames_per_second(),viewport.get_render_info(Viewport.RENDER_INFO_TYPE_VISIBLE,Viewport.RENDER_INFO_DRAW_CALLS_IN_FRAME),actors.size()+xeno_actors.size(),"on" if animated else "off"]
 		queue_redraw()
-	if not tweens.is_empty(): queue_redraw()
+	if not tweens.is_empty() or not xeno_tweens.is_empty(): queue_redraw()
 func _draw() -> void:
+	if fx != null: move_child(fx,get_child_count()-1)
 	if camera == null or state.is_empty(): return
 	for key in [selected_tile,hovered]:
 		if not state.tiles.has(key): continue
@@ -397,12 +459,12 @@ func _draw() -> void:
 		for i in range(7):
 			var angle = deg_to_rad(30+(i%6)*60)
 			points.append(screen(pos(state.tiles[key])+Vector3(cos(angle)*0.84,0.045,sin(angle)*0.84)))
-		var color = Color("8bd4df") if c.home == "main" else Color("d0a2e4")
+		var color = Claims.COLORS[state.get("cohortOwners",{}).get(c.id,"blue")]
 		draw_polyline(points,color,1.2,true)
 		draw_string(font,screen(surface(key,Vector3(-0.4,0.95,0))),c.name,HORIZONTAL_ALIGNMENT_LEFT,-1,10,color)
 	if actors.has(selected_unit): draw_arc(screen(actors[selected_unit].position),13,0,TAU,20,Color("f6d48a"),2,true)
 	for site in state.settlements.values():
-		draw_string(font,screen(surface(site.tileId,Vector3(-0.5,1,0))),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("ffe5b2"))
+		draw_string(font,screen(surface(site.tileId,Vector3(-0.5,1,0))),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Claims.COLORS[state.get("settlementOwners",{}).get(site.id,"blue")])
 	if state.movementQueues.has(selected_unit):
 		var prev = R.mobile(state,selected_unit).tileId
 		for next in state.movementQueues[selected_unit]:
@@ -421,3 +483,61 @@ func _draw() -> void:
 				i += 1
 	draw_rect(Rect2(8,size.y-30,minf(size.x-16,570),24),Color(0.02,0.06,0.09,0.85))
 	draw_string(font,Vector2(15,size.y-13),progress if building else metrics,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("c2d8d5"))
+
+func xeno_position(u: Dictionary) -> Vector3:
+	var occupied = state.xenos.nests.values().any(func(n):return n.tile == u.tile)
+	return surface(u.tile,Vector3(0.26 if occupied else 0,0.035,0.33 if occupied else 0))
+func update_xenos() -> void:
+	if not state.has("xenos"): return
+	var visible = X.visible_units(state.xenos)
+	for id in xeno_actors.keys():
+		if id not in visible.values():
+			if xeno_tweens.has(id): xeno_tweens[id].kill(); xeno_tweens.erase(id)
+			xeno_actors[id].free(); xeno_actors.erase(id); xeno_tiles.erase(id)
+	for tile in visible:
+		var id = visible[tile]
+		var u = state.xenos.units[id]
+		if not xeno_actors.has(id):
+			var actor = XActor.new(); actor.kind = u.kind
+			actor.scale = Vector3.ONE*(0.70 if u.kind == "armored" else 0.63)
+			actors_root.add_child(actor)
+			actor.position = xeno_position(u)
+			xeno_actors[id] = actor; xeno_tiles[id] = tile
+		var actor = xeno_actors[id]
+		actor.rotation.y = u.facing
+		actor.set_process(animated and is_visible_in_tree() and not suspended)
+		if xeno_tiles[id] != tile:
+			if xeno_tweens.has(id): xeno_tweens[id].kill()
+			xeno_tiles[id] = tile
+			actor.walk()
+			var from = actor.position
+			var to = xeno_position(u)
+			var tween = create_tween(); xeno_tweens[id] = tween
+			tween.tween_method(func(value):
+				if is_instance_valid(actor):
+					var at = from.lerp(to,value)
+					actor.position = surface_world(at),0.0,1.0,0.36 if animated else 0.001)
+			tween.tween_callback(func():
+				if is_instance_valid(actor): actor.position = to; actor.stop()
+				xeno_tweens.erase(id))
+
+func animate_combat() -> void:
+	if combat_sequence < 0 or int(state.xenos.effectSequence) < combat_sequence:
+		combat_sequence = int(state.xenos.effectSequence); return
+	for event in state.xenos.effects:
+		if int(event.id) <= combat_sequence: continue
+		combat_sequence = int(event.id)
+		if not animated or suspended or not is_visible_in_tree(): continue
+		var actor: Node3D
+		for id in actors:
+			if actor_tiles.get(id, "") == event.source and not tweens.has(id): actor = actors[id]; break
+		if actor == null:
+			for id in xeno_actors:
+				if xeno_tiles.get(id, "") == event.source and not xeno_tweens.has(id): actor = xeno_actors[id]; break
+		if actor == null: continue
+		var start = actor.position
+		var delta = surface(event.target)-surface(event.source)
+		if delta.length() < 0.01: continue
+		var lunge = actor.create_tween()
+		lunge.tween_property(actor,"position",start+delta.normalized()*0.12,0.10)
+		lunge.tween_property(actor,"position",start,0.18)

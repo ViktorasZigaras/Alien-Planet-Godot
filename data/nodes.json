@@ -171,7 +171,7 @@
     "buildings": [],
     "specialists": [],
     "stocks": {},
-    "effect": "Unlocks Security District, Guard Post, Watchtower.",
+    "effect": "Unlocks Security District, Guard Post, Watchtower. Security District and Guard Posts provide Flamer/Transport capacity.",
     "unlocks": [
       "Security District",
       "Guard Post",
@@ -190,9 +190,10 @@
     "buildings": [],
     "specialists": [],
     "stocks": {},
-    "effect": "Unlocks Reinforced Suit.",
+    "effect": "Unlocks Reinforced Suit and Flamer Exoskeleton (trained Soldiers only).",
     "unlocks": [
-      "Reinforced Suit"
+      "Reinforced Suit",
+      "Flamer Exoskeleton"
     ]
   },
   "defence_logistics": {
@@ -263,9 +264,9 @@
     "buildings": [],
     "specialists": [],
     "stocks": {},
-    "effect": "Unlocks Extended supply reach.",
+    "effect": "Field organisation reference; supply ranges currently disabled.",
     "unlocks": [
-      "Extended supply reach"
+      "Field organisation (supply ranges disabled)"
     ]
   },
   "instrumentation": {

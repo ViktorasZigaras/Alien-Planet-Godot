@@ -4,14 +4,17 @@ extends Control
 signal tile_selected(key: String)
 signal move_requested(key: String, append: bool)
 signal hover_changed(key: String)
+const X = preload("res://scripts/xeno_ecology.gd")
+const Claims = preload("res://scripts/claim_map.gd")
 const Style = preload("res://scripts/visual_style.gd")
 const Rules = preload("res://scripts/game_rules.gd")
 const Catalogue = preload("res://scripts/asset_catalogue.gd")
 const Art = preload("res://scripts/starter_art.gd")
+var fx: Control
 var state: Dictionary = {}
 var selected_tile = "2,3"
 var selected_unit = ""
-var overlay = "cohort"
+var overlay = "none"
 var show_yields = false
 var hovered = ""
 var zoom = 1.0
@@ -27,6 +30,8 @@ var focus_key = ""
 var missing_sprite_keys: Dictionary = {}
 
 func _ready() -> void:
+	fx = preload("res://scripts/combat_effects.gd").new()
+	add_child(fx)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	clip_contents = true
@@ -39,6 +44,7 @@ func _ready() -> void:
 
 func update_view(s: Dictionary, tile: String, unit: String, support: String) -> void:
 	state = s
+	fx.receive(s.xenos,func(key):return centre(state.tiles[key])+Vector2(0,-13))
 	selected_tile = tile
 	selected_unit = unit
 	overlay = support
@@ -169,7 +175,12 @@ func _draw() -> void:
 	for t in state.tiles.values():
 		var c = centre(t)
 		if t.relief == "hills": draw_world_sprite("hill_"+t.baseTerrain,c+Vector2(0,-4),Vector2(82,86))
-		if t.feature == "forest": draw_world_sprite("overlay_forest",c+Vector2(0,-16 if t.relief == "hills" else -9),Vector2(78,78))
+		if state.has("xenos") and state.xenos.mass.has(t.id): draw_world_sprite("xeno_mass_hills" if t.relief == "hills" else "xeno_mass",c+Vector2(0,-4),Vector2(82,86))
+		if t.pollution > 0: draw_world_sprite("layer_pollution"+str(int(t.pollution)),c+Vector2(0,-5),Vector2(82,75))
+		if t.obstacle != "": draw_world_sprite("layer_"+t.obstacle,c+Vector2(0,-7),Vector2(76,70))
+		if t.vegetation: draw_world_sprite("layer_vegetation_"+t.biome,c+Vector2(0,-6),Vector2(78,70))
+		if t.biomass > 0: draw_world_sprite("layer_biomass",c+Vector2(0,-5),Vector2(74,64))
+		if t.feature == "forest" and not state.get("xenos",{}).get("nests",{}).values().any(func(n):return n.tile == t.id): draw_world_sprite("forest_"+t.biome,c+Vector2(0,-16 if t.relief == "hills" else -9),Vector2(78,78))
 		var site = Rules.site_at(state, t.id)
 		var district = Rules.district_at(state, t.id)
 		if not site.is_empty(): draw_world_sprite("settlement_main" if site.id == "main" else "settlement_field",c+Vector2(0,-3),Vector2(85,85))
@@ -196,6 +207,8 @@ func _draw() -> void:
 		draw_world_sprite("building_exchange_1" if state.neutralSites[key].resource == "culture" else "building_research_lab_1",c,Vector2(85,85))
 		text_at(state.neutralSites[key].name,c+Vector2(0,-35),11,Color("e3c5e9"))
 	draw_improvements()
+	draw_claims()
+	draw_xenos()
 	for tile in state.tiles.values():
 		draw_worker(tile)
 	if show_yields:
@@ -224,7 +237,12 @@ func _draw() -> void:
 		var key = "rover" if u.classId == "rover" else state.cohorts[u.id].qualification
 		draw_world_sprite(Catalogue.person_key(state.cohorts[u.id]),c+Vector2(0,-9),Vector2(60,60))
 	for site in state.settlements.values():
-		text_at(site.name, centre(state.tiles[site.tileId])+Vector2(0, -40), 13, Color("ffe7b6"))
+		var at = centre(state.tiles[site.tileId])
+		var owner = state.get("settlementOwners",{}).get(site.id,"blue")
+		var colour = Claims.COLORS[owner]
+		text_at(site.name, at+Vector2(0,-40),13,colour)
+		draw_line(at+Vector2(-23,-24),at+Vector2(-23,-9),Color("c9c1a6"),1.5)
+		draw_rect(Rect2(at+Vector2(-23,-24),Vector2(8,5)),colour)
 	draw_set_transform(Vector2.ZERO)
 	draw_string(font, Vector2(18, size.y-32), "CLICK: inspect   DRAG: pan   RIGHT: move (Shift: append)   WHEEL: zoom", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("9db1b8"))
 	draw_string(font, Vector2(18, size.y-13), "Climate regions guide terrain and deposits · Fit map for the whole test world", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("738d98"))
@@ -271,7 +289,7 @@ func draw_worker(tile: Dictionary) -> void:
 	var ring = PackedVector2Array()
 	for p in polygon(tile): ring.append(c+(p-c)*0.87)
 	ring.append(ring[0])
-	var colour = Color("86d8e1") if worker.state.settlementId == "main" else Color("d6a6ec")
+	var colour = Claims.COLORS[state.get("cohortOwners",{}).get(worker.id,"blue")]
 	draw_polyline(ring, colour, 1.8, true)
 	draw_style_box(yield_backplate(), Rect2(c+Vector2(-31,-28), Vector2(62,16)))
 	text_at(worker.name, c+Vector2(0,-16), 9, colour)
@@ -325,16 +343,48 @@ func draw_world_sprite(key: String,at: Vector2,dimensions: Vector2) -> void:
 			push_warning("Missing map sprite: "+key)
 		draw_circle(at,8,Color("dd6d91"))
 		return
-	if key.begins_with("hill_"):
+	if key.begins_with("hill_") or key in ["xeno_mass","xeno_mass_hills"]:
 		draw_texture_rect(texture,Rect2(at-dimensions/2,dimensions),false)
 		return
 	texture = Art.tight_icon(key)
 	var fraction = 0.76
 	if key.begins_with("bonus_"): fraction = 0.46
 	elif key.begins_with("district_"): fraction = 0.57
-	elif key == "overlay_forest": fraction = 0.88
+	elif key == "overlay_forest" or key.begins_with("forest_"): fraction = 0.88
+	elif key.begins_with("layer_"): fraction = 0.92
 	elif key.begins_with("person_"): fraction = 0.85
 	var limit = dimensions*fraction
 	var scale_factor = minf(limit.x/texture.get_width(),limit.y/texture.get_height())
 	var drawn = texture.get_size()*scale_factor
 	draw_texture_rect(texture,Rect2(at-drawn/2,drawn),false)
+
+func draw_claims() -> void:
+	var stones = {}
+	for edge in Claims.boundary(state.tiles,state.get("claimOwners",{})):
+		var a = Vector2(70,75)+edge.a*36
+		var b = Vector2(70,75)+edge.b*36
+		var colour = Claims.COLORS[edge.player]
+		draw_line(a,b,Color(colour,0.50),0.9,true)
+		for point in [a,b]:
+			var key = str(point.snapped(Vector2.ONE*0.01))+edge.player
+			if stones.has(key): continue
+			stones[key] = true
+			draw_circle(point+Vector2(0,1.5),2.8,Color("293b40"))
+			draw_rect(Rect2(point-Vector2(1.7,3.0),Vector2(3.4,4.2)),Color("b9b8a0"))
+			draw_rect(Rect2(point-Vector2(1.7,3.0),Vector2(3.4,1.6)),colour)
+
+func draw_xenos() -> void:
+	if not state.has("xenos"): return
+	for nest in state.xenos.nests.values():
+		var at = centre(state.tiles[nest.tile])
+		draw_world_sprite("xeno_burned" if nest.get("burned",false) else "xeno_nest",at+Vector2(0,-5),Vector2(78,72))
+		text_at("Brood nest",at+Vector2(0,-34),11,Color("99be7c"))
+	var visible = X.visible_units(state.xenos)
+	for tile in visible:
+		var unit = state.xenos.units[visible[tile]]
+		var at = centre(state.tiles[tile])+Vector2(0,-6 if state.tiles[tile].relief == "hills" else 0)
+		if state.xenos.nests.values().any(func(n):return n.tile == tile): at += Vector2(12,14)
+		draw_world_sprite("xeno_"+unit.kind,at,Vector2(54,43) if unit.kind == "armored" else Vector2(46,35))
+		if unit.hp < X.DATA[unit.kind].hp:
+			draw_line(at+Vector2(-10,14),at+Vector2(10,14),Color("26372e"),3)
+			draw_line(at+Vector2(-10,14),at+Vector2(-10+20.0*unit.hp/X.DATA[unit.kind].hp,14),Color("b9ca72"),2)

@@ -27,7 +27,7 @@ func run() -> void:
 		check(item is MultiMeshInstance3D,"Static world geometry batched")
 		instances += item.multimesh.instance_count
 	check(instances > 384,"Full map and props instantiated")
-	check(world.actors.size() == R.visible_people(app.state).size(),"One actor per occupied hex")
+	check(world.actors.size() == R.visible_people(world.state).size(),"One actor per occupied hex")
 	var stacks = {}
 	for c in app.state.cohorts.values():
 		var tile = R.person_tile(app.state,c)
@@ -124,7 +124,7 @@ func run() -> void:
 	for c in old.cohorts.values():
 		c.erase("lastUsed"); c.erase("facing"); c.erase("lastRoute")
 	var migrated = R.migrate_save(old)
-	check(R.validate(migrated) == "" and migrated.schemaVersion == 8,"Version 6 saves migrate without gameplay loss")
+	check(R.validate(migrated) == "" and migrated.schemaVersion == 11,"Version 6 saves migrate without gameplay loss")
 	app.queue_free()
 	await process_frame
 	print("WORLD CHECKS: ",checks,"; FAILURES: ",failures.size())

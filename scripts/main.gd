@@ -1,6 +1,7 @@
 extends Control
 ## Native Godot UI. Rules and serialisable state stay in game_rules.gd.
 const Rules = preload("res://scripts/game_rules.gd")
+const Session = preload("res://scripts/civilization_session.gd")
 const MapView = preload("res://scripts/hex_map.gd")
 const Art = preload("res://scripts/starter_art.gd")
 const WorldView = preload("res://scripts/world_map.gd")
@@ -40,10 +41,12 @@ var tech_dialog: AcceptDialog
 var tech_tabs: TabContainer
 var tech_pages: Dictionary = {}
 var model_lab
+var testing_panel: VBoxContainer
+var test_export: FileDialog
 
 
 func _ready() -> void:
-	state = Rules.initial_state()
+	state = Session.initial_state()
 	apply_theme()
 	build_ui()
 	render()
@@ -99,7 +102,7 @@ func build_ui() -> void:
 	title.custom_minimum_size.x = 220
 	header.add_child(title)
 	label(title, "ALIEN PLANET", 26, Color("e5ebdf"))
-	label(title, "GODOT / EXPEDITION SANDBOX 0.901", 11, Color("d5b77a"))
+	label(title, "GODOT / EXPEDITION SANDBOX 0.904", 11, Color("d5b77a"))
 	for key in Rules.RESOURCES:
 		var box = VBoxContainer.new()
 		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -158,14 +161,7 @@ func build_ui() -> void:
 	motion.button_pressed = true
 	motion.toggled.connect(func(on): if is_instance_valid(world_view): world_view.set_animation(on))
 	map_tools.add_child(motion)
-	label(map_tools, "Supply", 12, Color("a5bbc2")).custom_minimum_size.x = 48
-	var support = OptionButton.new()
-	support_selector = support
-	support.add_item("Population")
-	support.add_item("Transport")
-	support.add_item("Off")
-	support.item_selected.connect(func(index): overlay = ["cohort", "rover", "none"][index]; update_map())
-	map_tools.add_child(support)
+	overlay = "none"
 	button(map_tools, "Fit map", func(): map_view.fit_map())
 	var yields = CheckButton.new()
 	yields.name = "YieldOverlay"
@@ -202,6 +198,16 @@ func build_ui() -> void:
 	orders = make_tab("Orders")
 	development = make_tab("Technology")
 	report = make_tab("Report")
+	testing_panel = make_tab("Testing")
+	test_export = FileDialog.new()
+	test_export.use_native_dialog = true
+	test_export.title = "Export civilization test record"
+	test_export.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	test_export.access = FileDialog.ACCESS_FILESYSTEM
+	test_export.filters = PackedStringArray(["*.json;Civilization test record"])
+	test_export.current_file = "alien-planet-test.json"
+	test_export.file_selected.connect(export_test)
+	add_child(test_export)
 	status_label = label(layout, "", 13, Color("cbdcbf"))
 	status_label.custom_minimum_size.y = 34
 	# Real native dialogs; saves remain compatible with the HTML engine.
@@ -231,7 +237,7 @@ func build_ui() -> void:
 	add_child(reset_dialog)
 	help_dialog = AcceptDialog.new()
 	help_dialog.title = "Alien Planet — quick controls"
-	help_dialog.dialog_text = "Click: inspect. Left or middle drag: pan (vertical inverted). Wheel: zoom. Fit map: overview.\nRight-click: replace route and move now. Shift+right-click: append waypoint.\nHard terrain and river crossings cost more; unfinished steps retain progress.\nRoad-to-road: ⅓ move. Entering/leaving roads uses normal destination terrain.\n\nPeople keep their professions and can combine equipment from town stocks.\nWork Suit: builder capability. Transport: driver plus two passengers of any profession. Board/unload on the same tile.\nSelect a resident to assign a tile/building slot, train, equip or deploy.\nIndustry manufactures equipment and builds infrastructure. Workshops convert Minerals.\nBuildings and districts use Energy; unpowered facilities produce nothing.\nTown growth = Food output − consumption − population + medical reduction.\nGrowth reaches 20: a new Worker. Surplus medicine adds to growth.\nNeutral sites: explicit Visit, once per person/site; Merchants receive double.\n\nTechnology: five groups, four capabilities each; inspect prerequisite explanations.\nSpace: End Turn. Ctrl+S/L: quick save/load. Saves use schema 8; older saves migrate.\nNumbers are provisional. Combat values are a preview; no opponents yet."
+	help_dialog.dialog_text = "Click: inspect. Left or middle drag: pan (vertical inverted). Wheel: zoom. Fit map: overview.\nRight-click: replace route and move now. Shift+right-click: append waypoint.\nHard terrain and river crossings cost more; unfinished steps retain progress.\nRoad-to-road: ⅓ move. Entering/leaving roads uses normal destination terrain.\n\nPeople keep their professions and can combine equipment from town stocks.\nWork Suit: builder capability. Transport: driver plus two passengers of any profession. Board/unload on the same tile.\nSelect a resident to assign a tile/building slot, train, equip or deploy.\nIndustry manufactures equipment and builds infrastructure. Workshops convert Minerals.\nBuildings and districts use Energy; unpowered facilities produce nothing.\nTown growth = Food output − consumption − population + medical reduction.\nGrowth reaches 20: a new Worker. Surplus medicine adds to growth.\nNeutral sites: explicit Visit, once per person/site; Merchants receive double.\n\nTechnology: five groups, four capabilities each; inspect prerequisite explanations.\nSpace: End Turn. Ctrl+S/L: quick save/load. Saves use schema 11; older saves migrate.\nNumbers are provisional. Red civilization now develops independently; trains an army to hunt animals and disable the nest."
 	add_child(help_dialog)
 	tech_dialog = AcceptDialog.new()
 	tech_dialog.title = "Technology — expedition capabilities"
@@ -292,7 +298,7 @@ func button(parent: Node, text: String, callback: Callable) -> Button:
 func command_button(parent: Node, text: String, cmd: Dictionary) -> Button:
 	var node = button(parent, text, func(): issue(cmd))
 	node.clip_text = true
-	var blocked = Rules.reason(state, cmd)
+	var blocked = Session.reason_for(state,"blue",cmd)
 	node.disabled = not blocked.is_empty()
 	node.tooltip_text = text + ("\n"+blocked if not blocked.is_empty() else "")
 	node.set_meta("command", cmd)
@@ -320,10 +326,8 @@ func status(text: String, good: bool = true) -> void:
 	status_label.add_theme_color_override("font_color", Color("cbdcbf") if good else Color("ffb2a0"))
 
 func update_map() -> void:
-	support_selector.select(["cohort", "rover", "none"].find(overlay))
-	support_selector.set_item_text(0, "Population · reach %d" % Rules.reach(state, "cohort"))
-	support_selector.set_item_text(1, "Transport · reach %d" % Rules.reach(state, "rover"))
-	map_view.update_view(state, selected_tile, selected_unit, overlay)
+	overlay = "none"
+	map_view.update_view(Session.projection(state), selected_tile, selected_unit, overlay)
 
 func select_tile(key: String) -> void:
 	selected_tile = key
@@ -339,7 +343,7 @@ func select_tile(key: String) -> void:
 	render()
 
 func select_mobile(key: String) -> void:
-	state = Rules.command(state,{"type":"focusPerson","cohortId":key}).state
+	state = Session.command(state,{"type":"focusPerson","cohortId":key}).state
 	selected_unit = key
 	var u = Rules.mobile(state, key)
 	selected_tile = u.tileId
@@ -350,9 +354,9 @@ func select_mobile(key: String) -> void:
 func issue(cmd: Dictionary) -> bool:
 	if refreshing:
 		return false
-	var result = Rules.command(state, cmd)
+	var result = Session.command(state, cmd)
+	state = result.state
 	if result.ok:
-		state = result.state
 		if cmd.type == "mobilise":
 			selected_unit = cmd.cohortId
 			selected_tile = state.cohorts[selected_unit].state.tileId
@@ -365,6 +369,7 @@ func issue(cmd: Dictionary) -> bool:
 			selected_unit = ""
 			selected_tile = state.settlements[state.cohorts[selected_cohort].state.settlementId].tileId
 		render()
+	if not result.ok: render_testing()
 	status(result.message, result.ok)
 	return result.ok
 
@@ -380,6 +385,7 @@ func render() -> void:
 	render_orders()
 	render_development()
 	render_report()
+	render_testing()
 	render_mobile()
 	milestones_label.text = "Temperate · Lush · Dry · Cold · Fungal · Coastal   |   24 × 16 test world"
 	refreshing = false
@@ -396,11 +402,50 @@ func render_mobile() -> void:
 		if state.movementQueues.has(key): name_text += " → " + str(state.movementQueues[key].back())
 		var node = button(mobile_bar, name_text, select_mobile.bind(key))
 		node.set_meta("unit_id", key)
-		node.tooltip_text = "Supply reach %d; click to select." % Rules.reach(state, u.classId)
+		node.tooltip_text = "Click to select. Supply ranges disabled."
 
 func render_orders() -> void:
 	clear(orders)
 	var t = state.tiles[selected_tile]
+	if state.xenos.mass.has(selected_tile): label(orders,"Xenomass · animal harvesting +1; human yields −1; cleanse with a suited worker.",12,Color("7cb78d"))
+	label(orders,Rules.Layers.description(t),12)
+	var cleaner = state.cohorts.get(selected_unit if selected_unit != "" else selected_cohort,{})
+	if not cleaner.is_empty() and Rules.builder(cleaner):
+		for layer in ["pollution","xenomass","obstacle","vegetation","forest"]:
+			var clean = {"type":"cleanse","cohortId":cleaner.id,"target":selected_tile,"layer":layer}
+			if Session.reason_for(state,"blue",clean) == "": command_button(orders,"Cleanse "+layer+" · one action",clean)
+	var wild = state.xenos.units.values().filter(func(u):return u.tile == selected_tile)
+	var nests = state.xenos.nests.values().filter(func(n):return n.tile == selected_tile)
+	if not wild.is_empty() or not nests.is_empty():
+		heading(orders,"XENO ACTIVITY")
+		for nest in nests:
+			label(orders,("Disabled nest" if nest.burned else "Active brood nest")+" · biomass %d · minerals %d" % [nest.biomass,nest.minerals],12)
+			label(orders,"Larvae %d/%d · predators %d/%d" % [Session.X.members(state.xenos,nest.id,true).size(),nest.workerCap,Session.X.members(state.xenos,nest.id,false).size(),nest.predatorCap],12)
+			label(orders,"Clear defenders, then step onto nest with a Soldier to disable it.",12)
+		for unit in wild:
+			label(orders,"%s · %d/100 HP · strength %.2f · %s" % [Session.X.DATA[unit.kind].name,unit.hp,Session.X.DATA[unit.kind].attack,unit.activity],12)
+			var person = state.cohorts.get(selected_unit,{})
+			var odds = " · %.1f%% duel win" % (100*Session.X.preview(state,state,person,unit)) if not person.is_empty() else ""
+			command_button(orders,"Melee "+Session.X.DATA[unit.kind].name+odds,{"type":"attackXeno","cohortId":selected_unit,"targetId":unit.id})
+			command_button(orders,"Ranged attack",{"type":"attackXeno","cohortId":selected_unit,"targetId":unit.id,"mode":"ranged"})
+	if not wild.is_empty() or not nests.is_empty():
+		var explorer = Rules.mobile(state,selected_unit)
+		if explorer.is_empty(): label(orders,"Select a mobile person. Rifles range 2 at half strength; flamers range 1, double power against animals.",12)
+		else:
+			label(orders,explorer.name+" · health %d/100 · %.2f movement" % [state.xenos.humanHealth.get(explorer.id,100),explorer.movementRemaining],12)
+			command_button(orders,"Approach / replace route",{"type":"queueMove","unitId":explorer.id,"target":selected_tile})
+		return
+	var red = state.civilizations.red
+	var foreign_town = Rules.site_at(red,selected_tile)
+	var red_people = red.cohorts.values().filter(func(c): return Rules.person_tile(red,c) == selected_tile)
+	if not foreign_town.is_empty() or not red_people.is_empty():
+		heading(orders,"RED CIVILIZATION")
+		label(orders,"Independent population, stocks, technologies and projects.",12)
+		if not foreign_town.is_empty(): label(orders,foreign_town.name+" · growth "+str(foreign_town.growth)+"/20",14)
+		for c in red_people: label(orders,c.name+" · "+c.qualification,12)
+		label(orders,"Observe only. Red hunts animals independently.",12)
+		button(orders,"View red progress",func(): tabs.current_tab = 3)
+		return
 	var site = Rules.site_at(state,selected_tile)
 	var district = Rules.district_at(state,selected_tile)
 	heading(orders,site.name if not site.is_empty() else "Hex "+selected_tile)
@@ -420,7 +465,9 @@ func render_orders() -> void:
 	if not u.is_empty():
 		divider(orders)
 		heading(orders,u.name+" · "+state.cohorts[u.id].qualification)
-		label(orders,"At %s · %.2f movement left" % [u.tileId,u.movementRemaining],12)
+		label(orders,"At %s · %.2f movement left · %d/100 HP" % [u.tileId,u.movementRemaining,state.xenos.humanHealth.get(u.id,100)],12)
+		var profile = Rules.combat_profile(state.cohorts[u.id])
+		label(orders,"Strength %.2f · ranged %.2f; heal 5 field / 20 town on quiet rounds." % [profile.attack,profile.ranged],12)
 		command_button(orders,"Move / replace route",{"type":"queueMove","unitId":u.id,"target":selected_tile})
 		command_button(orders,"Append waypoint",{"type":"queueMove","unitId":u.id,"target":selected_tile,"append":true})
 		if state.movementQueues.has(u.id):
@@ -485,12 +532,14 @@ func render_orders() -> void:
 func render_cohort(c: Dictionary,district: Dictionary) -> void:
 	divider(orders)
 	heading(orders,c.name+" · "+c.qualification)
+	label(orders,"Health %d/100" % state.xenos.humanHealth.get(c.id,100),12)
 	var st = c.state
 	var gear = []
 	for item in c.equipment: gear.append(Rules.content().equipment[item].name)
 	label(orders,"Equipment: "+(", ".join(gear) if not gear.is_empty() else "none"),12)
+	label(orders,"Military support: %d Flamer / Transport slots each; deployed Soldier +1 Food, Flamer/Transport +1 Industry each." % Rules.military_capacity(state),11)
 	var combat = Rules.combat_profile(c)
-	label(orders,"Capability preview: attack %d / defence %d. Combat pending." % [combat.attack,combat.defence],11)
+	label(orders,"Strength %.2f · ranged %.2f · heal 5 field / 20 town per quiet round" % [combat.attack,combat.ranged],11)
 	if st.kind != "resident":
 		label(orders,"State: "+st.kind,12)
 		return
@@ -618,7 +667,7 @@ func render_development() -> void:
 				var blocked = Rules.reason(state,cmd)
 				if not blocked.is_empty(): label(card,blocked,12,Color("c9a99a"))
 	label(development,"Biologist → biological extraction\nExtractor → Minerals\nEngineer → conversion\nMedic → growth\nScientist → Science\nMerchant → site visits\nArtist → Culture",13,Color("adc8b5"))
-	label(development,"Roads and Farms are starter improvements. Military combat values are a preview; opponents and combat resolution come later.",12,Color("b9a88a"))
+	label(development,"Rifle strength 1; larva 0.25; predator 1; heavy 1.5. Flamer: animal bonus, no extra toughness. Security District + Guard Posts limit Flamer/Transport equipment.",12,Color("b9a88a"))
 
 func render_report() -> void:
 	clear(report)
@@ -631,10 +680,11 @@ func show_hover(key: String) -> void:
 	if key.is_empty():
 		hover_label.text = ""
 		return
-	var worker = Rules.worker_at(state, key)
-	hover_label.tooltip_text = "Unworked tile" if worker.is_empty() else "Worked by %s (%s, %s)" % [worker.name, worker.qualification, state.settlements[worker.state.settlementId].name]
+	var display = map_view.state
+	var worker = Rules.worker_at(display, key)
+	hover_label.tooltip_text = "Unworked tile" if worker.is_empty() else "Worked by %s (%s, %s)" % [worker.name, worker.qualification, display.settlements[worker.state.settlementId].name]
 	var cost = Rules.movement_cost(state, key)
-	hover_label.text = "%s · move %s · supply %s" % [key, "blocked" if is_inf(cost) else ("⅓" if cost < 1 else str(int(cost))), str(map_view.supply.get(key, "∞"))]
+	hover_label.text = "%s · move %s" % [key, "blocked" if is_inf(cost) else ("⅓" if cost < 1 else str(int(cost)))]
 
 func save_to(path: String) -> bool:
 	var file = FileAccess.open(path, FileAccess.WRITE)
@@ -656,7 +706,7 @@ func load_from(path: String) -> bool:
 	if file == null:
 		status("Load failed: "+error_string(FileAccess.get_open_error()), false)
 		return false
-	if file.get_length() > 5*1024*1024:
+	if file.get_length() > 64*1024*1024:
 		file.close()
 		status("Save rejected: file is too large.", false)
 		return false
@@ -666,8 +716,8 @@ func load_from(path: String) -> bool:
 	if json.parse(text) != OK:
 		status("Save rejected: invalid JSON.", false)
 		return false
-	var candidate = Rules.migrate_save(json.data)
-	var blocked = Rules.validate(candidate)
+	var candidate = Session.migrate(json.data)
+	var blocked = Session.validate(candidate)
 	if not blocked.is_empty():
 		status("Save rejected: "+blocked, false)
 		return false
@@ -680,7 +730,7 @@ func load_from(path: String) -> bool:
 	return true
 
 func reset_game() -> void:
-	state = Rules.initial_state()
+	state = Session.initial_state()
 	selected_tile = "2,3"
 	selected_unit = ""
 	selected_cohort = "pop_a"
@@ -691,7 +741,7 @@ func reset_game() -> void:
 func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
-	if save_dialog.visible or load_dialog.visible or reset_dialog.visible or help_dialog.visible or tech_dialog.visible or (is_instance_valid(model_lab) and model_lab.visible):
+	if test_export.visible or save_dialog.visible or load_dialog.visible or reset_dialog.visible or help_dialog.visible or tech_dialog.visible or (is_instance_valid(model_lab) and model_lab.visible):
 		return
 	if get_viewport().gui_get_focus_owner() is LineEdit or get_viewport().gui_get_focus_owner() is OptionButton:
 		return
@@ -742,6 +792,43 @@ func set_map_mode(index: int) -> void:
 	status("3D isometric world: click/drag/zoom and right-click orders." if index == 1 else "Pixel top-down world.")
 
 func select_person(id: String) -> void:
-	state = Rules.command(state,{"type":"focusPerson","cohortId":id}).state
+	state = Session.command(state,{"type":"focusPerson","cohortId":id}).state
 	selected_cohort = id
 	render()
+
+func render_testing() -> void:
+	clear(testing_panel)
+	heading(testing_panel,"Civilization testing")
+	label(testing_panel,"Blue: human commands. Red: deterministic growth / development / research policy. Red acts once per End Turn.",12)
+	button(testing_panel,"Focus Red Haven",func(): map_view.focus_tile(Session.RED_TOWN); selected_tile = Session.RED_TOWN; render())
+	button(testing_panel,"Focus blue settlements",func(): map_view.focus_tile("4,3"))
+	var snapshot = Session.summary(state)
+	for id in Session.players(state):
+		var item = snapshot[id]
+		heading(testing_panel,id.capitalize()+" civilization")
+		label(testing_panel,"%d people · %d/20 techs · %d buildings · %d improved tiles" % [item.population,item.techs.size(),item.buildings,item.improvedTiles],12)
+		label(testing_panel,", ".join(item.resources.keys().map(func(k): return k.capitalize()+" "+str(item.resources[k]))),11)
+		label(testing_panel,"Growth: "+", ".join(item.growth.map(func(g): return Session.players(state)[id].settlements[g.id].name+" "+str(g.growth)+"/20")),11)
+	heading(testing_panel,"Xeno ecology · wildlife")
+	var ecology = Session.X.summary(state.xenos)
+	label(testing_panel,"Deaths — blue %d · red %d · animals %d; active nests %d" % [ecology.deaths.blue,ecology.deaths.red,ecology.deaths.animals,ecology.activeNests],13)
+	label(testing_panel,"%d nests · %d larvae · %d predators (%d armored) · %d xenomass tiles" % [ecology.nests,ecology.workers,ecology.predators,ecology.armored,ecology.massTiles],12)
+	button(testing_panel,"Focus xeno nest",func():
+		if not state.xenos.nests.is_empty(): map_view.focus_tile(state.xenos.nests.values()[0].tile))
+	divider(testing_panel)
+	label(testing_panel,"Recording: "+("ON" if state.testing.enabled else "OFF")+" · "+str(state.testing.events.size())+" events · dropped "+str(state.testing.dropped),12)
+	button(testing_panel,"Start new recording (clears previous trace)",func(): state = Session.start_recording(state); render())
+	button(testing_panel,"Finish recording (manual stop)",func(): state = Session.finish_recording(state); render())
+	button(testing_panel,"Export test record…",func(): test_export.popup_centered_ratio(0.7))
+	label(testing_panel,"Records accepted/rejected commands, policy-rule labels, before/after outcomes and final summaries. Deaths counted separately for blue, red and animals; nest occupation disables breeding/spread.",11)
+	for event in state.testing.events.slice(maxi(0,state.testing.events.size()-8)):
+		label(testing_panel,"#%d T%d %s · %s · %s" % [event.sequence,event.turn,event.player,event.command.type,event.policyRule],11)
+func export_test(path: String) -> bool:
+	var file = FileAccess.open(path,FileAccess.WRITE)
+	if file == null: status("Test export failed.",false); return false
+	file.store_string(JSON.stringify(Session.report(state),"  "))
+	file.flush()
+	var success = file.get_error() == OK
+	file.close()
+	status("Test record exported." if success else "Test export failed.",success)
+	return success

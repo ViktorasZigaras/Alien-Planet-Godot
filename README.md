@@ -1,3 +1,33 @@
+# Alien Planet 0.904
+
+Combat and cleansing test shell: rifle/flamer Soldiers, animal duels and ranged spit, persistent wounds/healing, military equipment limits and upkeep, removable terrain layers. Includes the previously local blue/red civilizations and xeno ecology.
+
+See [0.904 notes](docs/Batch_0904_Notes.md) and [the single 200-turn test](reports/0904/README.md). **1,880 checks pass.** The test ends with the nest alive: red loses two people and kills one animal before economic maintenance stalls recruitment.
+
+---
+
+# Alien Planet — local Godot 0.903
+
+**Not uploaded.** The [xeno ecology notes](docs/Batch_0903_Notes.md) describe the first wildlife nest and provisional encounter values.
+
+A brood nest in the purple biome at **18,12** has worker larvae, Hookrunners and armored Carapace predators. Workers feed the capped brood, collect minerals for heavy births and spread a dark-green harvesting mat. Predators wander locally, detect nearby people and attack. This is wildlife, separate from blue/red civilization economies and research.
+
+Use **Testing → Focus xeno nest** to inspect it. Select a mobile person and approach for **Attack** controls. Xeno-only contact damage/retaliation is provisional; full civilization warfare and the mat's later combat bonus remain deferred. Saves use schema 10; test recordings include ecology ticks and outcomes.
+
+**1,757 checks pass**, with actual native starting/12-turn captures. Both this batch and 0.902 remain local; no source was uploaded.
+
+---
+
+# Alien Planet — local Godot 0.902
+
+**Not uploaded.** [0.902 notes](docs/Batch_0902_Notes.md) describe the new civilization layer and test recorder. Open in Godot 4.5.1 Standard and press F5.
+
+Blue's two settlements now have a combined radius-two claim border with corner stones. Red Haven at 10,8 has its own red border, population, economy, equipment, research and projects. Red uses the same command engine and runs a deterministic growth/development/research policy on each End Turn. Combat and defence behaviour await combat rules.
+
+The **Testing** tab focuses each civilization, shows separate progress, starts/stops recordings and exports JSON action/outcome records. Recording is off by default. **1,579 checks pass**, including separate ledgers, closed borders, saved-state deterministic policy and command replay. Schema 9 migrates earlier saves; older games cannot load the new world saves. The shared map gains a small clear green starting area for red; this is a test scenario, not a balanced matchup.
+
+---
+
 # Alien Planet — Godot 0.901
 
 Open `project.godot` in **Godot 4.5.1 Standard** and press **F5**. [0.901 notes](docs/Batch_0901_Notes.md) cover visibility fixes, controls, transports and the simpler model catalogue.

@@ -1,4 +1,28 @@
-# Current version 0.901
+# Version 0.904
+
+1,880 checks pass across ten suites; 80 new checks cover combat odds, ranged attacks, cleansing, animal pollution penalties, capacity, upkeep, healing, blocking, occupation and migrations. Native OpenGL default/staged captures reviewed with no missing sprite or script errors. 144 sprites and 89 catalogue entries ship in the repository.
+
+Single seed-731 policy experiment: 200 rounds, 0 blue / 2 red / 1 animal deaths, nest active. Its 2,041 recorded actions replay to the same summary with no dropped events. Full artifacts: `reports/0904/`. A preliminary foraging/pollution diagnostic was corrected before the final experiment. No balancing-to-win or physical performance benchmark is claimed.
+
+---
+
+# Local version 0.903
+
+**1,757 checks pass:** 421 rules, 22 UI, 247 model lab, 335 world/art, 55 style, 39 frontier, 185 0.901, 290 0.902 and 163 new ecology checks. Coverage includes caps, paid births, xenomass harvesting, deterministic save/load and replay, hunger, pursuit, provisional encounters/death/cargo cleanup, migration, all 124 sprite/model variants and hidden-view pausing.
+
+Native OpenGL opening and twelve-turn progression captures reviewed. The nest's foliage footprint is hidden only for presentation; opening capture asserts unchanged simulation. No source upload, physical desktop benchmark/play test or executable export is claimed. See `docs/Batch_0903_Notes.md`.
+
+---
+
+# Local version 0.902
+
+**1,579 checks pass:** 421 rules, 22 UI, 247 model lab, 323 world/art, 55 style, 39 frontier, 185 version-0.901 and 287 version-0.902 checks. Two 65-turn policy runs produce matching outcomes even while one is repeatedly saved/reloaded. Recorded commands reproduce the same summaries without GPT; all twenty red technologies are obtained through ordinary commands in the fixture. Both civilizations remain separately validated and persisted.
+
+Native OpenGL starting-claim and developed-fixture captures reviewed. See `docs/Batch_0902_Notes.md` for scope and limits. No GitHub upload, combat rules, representative physical performance test or executable export is part of this local batch.
+
+---
+
+# Historical version 0.901
 
 **1,291 checks pass:** 421 rules, 22 UI, 247 model lab, 322 world/art, 55 style, 39 frontier and 185 version-0.901 checks. Native OpenGL captures reviewed both opening views and a developed layer fixture; opening capture verifies unchanged default simulation. The 0.901 suite tests every profession boarding, cargo persistence/capacity/upkeep, unload movement, invalid cargo saves, shared cardinal projection/pan signs, independent model configurations and halved transport timing/wheel speed. See `docs/Batch_0901_Notes.md`.
 

@@ -1,0 +1,655 @@
+{
+  "version": "0.904",
+  "seed": 731.0,
+  "attempts": 1,
+  "rounds": 200,
+  "status": "turn_limit",
+  "deaths": {
+    "animals": 1,
+    "blue": 0,
+    "red": 2
+  },
+  "activeNests": 1,
+  "recordedActions": 2041,
+  "droppedEvents": 0,
+  "red": {
+    "buildings": 3,
+    "districts": 5,
+    "growth": [
+      {
+        "growth": 0,
+        "id": "red_town"
+      }
+    ],
+    "improvedTiles": 0,
+    "population": 18,
+    "resources": {
+      "culture": 568,
+      "energy": 0,
+      "food": 2999,
+      "industry": 0,
+      "minerals": 356,
+      "science": 692
+    },
+    "techs": [
+      "cultivation",
+      "technical_education",
+      "standard_tooling",
+      "field_security",
+      "civic_exchange",
+      "field_methods",
+      "creative_practice",
+      "closed_ecology",
+      "clinical_practice",
+      "extraction",
+      "power_systems",
+      "perimeter_defence",
+      "surveying",
+      "protective_equipment",
+      "field_coordination"
+    ],
+    "turn": 201.0
+  },
+  "milestones": [
+    {
+      "deployed": 0,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 2,
+        "biomass": 12,
+        "deaths": {
+          "animals": 0,
+          "blue": 0,
+          "red": 0
+        },
+        "massTiles": 12,
+        "minerals": 12,
+        "nests": 1,
+        "predators": 4,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 9,
+      "resources": {
+        "culture": 8,
+        "energy": 14,
+        "food": 177,
+        "industry": 2,
+        "minerals": 6,
+        "science": 4
+      },
+      "round": 10,
+      "soldiers": 1
+    },
+    {
+      "deployed": 0,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 3,
+        "biomass": 13,
+        "deaths": {
+          "animals": 0,
+          "blue": 0,
+          "red": 0
+        },
+        "massTiles": 21,
+        "minerals": 26,
+        "nests": 1,
+        "predators": 5,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 12,
+      "resources": {
+        "culture": 28,
+        "energy": 4,
+        "food": 357,
+        "industry": 2,
+        "minerals": 6,
+        "science": 4
+      },
+      "round": 20,
+      "soldiers": 1
+    },
+    {
+      "deployed": 0,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 4,
+        "biomass": 15,
+        "deaths": {
+          "animals": 0,
+          "blue": 0,
+          "red": 0
+        },
+        "massTiles": 29,
+        "minerals": 34,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 19,
+      "resources": {
+        "culture": 58,
+        "energy": 0,
+        "food": 632,
+        "industry": 2,
+        "minerals": 16,
+        "science": 12
+      },
+      "round": 30,
+      "soldiers": 2
+    },
+    {
+      "deployed": 2,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 4,
+        "biomass": 42,
+        "deaths": {
+          "animals": 0,
+          "blue": 0,
+          "red": 0
+        },
+        "massTiles": 35,
+        "minerals": 44,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 19,
+      "resources": {
+        "culture": 88,
+        "energy": 0,
+        "food": 826,
+        "industry": 0,
+        "minerals": 36,
+        "science": 52
+      },
+      "round": 40,
+      "soldiers": 3
+    },
+    {
+      "deployed": 0,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 84,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 60,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 118,
+        "energy": 0,
+        "food": 1019,
+        "industry": 2,
+        "minerals": 56,
+        "science": 92
+      },
+      "round": 50,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 144,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 80,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 148,
+        "energy": 0,
+        "food": 1179,
+        "industry": 0,
+        "minerals": 76,
+        "science": 132
+      },
+      "round": 60,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 204,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 100,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 178,
+        "energy": 0,
+        "food": 1309,
+        "industry": 0,
+        "minerals": 96,
+        "science": 172
+      },
+      "round": 70,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 264,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 120,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 208,
+        "energy": 0,
+        "food": 1439,
+        "industry": 0,
+        "minerals": 116,
+        "science": 212
+      },
+      "round": 80,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 324,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 140,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 238,
+        "energy": 0,
+        "food": 1569,
+        "industry": 0,
+        "minerals": 136,
+        "science": 252
+      },
+      "round": 90,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 384,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 160,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 268,
+        "energy": 0,
+        "food": 1699,
+        "industry": 0,
+        "minerals": 156,
+        "science": 292
+      },
+      "round": 100,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 444,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 180,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 298,
+        "energy": 0,
+        "food": 1829,
+        "industry": 0,
+        "minerals": 176,
+        "science": 332
+      },
+      "round": 110,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 504,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 200,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 328,
+        "energy": 0,
+        "food": 1959,
+        "industry": 0,
+        "minerals": 196,
+        "science": 372
+      },
+      "round": 120,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 564,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 220,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 358,
+        "energy": 0,
+        "food": 2089,
+        "industry": 0,
+        "minerals": 216,
+        "science": 412
+      },
+      "round": 130,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 624,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 240,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 388,
+        "energy": 0,
+        "food": 2219,
+        "industry": 0,
+        "minerals": 236,
+        "science": 452
+      },
+      "round": 140,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 684,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 260,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 418,
+        "energy": 0,
+        "food": 2349,
+        "industry": 0,
+        "minerals": 256,
+        "science": 492
+      },
+      "round": 150,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 744,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 280,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 448,
+        "energy": 0,
+        "food": 2479,
+        "industry": 0,
+        "minerals": 276,
+        "science": 532
+      },
+      "round": 160,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 804,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 300,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 478,
+        "energy": 0,
+        "food": 2609,
+        "industry": 0,
+        "minerals": 296,
+        "science": 572
+      },
+      "round": 170,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 864,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 320,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 508,
+        "energy": 0,
+        "food": 2739,
+        "industry": 0,
+        "minerals": 316,
+        "science": 612
+      },
+      "round": 180,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 924,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 340,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 538,
+        "energy": 0,
+        "food": 2869,
+        "industry": 0,
+        "minerals": 336,
+        "science": 652
+      },
+      "round": 190,
+      "soldiers": 3
+    },
+    {
+      "deployed": 1,
+      "ecology": {
+        "activeNests": 1,
+        "armored": 5,
+        "biomass": 984,
+        "deaths": {
+          "animals": 1,
+          "blue": 0,
+          "red": 2
+        },
+        "massTiles": 36,
+        "minerals": 360,
+        "nests": 1,
+        "predators": 6,
+        "workers": 3,
+        "woundedPeople": 0
+      },
+      "redPopulation": 18,
+      "resources": {
+        "culture": 568,
+        "energy": 0,
+        "food": 2999,
+        "industry": 0,
+        "minerals": 356,
+        "science": 692
+      },
+      "round": 200,
+      "soldiers": 3
+    }
+  ]
+}

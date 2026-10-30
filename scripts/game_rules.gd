@@ -2,6 +2,7 @@ class_name GameRules
 extends RefCounted
 ## Small serialisable sandbox. Commands validate before copying or spending.
 const Generator = preload("res://scripts/map_generator.gd")
+const Layers = preload("res://scripts/terrain_layers.gd")
 const EPSILON = 0.000001
 const RESOURCES = ["food","minerals","industry","energy","science","culture"]
 const OFFSETS = [Vector2i(1,0),Vector2i(1,-1),Vector2i(0,-1),Vector2i(-1,0),Vector2i(-1,1),Vector2i(0,1)]
@@ -59,7 +60,7 @@ static func step_cost(s: Dictionary,a: String,b: String) -> float:
 	if is_inf(cost): return cost
 	if s.improvements.get(a,{}).get("road",false) and s.improvements.get(b,{}).get("road",false): cost = 1.0/3.0
 	return cost + (1.0 if river_between(s,a,b) else 0.0)
-static func reach(s: Dictionary,kind: String) -> int: return int(preset().extendedReach if "field_coordination" in s.completed else preset().supply[kind])
+static func reach(_s: Dictionary,_kind: String) -> int: return 1000000 # Supply ranges disabled.
 static func routes(s: Dictionary,start: String,class_id: String = "") -> Dictionary:
 	var costs = {start:0.0}
 	var previous = {}
@@ -71,7 +72,6 @@ static func routes(s: Dictionary,start: String,class_id: String = "") -> Diction
 		open.erase(current)
 		for key in neighbours(s,current):
 			var cost = costs[current]+step_cost(s,current,key)
-			if not class_id.is_empty() and cost > reach(s,class_id): continue
 			if cost < costs.get(key,INF):
 				costs[key] = cost
 				previous[key] = current
@@ -80,6 +80,7 @@ static func routes(s: Dictionary,start: String,class_id: String = "") -> Diction
 static func supply_field(s: Dictionary) -> Dictionary:
 	var costs = {}
 	for town in s.settlements.values():
+		if s.get("settlementOwners",{}).get(town.id,"blue") != "blue": continue
 		for key in routes(s,town.tileId).costs:
 			# Supply is distance to the nearest settlement; no hard-terrain exclusion.
 			var d = distance(s.tiles[town.tileId],s.tiles[key])
@@ -106,7 +107,7 @@ static func has_site_improvement(s: Dictionary,key: String) -> bool:
 	for k in s.improvements.get(key,{}):
 		if k != "road" and s.improvements[key][k]: return true
 	return false
-static func tile_yield(s: Dictionary,key: String) -> Dictionary:
+static func tile_yield(s: Dictionary,key: String, penalties: bool = true) -> Dictionary:
 	if not s.tiles.has(key) or is_inf(movement_cost(s,key)) or not site_at(s,key).is_empty() or not district_at(s,key).is_empty(): return {}
 	var t = s.tiles[key]
 	var out = {"plains":{"food":2,"minerals":1},"grassland":{"food":3},"desert":{"minerals":1},"tundra":{"food":1,"minerals":1},"fungal":{"food":2,"science":1}}.get(t.baseTerrain,{}).duplicate()
@@ -126,7 +127,7 @@ static func tile_yield(s: Dictionary,key: String) -> Dictionary:
 	for k in out.keys():
 		out[k] = maxi(0,int(out[k]))
 		if out[k] == 0: out.erase(k)
-	return out
+	return Layers.apply(t,out) if penalties else out
 static func reserved_for_district(s: Dictionary,key: String) -> bool: return s.constructionProject != null and s.constructionProject.order == "district" and s.constructionProject.targetTileId == key
 static func job_building(job: String) -> String: return job.substr(9).split("#")[0]
 static func slots(b: Dictionary) -> int: return 2 if b.get("tier",1) == 2 else 1
@@ -150,7 +151,7 @@ static func job_output(s: Dictionary,c: Dictionary) -> Dictionary:
 	if c.state.kind != "resident" or c.state.get("job") == null: return {}
 	var job = c.state.job
 	if job.begins_with("tile:"):
-		var out = tile_yield(s,job.substr(5))
+		var out = tile_yield(s,job.substr(5),false)
 		var role = content().qualifications[c.qualification]
 		if role.tile_bonus > 0 and out.has(role.resource): out[role.resource] += role.tile_bonus
 		if c.qualification == "Biologist":
@@ -158,7 +159,7 @@ static func job_output(s: Dictionary,c: Dictionary) -> Dictionary:
 			if tile.feature == "forest" and out.has("minerals"): out.minerals += 1
 			if (tile.baseTerrain == "fungal" or tile.bonus == "alien_specimens") and out.has("science"): out.science += 1
 		if "survey_kit" in c.equipment and out.has("science"): out.science += 1
-		return out
+		return Layers.apply(s.tiles[job.substr(5)],out)
 	var b = s.buildings[job_building(job)]
 	var d = content().buildings[b.type]
 	if d.resource == "": return {}
@@ -244,7 +245,14 @@ static func economy(s: Dictionary) -> Dictionary:
 		var g = towns[town]
 		delta.food -= g.consumption
 		g.growth = g.food-g.consumption-g.penalty+g.medicine
-	return {"delta":delta,"towns":towns,"status":status}
+	var upkeep = {"food":0,"industry":0}
+	for c in s.cohorts.values():
+		if c.state.kind not in ["mobile","cargo"]: continue
+		if c.qualification == "Soldier": upkeep.food += 1
+		if "flamer" in c.equipment: upkeep.industry += 1
+		if "rover" in c.equipment: upkeep.industry += 1
+	for resource in upkeep: delta[resource] -= upkeep[resource]
+	return {"delta":delta,"towns":towns,"status":status,"militaryUpkeep":upkeep}
 static func forecast(s: Dictionary) -> Dictionary: return economy(s).delta
 static func tech_reason(s: Dictionary,key: String) -> String:
 	if not nodes().has(key): return "Unknown technology."
@@ -267,11 +275,12 @@ static func training_reason(s: Dictionary,qualification) -> String:
 static func eligible_site(s: Dictionary,key: String,town: String) -> bool:
 	if not s.tiles.has(key) or not s.settlements.has(town): return false
 	var t = s.tiles[key]
-	return t.baseTerrain != "water" and t.relief == "flat" and t.feature == null and site_at(s,key).is_empty() and district_at(s,key).is_empty() and distance(t,s.tiles[s.settlements[town].tileId]) <= preset().workRange and not has_site_improvement(s,key) and not occupied(s,"tile:"+key) and not s.neutralSites.has(key)
+	return t.baseTerrain != "water" and t.relief == "flat" and not Layers.blocked(t) and site_at(s,key).is_empty() and district_at(s,key).is_empty() and distance(t,s.tiles[s.settlements[town].tileId]) <= preset().workRange and not has_site_improvement(s,key) and not occupied(s,"tile:"+key) and not s.neutralSites.has(key)
 static func improvement_site_reason(s: Dictionary,key,town: String,kind: String) -> String:
 	if not key is String or not s.tiles.has(key) or is_inf(movement_cost(s,key)): return "Choose a land hex."
 	if distance(s.tiles[key],s.tiles[s.settlements[town].tileId]) > preset().workRange: return "Improvement must be within two hexes of its town."
 	if s.improvements.get(key,{}).get(kind,false): return "Already built here."
+	if Layers.blocked(s.tiles[key]): return "Clear forest, vegetation and obstacles first."
 	if kind == "road": return ""
 	if not site_at(s,key).is_empty() or not district_at(s,key).is_empty() or has_site_improvement(s,key) or s.neutralSites.has(key): return "Site occupied; a Road may coexist with one improvement."
 	var t = s.tiles[key]
@@ -302,11 +311,25 @@ static func reason(s: Dictionary,cmd: Dictionary) -> String:
 			if cmd.type == "mobilise": return "Equip at least one item before deploying." if c.equipment.is_empty() else ""
 			var item = cmd.get("item","")
 			if not content().equipment.has(item): return "Unknown equipment."
+			if item == "flamer" and item not in c.equipment and c.qualification != "Soldier": return "Flamer equipment requires a trained Soldier."
 			return "No stock at this settlement." if item not in c.equipment and s.equipment[c.state.settlementId].get(item,0) < 1 else ""
+		"cleanse":
+			if c.is_empty() or not builder(c) or c.state.kind not in ["resident","mobile"]: return "Requires a worker with a Work Suit."
+			if c.state.kind == "resident" and c.state.job != null: return "Set worker to Idle."
+			var tile = s.tiles.get(cmd.get("target", ""),{})
+			if tile.is_empty() or tile.baseTerrain == "water": return "Choose a land tile."
+			if c.state.kind == "resident" and distance(tile,s.tiles[person_tile(s,c)]) > 2: return "Resident cleansing is within two hexes."
+			if c.state.kind == "mobile" and (person_tile(s,c) != tile.id or c.state.movementRemaining < 1): return "Move onto tile with one movement available."
+			if c.get("lastCleanse",-1) == s.turn: return "Already cleansed this turn."
+			var layer = cmd.get("layer", "")
+			if layer not in ["pollution","obstacle","vegetation","forest","xenomass"]: return "Choose a removable overlay."
+			var present = tile.feature == "forest" if layer == "forest" else tile.pollution > 0 if layer == "pollution" else tile.obstacle != "" if layer == "obstacle" else tile.get(layer,false) == true
+			return "Overlay already absent." if not present else ""
 		"manufacture":
 			var item = cmd.get("item","")
 			if not s.settlements.has(cmd.get("settlementId","")) or not content().equipment.has(item): return "Choose a settlement and equipment."
 			var d = content().equipment[item]
+			if item in ["flamer","rover"] and equipment_total(s,item) >= military_capacity(s): return "Military capacity full: build a Security District / Guard Post."
 			if d.requires not in s.completed: return "Requires "+nodes()[d.requires].name+"."
 			return "Needs %d Industry." % d.cost if s.resources.industry < d.cost else ""
 		"board":
@@ -396,6 +419,9 @@ static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
 			message = "Developed "+n.name+"."
 		"assign": c.state.job = cmd.get("job")
 		"clearSpecialty":
+			if "flamer" in c.equipment:
+				c.equipment.erase("flamer")
+				s.equipment[c.state.settlementId].flamer = s.equipment[c.state.settlementId].get("flamer",0)+1
 			c.qualification = "Worker"
 			message = "Specialty cleared; identity, equipment and job retained."
 		"equip":
@@ -406,6 +432,17 @@ static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
 			else:
 				stocks[cmd.item] -= 1
 				c.equipment.append(cmd.item)
+		"cleanse":
+			var t = s.tiles[cmd.target]
+			match cmd.layer:
+				"forest": t.feature = null
+				"vegetation": t.vegetation = false
+				"obstacle": t.obstacle = ""
+				"xenomass": t.xenomass = false
+				"pollution": t.pollution = maxi(0,int(t.pollution)-1)
+			c.lastCleanse = int(s.turn)
+			if c.state.kind == "mobile": c.state.movementRemaining -= 1
+			message = "Cleansed %s at %s." % [cmd.layer,cmd.target]
 		"manufacture":
 			s.resources.industry -= content().equipment[cmd.item].cost
 			var stocks = s.equipment[cmd.settlementId]
@@ -475,6 +512,7 @@ static func advance_queue(s: Dictionary,key: String) -> String:
 	var steps = s.movementQueues.get(key,[])
 	while not steps.is_empty():
 		var next = steps[0]
+		if s.tiles[next].get("hostiles",0) > 0: return "Route paused: animals block next tile; attack or reroute."
 		var cost = step_cost(s,entity.tileId,next)
 		if next not in neighbours(s,entity.tileId) or is_inf(cost):
 			s.movementQueues.erase(key)
@@ -517,10 +555,10 @@ static func visible_people(s: Dictionary) -> Dictionary:
 		if not top.has(tile) or c.lastUsed >= s.cohorts[top[tile]].lastUsed: top[tile] = c.id
 	return top
 static func new_person(s: Dictionary,town: String) -> void:
-	var key = "pop_%03d" % s.nextCohortNumber
+	var key = s.get("idPrefix", "")+"pop_%03d" % s.nextCohortNumber
 	while s.cohorts.has(key):
 		s.nextCohortNumber += 1
-		key = "pop_%03d" % s.nextCohortNumber
+		key = s.get("idPrefix", "")+"pop_%03d" % s.nextCohortNumber
 	s.nextCohortNumber += 1
 	s.cohorts[key] = {"id":key,"name":"Settler "+str(s.nextCohortNumber-1),"qualification":"Worker","home":town,"equipment":[],"facing":0.0,"lastUsed":0,"lastRoute":[],"state":{"kind":"resident","settlementId":town,"job":null}}
 static func end_turn(s: Dictionary) -> void:
@@ -571,12 +609,27 @@ static func end_turn(s: Dictionary) -> void:
 static func migrate_save(data):
 	if not data is Dictionary: return data
 	var s = data.duplicate(true)
-	if s.get("schemaVersion") == 8: return s
+	if s.get("schemaVersion") == 11: return s
+	if s.get("schemaVersion") == 10:
+		if s.get("rulesVersion") != 10: return s
+		s.schemaVersion = 11; s.rulesVersion = 11
+		Layers.initialise(s.tiles)
+		return s
+	if s.get("schemaVersion") == 9:
+		if s.get("rulesVersion") != 9: return s
+		s.schemaVersion = 10
+		s.rulesVersion = 10
+		return migrate_save(s)
+	if s.get("schemaVersion") == 8:
+		if s.get("rulesVersion") != 8: return s
+		s.schemaVersion = 9
+		s.rulesVersion = 9
+		return migrate_save(s)
 	if s.get("schemaVersion") == 7:
 		if s.get("rulesVersion") != 7: return s
 		s.schemaVersion = 8
 		s.rulesVersion = 8
-		return s
+		return migrate_save(s)
 	if s.get("schemaVersion") == 6:
 		if s.get("rulesVersion") != 6: return s
 		if not s.get("cohorts") is Dictionary: return s
@@ -663,10 +716,20 @@ static func migrate_save(data):
 	return migrate_save(s)
 
 static func combat_profile(c: Dictionary) -> Dictionary:
-	# Capability preview; opponents and combat resolution remain future work.
-	var armed = "small_arms" in c.equipment
-	return {"attack":(4 if c.qualification == "Soldier" else 1) if armed else 0,
-		"defence":(4 if c.qualification == "Soldier" else 1)+(1 if "reinforced_suit" in c.equipment else 0)}
+	var armed = "small_arms" in c.equipment or "flamer" in c.equipment
+	var strength = (1.0 if c.qualification == "Soldier" else 0.4) if armed else 0.2
+	return {"attack":strength,"defence":strength,"ranged":1.0 if "flamer" in c.equipment and c.qualification == "Soldier" else strength*0.5 if "small_arms" in c.equipment and c.qualification == "Soldier" else 0.0}
+static func military_capacity(s: Dictionary) -> int:
+	var total = s.districts.values().filter(func(d):return d.type == "security").size()
+	for b in s.buildings.values():
+		if b.type == "guard_post": total += int(b.tier)
+	return total
+static func equipment_total(s: Dictionary,item: String) -> int:
+	var count = 0
+	for stock in s.equipment.values(): count += int(stock.get(item,0))
+	for c in s.cohorts.values():
+		if item in c.equipment: count += 1
+	return count
 static func whole(v,minimum: float,maximum: float) -> bool:
 	return (v is int or v is float) and is_finite(float(v)) and v == floor(float(v)) and v >= minimum and v <= maximum
 static func has_fields(d: Dictionary,fields: Array) -> bool: return fields.all(func(k): return d.has(k))
@@ -675,7 +738,7 @@ static func valid_movement(v,maximum: float) -> bool:
 	return (v is int or v is float) and is_finite(float(v)) and v >= 0 and v <= maximum+EPSILON
 static func validate(s) -> String:
 	if not s is Dictionary or not has_fields(s,["schemaVersion","rulesVersion","visualCounter","turn","map","tiles","rivers","resources","settlements","cohorts","equipment","units","buildings","districts","improvements","completed","movementQueues","moveProgress","neutralSites","trainingProject","constructionProject","nextCohortNumber","log","warnings"]): return "Missing save fields."
-	if s.schemaVersion != 8 or s.rulesVersion != 8: return "Unsupported save version."
+	if s.schemaVersion != 11 or s.rulesVersion != 11: return "Unsupported save version."
 	for k in ["map","tiles","resources","settlements","cohorts","equipment","units","buildings","districts","improvements","movementQueues","moveProgress","neutralSites"]:
 		if not s[k] is Dictionary: return "Invalid "+k+"."
 	for k in ["rivers","completed","log","warnings"]:
@@ -689,6 +752,9 @@ static func validate(s) -> String:
 			var t = s.tiles.get(key,{})
 			if not t is Dictionary or not has_fields(t,["id","q","r","baseTerrain","biome","relief","feature","bonus"]) or t.id != key or t.q != q or t.r != r: return "Invalid hex."
 			if t.baseTerrain not in ["plains","grassland","desert","tundra","fungal","water"] or t.biome not in ["temperate","lush","dry","cold","fungal","coastal"] or t.relief not in ["flat","hills"] or t.feature not in [null,"forest"] or (t.bonus != "" and not content().bonuses.has(t.bonus)): return "Unknown terrain or deposit."
+	for t in s.tiles.values():
+		if not has_fields(t,Layers.FIELDS) or not whole(t.pollution,0,3) or t.obstacle not in ["","brambles","stones"] or not t.vegetation is bool or not t.xenomass is bool or not whole(t.biomass,0,1000) or not whole(t.hostiles,0,180): return "Invalid tile overlay."
+		if t.baseTerrain == "desert" and t.feature == "forest": return "Deserts cannot have trees."
 	for edge in s.rivers:
 		if not edge is String: return "Invalid river."
 		var ends = edge.split("|")
@@ -754,6 +820,8 @@ static func validate(s) -> String:
 		for item in c.equipment:
 			if not content().equipment.has(item) or item in gear: return "Invalid loadout."
 			gear.append(item)
+		if "flamer" in c.equipment and c.qualification != "Soldier": return "Untrained flamer operator."
+		if c.has("lastCleanse") and not whole(c.lastCleanse,1,s.turn): return "Invalid cleansing cooldown."
 		var st = c.state
 		if st.get("kind") == "mobile":
 			if not has_fields(st,["tileId","movementRemaining"]) or not s.tiles.has(st.tileId) or is_inf(movement_cost(s,st.tileId)) or not valid_movement(st.movementRemaining,movement_budget(c)): return "Invalid mobile person."

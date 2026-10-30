@@ -26,7 +26,7 @@ static func generate(seed_value: int = 731, width: int = 24, height: int = 16) -
 			if (q == 0 and r < 4) or (r == 0 and q < 3) or (q > width-4 and r > height-5):
 				terrain = "water"
 				biome = "coastal"
-			var forest_chance = {"lush":65,"temperate":28,"cold":18,"dry":4,"fungal":22,"coastal":0}[biome]
+			var forest_chance = {"lush":65,"temperate":28,"cold":18,"dry":0,"fungal":22,"coastal":0}[biome]
 			var bonus = ""
 			if terrain != "water":
 				if value < 11: bonus = "ore_seam" if value % 2 == 0 else ("oasis" if biome == "dry" else "edible_flora")
@@ -54,6 +54,7 @@ static func generate(seed_value: int = 731, width: int = 24, height: int = 16) -
 		for pair in [["%d,%d" % [q,r],"%d,%d" % [q-1,r]], ["%d,%d" % [q,r],"%d,%d" % [q-1,r+1]]]:
 			rivers.append(edge_key(pair[0],pair[1]))
 	rivers.append(edge_key("3,3","3,2"))
+	preload("res://scripts/terrain_layers.gd").initialise(tiles,true)
 	return {"seed":seed_value,"width":width,"height":height,"tiles":tiles,"rivers":rivers}
 
 static func edge_key(a: String,b: String) -> String:

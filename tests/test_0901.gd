@@ -54,10 +54,10 @@ func run():
 	var old = R.initial_state()
 	old.schemaVersion = 7
 	old.rulesVersion = 7
-	check(R.validate(R.migrate_save(old)) == "" and R.migrate_save(old).schemaVersion == 8,"0.9 saves migrate to schema 8")
+	check(R.validate(R.migrate_save(old)) == "" and R.migrate_save(old).schemaVersion == 11,"0.9 saves migrate to current schema")
 	var people = C.library_entries().filter(func(e): return e.kind == "person")
 	check(people.size() == 11,"Eleven base people in library")
-	check(C.library_entries().size() == 63 and C.entries().size() == 118,"Configurations separated; complete bake retained")
+	check(C.library_entries().size() == 89 and C.entries().size() == 144,"Configurations separated; complete bake retained")
 	for key in ["bonus_edible_flora","bonus_ore_seam","bonus_alien_specimens","settlement_main","person_Worker_0_0"]:
 		var full_icon = Art.world_icon(key)
 		var tight = Art.tight_icon(key)

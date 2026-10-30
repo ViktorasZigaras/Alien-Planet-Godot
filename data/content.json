@@ -352,6 +352,11 @@
       "name": "Reinforced Suit",
       "cost": 4,
       "requires": "protective_equipment"
+    },
+    "flamer": {
+      "name": "Flamer Exoskeleton",
+      "cost": 8,
+      "requires": "protective_equipment"
     }
   },
   "bonuses": {

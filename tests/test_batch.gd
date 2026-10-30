@@ -129,10 +129,10 @@ func _initialize() -> void:
 	s = run_cmd(s,{"type":"assign","cohortId":"pop_c","job":null})
 	s = run_cmd(s,{"type":"assign","cohortId":"pop_b","job":null})
 	var passive = R.forecast(s)
-	check(worked.industry > passive.industry and passive.industry > 1,"Worked and passive Industry output")
+	check(worked.industry > passive.industry and passive.industry+R.economy(s).militaryUpkeep.industry > 1,"Worked and passive Industry output")
 	check(worked.minerals < passive.minerals,"Conversion consumes actual Minerals")
 	s.resources.minerals = 0
-	check(R.forecast(s).industry == 1,"No input-free workshop conversion; only starter Industry remains")
+	check(R.forecast(s).industry+R.economy(s).militaryUpkeep.industry == 1,"No input-free workshop conversion; only starter Industry remains")
 	var identity = s.cohorts.pop_c.id
 	s = run_cmd(s,{"type":"clearSpecialty","cohortId":"pop_c"})
 	check(s.cohorts.pop_c.id == identity and s.cohorts.pop_c.qualification == "Worker","Clear specialty preserves person")

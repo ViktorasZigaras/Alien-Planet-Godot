@@ -18,6 +18,7 @@ var role = "Rig"
 var work_suit = false
 var reinforced = false
 var small_arms = false
+var flamer = false
 var show_tools = true
 var tool_groups: Array[Node3D] = []
 var skeleton: Skeleton3D
@@ -176,7 +177,12 @@ func add_game_equipment(accent: Color) -> void:
 	attachments = outfit_attachments
 	if small_arms:
 		Parts.box(attachments.spine,Vector3(0.20,0.03,0.28),Vector3(0.12,0.13,0.52),Color("343e49"))
-	if work_suit or reinforced:
+	if flamer:
+		Parts.cylinder(attachments.spine,Vector3(-0.16,0.08,-0.38),0.12,0.50,Color("a75e35"),8)
+		Parts.cylinder(attachments.spine,Vector3(0.16,0.08,-0.38),0.12,0.50,Color("bdaa64"),8)
+		Parts.box(attachments.spine,Vector3(0.23,-0.02,0.36),Vector3(0.15,0.18,0.70),Color("4a4943"))
+		Parts.oval(attachments.spine,Vector3(0.23,-0.02,0.74),Vector3(0.10,0.10,0.06),Color("ea9f3d"))
+	if work_suit or reinforced or flamer:
 		var metal = Color("90a3a5") if not reinforced else Color("647c92")
 		# Exoskeleton rails follow the existing limbs; the clothed person stays inside.
 		Parts.box(attachments.spine,Vector3(0,0.10,-0.33),Vector3(0.48,0.47,0.18),metal)

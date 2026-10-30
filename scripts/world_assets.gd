@@ -126,8 +126,13 @@ static func terrain(t: Dictionary) -> Node3D:
 		for i in range(5):
 			var pos = Vector3(cos(i*2.4)*0.55,0,sin(i*2.4)*0.49)
 			pos.y = height_at(t,pos.x,pos.z)
-			tree(root,pos,Color("34594b") if t.baseTerrain != "fungal" else Color("63516b"))
-	elif t.baseTerrain == "fungal":
+			if t.get("biome", "") == "cold":
+				P.cylinder(root,pos+Vector3(0,0.39,0),0.28,0.75,Color("536e65"),7,0.02)
+			elif t.baseTerrain == "fungal":
+				P.cylinder(root,pos+Vector3(0,0.29,0),0.06,0.58,Color("aaa68a"))
+				P.oval(root,pos+Vector3(0,0.61,0),Vector3(0.58,0.20,0.53),Color("75627b"))
+			else: tree(root,pos,Color("3e6c45") if t.get("biome", "") == "lush" else Color("5a6950"))
+	elif t.baseTerrain == "fungal" and t.get("vegetation",true):
 		for i in range(3):
 			var pos = Vector3(cos(i*2.4)*0.70,0,sin(i*2.4)*0.65)
 			pos.y = height_at(t,pos.x,pos.z)
@@ -259,4 +264,31 @@ static func person(c: Dictionary) -> Node3D:
 	rig.work_suit = "work_suit" in c.equipment
 	rig.reinforced = "reinforced_suit" in c.equipment
 	rig.small_arms = "small_arms" in c.equipment
+	rig.flamer = "flamer" in c.equipment
 	return rig
+
+static func layer(kind: String,t: Dictionary) -> Node3D:
+	var root = Node3D.new()
+	for i in range(7 if kind.begins_with("pollution") else 5):
+		var x = cos(i*2.4)*0.59; var z = sin(i*2.4)*0.57
+		var at = Vector3(x,height_at(t,x,z),z)
+		if kind.begins_with("pollution"):
+			var level = int(kind.right(1))
+			P.oval(root,at+Vector3(0,0.025,0),Vector3(0.43+level*0.1,0.045,0.37+level*0.1),Color(["736f47","666847","434c37"][level-1]))
+			if i%2 == 0: P.oval(root,at+Vector3(0,0.065,0),Vector3(0.10,0.07,0.09),Color("a1a252"))
+		elif kind == "stones":
+			var stone = P.oval(root,at+Vector3(0,0.19,0),Vector3(0.30,0.38+i*0.025,0.28),Color("85877a"))
+			stone.rotation.z = i*0.1
+		elif kind == "brambles":
+			for j in range(3):
+				var thorn = P.cylinder(root,at+Vector3(0,0.11,0),0.025,0.36,Color("62513e"),5,0.01)
+				thorn.rotation.z = j*0.8; thorn.rotation.y = i*0.6
+		elif kind == "biomass":
+			P.oval(root,at+Vector3(0,0.07,0),Vector3(0.25,0.14,0.23),Color("596b37"))
+			P.oval(root,at+Vector3(0.04,0.12,0),Vector3(0.11,0.09,0.10),Color("8b9850"))
+		elif kind.begins_with("vegetation"):
+			var biome = kind.trim_prefix("vegetation_")
+			var color = Color({"lush":"658452","temperate":"7b8659","cold":"8b9980","dry":"998154","fungal":"aa809f","coastal":"82916b"}.get(biome,"7b8659"))
+			P.oval(root,at+Vector3(0,0.08,0),Vector3(0.27,0.16,0.23),color)
+			P.cylinder(root,at+Vector3(0,0.14,0),0.025,0.26,color.lightened(0.15),5,0.01)
+	return root

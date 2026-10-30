@@ -197,6 +197,42 @@
     80,
     80
   ],
+  "forest_coastal": [
+    320,
+    1040,
+    80,
+    80
+  ],
+  "forest_cold": [
+    640,
+    960,
+    80,
+    80
+  ],
+  "forest_dry": [
+    160,
+    1040,
+    80,
+    80
+  ],
+  "forest_fungal": [
+    0,
+    1040,
+    80,
+    80
+  ],
+  "forest_lush": [
+    480,
+    960,
+    80,
+    80
+  ],
+  "forest_temperate": [
+    320,
+    960,
+    80,
+    80
+  ],
   "hill_desert": [
     400,
     880,
@@ -278,6 +314,78 @@
   "improvement_watchtower": [
     320,
     720,
+    80,
+    80
+  ],
+  "layer_biomass": [
+    80,
+    1120,
+    80,
+    80
+  ],
+  "layer_brambles": [
+    720,
+    1040,
+    80,
+    80
+  ],
+  "layer_pollution1": [
+    480,
+    1040,
+    80,
+    80
+  ],
+  "layer_pollution2": [
+    560,
+    1040,
+    80,
+    80
+  ],
+  "layer_pollution3": [
+    640,
+    1040,
+    80,
+    80
+  ],
+  "layer_stones": [
+    0,
+    1120,
+    80,
+    80
+  ],
+  "layer_vegetation_coastal": [
+    400,
+    1040,
+    80,
+    80
+  ],
+  "layer_vegetation_cold": [
+    720,
+    960,
+    80,
+    80
+  ],
+  "layer_vegetation_dry": [
+    240,
+    1040,
+    80,
+    80
+  ],
+  "layer_vegetation_fungal": [
+    80,
+    1040,
+    80,
+    80
+  ],
+  "layer_vegetation_lush": [
+    560,
+    960,
+    80,
+    80
+  ],
+  "layer_vegetation_temperate": [
+    400,
+    960,
     80,
     80
   ],
@@ -689,6 +797,12 @@
     80,
     80
   ],
+  "person_flamer": [
+    160,
+    1120,
+    80,
+    80
+  ],
   "settlement_field": [
     0,
     880,
@@ -704,6 +818,48 @@
   "vehicle_rover": [
     480,
     480,
+    80,
+    80
+  ],
+  "xeno_armored": [
+    80,
+    960,
+    80,
+    80
+  ],
+  "xeno_burned": [
+    240,
+    1120,
+    80,
+    80
+  ],
+  "xeno_larva": [
+    720,
+    880,
+    80,
+    80
+  ],
+  "xeno_mass": [
+    160,
+    960,
+    80,
+    80
+  ],
+  "xeno_mass_hills": [
+    240,
+    960,
+    80,
+    80
+  ],
+  "xeno_nest": [
+    640,
+    880,
+    80,
+    80
+  ],
+  "xeno_predator": [
+    0,
+    960,
     80,
     80
   ]
