@@ -43,6 +43,7 @@ static func ground(kind: String) -> ShaderMaterial:
 		mat.set_shader_parameter("soil",Color(TERRAIN[kind]))
 		mat.set_shader_parameter("cover",Color(Style.GROUND_COVER[kind]))
 		mat.set_shader_parameter("ground_noise",Atmosphere.noise())
+		mat.set_shader_parameter("painted_detail",load("res://assets/world/frontier_ground.png"))
 		ground_materials[kind] = mat
 	return ground_materials[kind]
 static func rock(parent: Node3D,position: Vector3,size: Vector3,color: Color) -> void:
@@ -64,32 +65,74 @@ static func rock(parent: Node3D,position: Vector3,size: Vector3,color: Color) ->
 	var node = P.mesh(parent,P.shapes[key],position,color)
 	node.material_override = P.material(color,true)
 	node.scale = size
+static func height_at(t: Dictionary, x: float, z: float) -> float:
+	if t.get("relief", "flat") != "hills" or t.baseTerrain == "water": return 0.0
+	# Distance to the hex boundary, not a separate boulder on a flat floor.
+	var edge = Vector2(x,z).length()/0.86
+	var shoulder = maxf(0.0,1.0-edge*edge)
+	return 0.68*shoulder*shoulder*(1.0+0.24*sin(x*4.0+z*3.0))
+static func land_mesh(hills: bool, hill_only: bool = false) -> Mesh:
+	var key = "frontier_land_"+str([hills,hill_only])
+	if P.shapes.has(key): return P.shapes[key]
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var t = {"baseTerrain":"plains","relief":"hills" if hills else "flat"}
+	# 6 sectors, 6 radial bands; edge samples align between every hex.
+	var bands = 6 if hills else 1
+	var segments = 36 if hills else 6
+	for ring in range(bands):
+		for side in range(segments):
+			var a = float(side)*6.0/segments
+			var b = float(side+1)*6.0/segments
+			var points = []
+			for at in [Vector2(a,float(ring)/bands),Vector2(b,float(ring)/bands),Vector2(b,float(ring+1)/bands),Vector2(a,float(ring+1)/bands)]:
+				var corner = floori(at.x)%6
+				var u = at.x-floorf(at.x)
+				var aa = deg_to_rad(30+corner*60)
+				var bb = aa+PI/3
+				var edge = Vector2(cos(aa),sin(aa)).lerp(Vector2(cos(bb),sin(bb)),u)*0.997*at.y
+				if hill_only:
+					var angle = deg_to_rad(30+at.x*60)
+					edge = Vector2(cos(angle),sin(angle))*0.855*at.y
+				points.append(Vector3(edge.x,height_at(t,edge.x,edge.y),edge.y))
+			for indices in [[0,2,1],[0,3,2]]:
+				for index in indices:
+					var v = points[index]
+					var dx = (height_at(t,v.x+0.003,v.z)-height_at(t,v.x-0.003,v.z))/0.006
+					var dz = (height_at(t,v.x,v.z+0.003)-height_at(t,v.x,v.z-0.003))/0.006
+					st.set_normal(Vector3(-dx,1,-dz).normalized())
+					st.set_uv(Vector2(v.x,v.z))
+					st.add_vertex(v)
+	P.shapes[key] = st.commit()
+	return P.shapes[key]
+static func hill_sprite(kind: String) -> Node3D:
+	var root = Node3D.new()
+	var mesh = P.mesh(root,land_mesh(true,true),Vector3.ZERO,Color(TERRAIN[kind]))
+	mesh.material_override = ground(kind)
+	return root
 static func tree(parent: Node3D,pos: Vector3,color: Color) -> void:
-	P.cylinder(parent,pos+Vector3(0,0.18,0),0.045,0.36,Color("705b45"))
-	var leaf = P.cylinder(parent,pos+Vector3(0,0.49,0),0.24,0.65,color,7,0)
-	leaf.material_override = moving(color)
-	var tip = P.cylinder(parent,pos+Vector3(0,0.70,0),0.15,0.42,color.lightened(0.09),7,0)
-	tip.material_override = moving(color.lightened(0.09))
+	P.cylinder(parent,pos+Vector3(0,0.24,0),0.035,0.48,Color("665746"),7)
+	for i in range(4):
+		var offset = Vector3(cos(i*2.4)*0.13,0.43+i*0.095,sin(i*2.4)*0.13)
+		var leaf = P.oval(parent,pos+offset,Vector3(0.39-i*0.035,0.38,0.36-i*0.03),color.lightened(i*0.035))
+		leaf.material_override = moving(color.lightened(i*0.035))
 static func terrain(t: Dictionary) -> Node3D:
 	var root = Node3D.new()
 	var color = Color(TERRAIN[t.baseTerrain])
-	var base = hexagon(root,0.993,color)
-	if t.baseTerrain == "water":
-		base.material_override = moving(color,true)
-		return root
-	base.material_override = ground(t.baseTerrain)
-	for i in range(3):
-		var pos = Vector3(cos(i*2.4)*0.72,0.01,sin(i*2.4)*0.65)
-		if t.baseTerrain == "fungal":
-			P.cylinder(root,pos+Vector3(0,0.12,0),0.035,0.24,Color("cfcaac"))
-			var cap = P.cylinder(root,pos+Vector3(0,0.26,0),0.14,0.08,Color("b68baf"),6,0.06)
-			cap.material_override = moving(Color("b68baf"))
-		else: P.box(root,pos,Vector3(0.12,0.03,0.10),color.lightened(0.08))
-	if t.relief == "hills":
-		rock(root,Vector3(0.39,0,-0.35),Vector3(0.49,0.43,0.45),color.lightened(0.12))
-		rock(root,Vector3(-0.36,0,-0.40),Vector3(0.35,0.27,0.32),color.darkened(0.08))
+	var base = P.mesh(root,land_mesh(t.get("relief", "flat") == "hills"),Vector3.ZERO,color)
+	base.material_override = moving(color,true) if t.baseTerrain == "water" else ground(t.baseTerrain)
+	if t.baseTerrain == "water": return root
 	if t.feature == "forest":
-		for pos in [Vector3(-0.53,0,-0.24),Vector3(0.40,0,-0.38),Vector3(0.48,0,0.32)]: tree(root,pos,Color("335b43"))
+		for i in range(5):
+			var pos = Vector3(cos(i*2.4)*0.55,0,sin(i*2.4)*0.49)
+			pos.y = height_at(t,pos.x,pos.z)
+			tree(root,pos,Color("34594b") if t.baseTerrain != "fungal" else Color("63516b"))
+	elif t.baseTerrain == "fungal":
+		for i in range(3):
+			var pos = Vector3(cos(i*2.4)*0.70,0,sin(i*2.4)*0.65)
+			pos.y = height_at(t,pos.x,pos.z)
+			P.cylinder(root,pos+Vector3(0,0.12,0),0.025,0.24,Color("bcb99b"))
+			P.oval(root,pos+Vector3(0,0.25,0),Vector3(0.25,0.09,0.23),Color("a984a2"))
 	return root
 static func district(kind: String) -> Node3D:
 	var root = Node3D.new()
@@ -180,19 +223,34 @@ static func bonus(kind: String) -> Node3D:
 	var root = Node3D.new()
 	match kind:
 		"edible_flora","oasis":
-			for i in range(3):
-				var p = Vector3(-0.14+i*0.14,0.08,0)
-				P.cylinder(root,p,0.045,0.16,Color("719653"))
-				P.cylinder(root,p+Vector3(0,0.12,0),0.10,0.13,Color("dbb36b"),5,0.025)
+			P.cylinder(root,Vector3(0,0.22,0),0.04,0.44,Color("6e6944"),7)
+			for i in range(5):
+				var a = i*TAU/5
+				var leaf = P.oval(root,Vector3(cos(a)*0.16,0.36,sin(a)*0.15),Vector3(0.16,0.12,0.44),Color("55784a").lightened(i*0.025))
+				leaf.rotation.y = -a+PI/2
+				P.oval(root,Vector3(cos(a)*0.18,0.26,sin(a)*0.16),Vector3(0.13,0.17,0.13),Color("dca844"))
 		"ore_seam":
-			for i in range(3): P.cylinder(root,Vector3(-0.14+i*0.14,0.1,0),0.12,0.18+0.07*(i%2),Color("a8b6b8"),5,0.055)
+			for i in range(4):
+				var pos = Vector3(-0.20+i*0.12,0,(i%2)*0.13-0.06)
+				rock(root,pos,Vector3(0.18,0.23+(i%2)*0.16,0.22),Color("606c71").lightened(i*0.035))
+				rock(root,pos+Vector3(0,0.06,0.07),Vector3(0.07,0.17,0.08),Color("c29452"))
 		"geothermal_vent":
-			P.cylinder(root,Vector3(0,0.05,0),0.23,0.10,Color("a89679"),6,0.14)
-			P.cylinder(root,Vector3(0,0.11,0),0.10,0.07,Color("e3c76b"),6)
+			for i in range(6):
+				var a = i*TAU/6
+				rock(root,Vector3(cos(a)*0.18,0,sin(a)*0.18),Vector3(0.15,0.22,0.15),Color("756e62"))
+			P.cylinder(root,Vector3(0,0.06,0),0.12,0.08,Color("e4ac4e"),10)
+			for i in range(2):
+				var wisp = P.oval(root,Vector3(i*0.035,0.22+i*0.14,0),Vector3(0.13,0.15,0.12),Color("bfbba2").darkened(i*0.05))
+				wisp.material_override = moving(Color("bfbba2").darkened(i*0.05))
 		"alien_specimens":
-			for i in range(3): P.cylinder(root,Vector3(-0.12+i*0.12,0.17,0),0.085,0.34,Color("7bc5bd"),5,0.01)
+			for i in range(4):
+				var pos = Vector3(-0.18+i*0.115,0.18+(i%2)*0.09,(i%2)*0.13)
+				var crystal = P.cylinder(root,pos,0.085,0.36+(i%2)*0.18,Color("65b4be").lightened(i*0.04),5,0)
+				crystal.rotation.z = (i-1.5)*0.16
 		"resonant_stones":
-			for i in [-1,1]: P.box(root,Vector3(i*0.13,0.22,0),Vector3(0.13,0.44,0.15),Color("b08fbf"))
+			P.softened(root,Vector3(0,0.29,0),Vector3(0.25,0.58,0.20),Color("896e97"))
+			P.softened(root,Vector3(0.21,0.16,0.07),Vector3(0.14,0.32,0.16),Color("a28ca6"))
+			for y in [0.19,0.30,0.41]: P.box(root,Vector3(0,y,0.107),Vector3(0.15,0.025,0.014),Color("d3b5cb"))
 	return root
 static func person(c: Dictionary) -> Node3D:
 	if "rover" in c.equipment: return Rover.new()

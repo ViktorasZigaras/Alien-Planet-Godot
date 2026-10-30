@@ -1,4 +1,18 @@
-# Alien Planet — Godot 0.8
+# Alien Planet — Godot 0.9
+
+Open `project.godot` in **Godot 4.5.1 Standard** and press **F5**. Choose **Sprite / illustrated** or **3D / frontier** above the map. This release implements the approved medium frontier direction with quieter painted ground, rounded raised hills, layered foliage, larger physical resources, lighter field outfits and matching pictorial UI icons.
+
+The current guide is [Visual Style 0.9](docs/Visual_Style_09.md). It explains the art, how to extend it, the generated ground texture and shared model/sprite bake. The implementation is a geometric adaptation of the concept paintovers, not a promise of identical hand-painted detail. The actual opening screenshots show its present appearance.
+
+**1,106 current checks pass:** 421 simulation, 22 UI, 247 model lab, 322 world/art, 55 style and 39 frontier checks. New checks cover raised-surface picking, uphill travel, road ribbons, hill sprites and tightly cropped icons. Actual 1440×900 OpenGL captures preserve the unchanged default simulation.
+
+Gameplay and schema 7 saves remain unchanged. No standalone executable or physical Windows play test is claimed; this upload is the ready-to-open Godot source project. Hills have real relief; structures, deposits, trees and travelling figures sample their surface. Motion and hidden-view suspension remain available. Physical performance testing remains pending.
+
+---
+
+Earlier release notes follow.
+
+# Historical version 0.8
 
 Open `project.godot` in Godot 4.5.1 Standard and press F5. Choose **Sprite A / symbolic** or **3D B / balanced** above the map. Version 0.8 applies the selected Hybrid Studies directions to the actual game: rust/olive/violet terrain, teal water, pale industrial buildings, strong sprite contours and softer 3D materials/lighting.
 

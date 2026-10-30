@@ -149,16 +149,22 @@ func _draw() -> void:
 		if hovered == t.id: colour = colour.lightened(0.12)
 		draw_colored_polygon(poly, colour)
 		draw_terrain(t,poly)
-		var edge = Style.SPRITE_GRID
+		var edge = Color(Style.SPRITE_GRID,0.58)
 		if overlay != "none" and supply.get(t.id, INF) <= Rules.reach(state, overlay): edge = Color("748a70")
 		if selected_tile == t.id: edge = Style.SELECTION
 		var outline = poly.duplicate()
 		outline.append(poly[0])
-		draw_polyline(outline, edge, 3 if selected_tile == t.id else 1.0, true)
-		if t.feature == "forest": draw_world_sprite("overlay_forest",c+Vector2(0,-9),Vector2(78,78))
-		if t.relief == "hills": draw_world_sprite("overlay_hills",c+Vector2(0,-7),Vector2(78,78))
+		draw_polyline(outline, edge, 3 if selected_tile == t.id else 0.65, true)
+		if t.relief == "hills": draw_world_sprite("hill_"+t.baseTerrain,c+Vector2(0,-4),Vector2(82,86))
+		if t.feature == "forest": draw_world_sprite("overlay_forest",c+Vector2(0,-16 if t.relief == "hills" else -9),Vector2(78,78))
 		if t.baseTerrain == "water":
-			for dy in [-8,0,8]: draw_line(c+Vector2(-15,dy),c+Vector2(15,dy),Color("426d86"),1)
+			for neighbour in Rules.neighbours(state,t.id):
+				if state.tiles[neighbour].baseTerrain == "water": continue
+				var direction = (centre(state.tiles[neighbour])-c).normalized()
+				var mid = (centre(state.tiles[neighbour])+c)/2-direction*1.3
+				var along = direction.orthogonal()*17.5
+				draw_line(mid-along,mid+along,Color("667f79"),3.0,true)
+				draw_line(mid-along,mid+along,Color("b2c9b6"),0.9,true)
 		if t.id == selected_tile or t.id == hovered: text_at(t.id,c+Vector2(0,27),10,Color("fff1c9"))
 		var site = Rules.site_at(state, t.id)
 		var district = Rules.district_at(state, t.id)
@@ -180,7 +186,7 @@ func _draw() -> void:
 	for t in state.tiles.values():
 		if t.bonus != "":
 			var resource = Rules.content().bonuses[t.bonus].yields.keys()[0]
-			draw_world_sprite("bonus_"+t.bonus,centre(t)+Vector2(-17,-14),Vector2(54,54))
+			draw_world_sprite("bonus_"+t.bonus,centre(t)+Vector2(-15,-13 if t.relief != "hills" else -21),Vector2(82,82))
 	for key in state.neutralSites:
 		var c = centre(state.tiles[key])
 		draw_world_sprite("building_exchange_1" if state.neutralSites[key].resource == "culture" else "building_research_lab_1",c,Vector2(85,85))
@@ -195,7 +201,7 @@ func _draw() -> void:
 	for tile in people:
 		var c = state.cohorts[people[tile]]
 		if c.state.kind == "mobile" or (c.state.get("job") is String and c.state.job.begins_with("tile:")): continue
-		draw_world_sprite(Catalogue.person_key(c),centre(state.tiles[tile])+Vector2(0,2),Vector2(48,48))
+		draw_world_sprite(Catalogue.person_key(c),centre(state.tiles[tile])+Vector2(0,-7 if state.tiles[tile].relief == "hills" else 2),Vector2(56,56))
 	draw_queued_route()
 	if not route.is_empty() and route.path.size() > 1:
 		for i in range(route.path.size()-1):
@@ -207,7 +213,7 @@ func _draw() -> void:
 	for u in units:
 		var same = units.filter(func(v): return v.tileId == u.tileId)
 		var offset = (same.find(u) - (same.size()-1)/2.0)*23.0
-		var c = centre(state.tiles[u.tileId]) + Vector2(offset, -3)
+		var c = centre(state.tiles[u.tileId]) + Vector2(offset, -13 if state.tiles[u.tileId].relief == "hills" else -3)
 
 		draw_arc(c, 20, 0, TAU, 32, Color("f5cc82") if selected_unit == u.id else Color("a2ccd6"), 2, true)
 		var key = "rover" if u.classId == "rover" else state.cohorts[u.id].qualification
@@ -264,7 +270,7 @@ func draw_worker(tile: Dictionary) -> void:
 	draw_polyline(ring, colour, 1.8, true)
 	draw_style_box(yield_backplate(), Rect2(c+Vector2(-31,-28), Vector2(62,16)))
 	text_at(worker.name, c+Vector2(0,-16), 9, colour)
-	draw_world_sprite(Catalogue.person_key(worker),c+Vector2(0,-4),Vector2(48,48))
+	draw_world_sprite(Catalogue.person_key(worker),c+Vector2(0,-14 if tile.relief == "hills" else -4),Vector2(56,56))
 
 func draw_improvements() -> void:
 	for key in state.get("improvements", {}):

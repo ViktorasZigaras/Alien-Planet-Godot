@@ -1,4 +1,14 @@
-# Current version 0.8
+# Current version 0.9
+
+**1,106 checks pass, zero failures:** 421 simulation/content/migration, 22 UI, 247 model lab, 322 world/art, 55 visual style and 39 frontier checks. The catalogue and bake now contain 118 model/sprite variants. Frontier checks exercise raised hill shoulders and shared borders, level water, terrain-specific sprites, physical-icon bounds, actual mesh picking on crests/shoulders, queued uphill movement, Motion-off landing and road construction across sloping terrain.
+
+Godot 4.5.1 headless import and actual OpenGL opening capture succeed. Both 1440×900 images are native game captures of the unmodified starting state, not generated paintovers; capture asserts unchanged simulation. Shared shader/material changes and the complete sprite/ground bake were reviewed after import. No executable export, physical Windows test or fresh representative hardware benchmark is claimed. Existing software-renderer performance measurements are historical.
+
+Current suites: `test_batch.gd`, `test_batch_ui.gd`, `test_model_lab.gd`, `test_world.gd`, `test_visual_style.gd`, `test_frontier.gd` in `tests/`.
+
+---
+
+# Historical version 0.8
 
 **1,058 checks pass, zero failures:** 421 simulation/content/migration, 22 native UI (including camera centring across layout resize), 247 model-lab, 313 world/art and 55 visual-style checks. Style checks cover all 24 pre-baked terrain regions, resource reuse, palette separation, sprite contours/transparency and unchanged simulation. World checks still cover all 113 model/sprite variants and matching view behavior.
 

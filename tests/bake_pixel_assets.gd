@@ -16,7 +16,7 @@ func run() -> void:
 	env.environment.background_color = Color(0,0,0,0)
 	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color = Color("d0d9dc")
-	env.environment.ambient_light_energy = 0.8
+	env.environment.ambient_light_energy = 0.65
 	viewport.add_child(env)
 	var light = DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-50,-35,0)
@@ -44,7 +44,7 @@ func run() -> void:
 		await RenderingServer.frame_post_draw
 		var frame = viewport.get_texture().get_image()
 		frame.convert(Image.FORMAT_RGBA8)
-		frame = Style.sprite_finish(frame)
+		frame = Style.sprite_finish(frame,e.kind != "hill")
 		var at = Vector2i(i%10*80,floori(i/10.0)*80)
 		atlas.blit_rect(frame,Rect2i(0,0,80,80),at)
 		regions[e.key] = [at.x,at.y,80,80]

@@ -78,7 +78,7 @@ func build() -> void:
 
 func build_outfit() -> void:
 	var colors = {"Biologist":["68844e","b4cf74","e7dcb6"],"Extractor":["bf7736","e8c76a","bacbd0"],"Medic":["deded1","bd5350","cde9df"],"Soldier":["526579","8297a5","d7bd73"],"Explorer":["44727b","ba9d65","91d4c8"],"Artist":["8a5383","e5ac60","e8d8ca"]}.get(role,PALETTES.get(role,PALETTES.Worker))
-	var cloth = Color(colors[0])
+	var cloth = Color(colors[0]).lerp(Color("d6d2bb"),0.48)
 	var accent = Color(colors[1])
 	var light = Color(colors[2])
 	var dark = Color("303c42")
@@ -87,16 +87,16 @@ func build_outfit() -> void:
 	Parts.softened(attachments.spine, Vector3(0, 0.12, 0), Vector3(0.51, 0.43, 0.32), cloth)
 	Parts.softened(attachments.pelvis, Vector3(0, 0.12, 0.015), Vector3(0.47, 0.065, 0.34), dark)
 	Parts.softened(attachments.pelvis, Vector3(0, 0.12, 0.195), Vector3(0.09, 0.055, 0.035), accent)
-	Parts.softened(attachments.head, Vector3(0, 0.08, 0), Vector3(0.27, 0.32, 0.25), skin)
+	Parts.oval(attachments.head, Vector3(0, 0.08, 0), Vector3(0.29, 0.34, 0.27), skin)
 	Parts.softened(attachments.head, Vector3(0, 0.245, -0.015), Vector3(0.29, 0.09, 0.27), Color("453b37"))
 	Parts.softened(attachments.head, Vector3(0, 0.065, 0.14), Vector3(0.075, 0.075, 0.045), skin.lightened(0.08))
 	for side in [-1, 1]:
 		var suffix = "_l" if side < 0 else "_r"
-		Parts.softened(attachments["upper_arm"+suffix], Vector3(0, -0.155, 0), Vector3(0.19, 0.31, 0.23), cloth)
-		Parts.softened(attachments["forearm"+suffix], Vector3(0, -0.13, 0), Vector3(0.155, 0.25, 0.18), skin if role in ["Worker", "Farmer", "Biologist"] else cloth)
+		Parts.oval(attachments["upper_arm"+suffix], Vector3(0, -0.145, 0), Vector3(0.22, 0.36, 0.25), cloth)
+		Parts.oval(attachments["forearm"+suffix], Vector3(0, -0.13, 0), Vector3(0.18, 0.29, 0.20), cloth)
 		Parts.softened(attachments["forearm"+suffix], Vector3(0, -0.285, 0.015), Vector3(0.16, 0.12, 0.19), dark)
-		Parts.softened(attachments["thigh"+suffix], Vector3(0, -0.20, 0), Vector3(0.205, 0.40, 0.25), cloth.darkened(0.12))
-		Parts.softened(attachments["shin"+suffix], Vector3(0, -0.18, 0), Vector3(0.18, 0.35, 0.21), cloth.darkened(0.20))
+		Parts.oval(attachments["thigh"+suffix], Vector3(0, -0.20, 0), Vector3(0.24, 0.46, 0.28), cloth.darkened(0.12))
+		Parts.oval(attachments["shin"+suffix], Vector3(0, -0.18, 0), Vector3(0.21, 0.40, 0.24), cloth.darkened(0.20))
 		Parts.softened(attachments["foot"+suffix], Vector3(0, -0.015, 0.075), Vector3(0.22, 0.14, 0.37), dark)
 		Parts.softened(attachments["thigh"+suffix], Vector3(0, -0.30, 0.14), Vector3(0.14, 0.13, 0.05), accent.darkened(0.2))
 	# Large readable props and panels, no fingers, facial rig or cloth simulation.
@@ -141,6 +141,9 @@ func build_outfit() -> void:
 
 	add_outfit_details(cloth,accent,light,skin,dark)
 	add_game_equipment(accent)
+	if role in GAME_ROLES and role not in ["Administrator","Artist","Merchant"]:
+		Parts.oval(attachments.head,Vector3(0,0.20,-0.01),Vector3(0.34,0.24,0.33),Color("d9d5bf"))
+		Parts.softened(attachments.head,Vector3(0,0.13,0.145),Vector3(0.27,0.11,0.06),Color("344d59"))
 
 
 func add_game_equipment(accent: Color) -> void:

@@ -45,6 +45,7 @@ var font: Font
 var metrics_clock = 0.0
 var metrics = ""
 var yaw = -PI/4
+var pick_faces: Dictionary = {}
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
@@ -68,7 +69,7 @@ func _ready() -> void:
 	env.environment.background_color = Color("15232c")
 	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color = Color("b9ced4")
-	env.environment.ambient_light_energy = 0.73
+	env.environment.ambient_light_energy = 0.55
 	world.add_child(env)
 	var light = DirectionalLight3D.new()
 	light.name = "Sun"
@@ -91,6 +92,19 @@ func _ready() -> void:
 	mouse_exited.connect(func(): hovered = ""; hover_changed.emit(""); queue_redraw())
 	update_activity()
 func pos(t: Dictionary) -> Vector3: return Vector3(sqrt(3.0)*(t.q+t.r*0.5),0,1.5*t.r)
+func surface(tile: String,offset: Vector3 = Vector3.ZERO) -> Vector3:
+	var t = state.tiles[tile]
+	return pos(t)+offset+Vector3(0,A.height_at(t,offset.x,offset.z),0)
+func surface_world(point: Vector3) -> Vector3:
+	# Used by road ribbons and travelling feet; nearest hex owns the sampled point.
+	var nearest = ""
+	var distance = INF
+	for t in state.tiles.values():
+		var delta = Vector2(point.x-pos(t).x,point.z-pos(t).z).length_squared()
+		if delta < distance: distance = delta; nearest = t.id
+	var local = point-pos(state.tiles[nearest])
+	point.y = A.height_at(state.tiles[nearest],local.x,local.z)+0.035
+	return point
 func screen(p: Vector3) -> Vector2: return camera.unproject_position(p)*size/Vector2(viewport.size)
 func clear(root: Node) -> void:
 	for child in root.get_children(): child.free()
@@ -138,6 +152,19 @@ func build_terrain() -> void:
 		A.P.box(model,Vector3.ZERO,Vector3(1.0,0.025,0.055),Color("70bed0"))
 		river_batch.collect(model)
 		model.free()
+	for t in state.tiles.values():
+		if t.baseTerrain != "water": continue
+		for next in R.neighbours(state,t.id):
+			if state.tiles[next].baseTerrain == "water": continue
+			var a = pos(t)
+			var b = pos(state.tiles[next])
+			var shore = Node3D.new()
+			shore.position = (a+b)/2-(b-a).normalized()*0.025+Vector3(0,0.018,0)
+			shore.rotation.y = atan2((b-a).x,(b-a).z)
+			A.P.box(shore,Vector3.ZERO,Vector3(0.96,0.012,0.065),Color("6b827b"))
+			A.P.box(shore,Vector3(0,0.008,-0.01),Vector3(0.94,0.008,0.018),Color("b2c4af"))
+			river_batch.collect(shore)
+			shore.free()
 	river_batch.emit(terrain_root)
 	build_ms = (Time.get_ticks_usec()-started)/1000.0
 	building = false
@@ -160,17 +187,18 @@ func update_structures() -> void:
 	for t in state.tiles.values():
 		if t.bonus != "":
 			var resource = A.bonus(t.bonus)
-			resource.position = pos(t)+Vector3(-0.57,0.025,0.07)
+			resource.position = surface(t.id,Vector3(-0.48,0.025,0.04))
+			resource.scale = Vector3.ONE*1.32
 			batch.collect(resource)
 			resource.free()
 	for town in state.settlements.values():
 		var model = A.settlement(town.id == "main")
-		model.position = pos(state.tiles[town.tileId])
+		model.position = surface(town.tileId)
 		batch.collect(model)
 		model.free()
 	for d in state.districts.values():
 		var model = A.district(d.type)
-		model.position = pos(state.tiles[d.tileId])
+		model.position = surface(d.tileId)
 		var buildings = state.buildings.values().filter(func(b): return b.get("districtId","") == d.id)
 		for i in range(buildings.size()):
 			var b = A.building(buildings[i].type,buildings[i].tier)
@@ -188,19 +216,22 @@ func update_structures() -> void:
 					var a = pos(state.tiles[tile])
 					var b = pos(state.tiles[next])
 					var road = Node3D.new()
-					road.position = (a+b)/2+Vector3(0,0.035,0)
-					road.rotation.y = atan2((b-a).x,(b-a).z)
-					A.P.box(road,Vector3.ZERO,Vector3(0.14,0.025,a.distance_to(b)),Color("c4b28b"))
+					# Short sloped segments climb the actual hummock, including both sides.
+					for segment in range(12):
+						var start = surface_world(a.lerp(b,segment/12.0))
+						var finish = surface_world(a.lerp(b,(segment+1)/12.0))
+						var piece = A.P.box(road,(start+finish)/2,Vector3(0.13,0.025,start.distance_to(finish)+0.01),Color("bba986"))
+						piece.look_at_from_position(piece.position,finish)
 					batch.collect(road)
 					road.free()
 			var model = A.improvement(kind)
-			model.position = pos(state.tiles[tile])
+			model.position = surface(tile)
 			batch.collect(model)
 			model.free()
 	for tile in state.neutralSites:
 		var model = A.building("exchange" if state.neutralSites[tile].resource == "culture" else "research_lab")
 		model.scale = Vector3.ONE*0.85
-		model.position = pos(state.tiles[tile])
+		model.position = surface(tile)
 		batch.collect(model)
 		model.free()
 	batch.emit(structure_root)
@@ -224,7 +255,7 @@ func update_actors() -> void:
 			actors.erase(id)
 		if not actors.has(id):
 			var actor = A.person(c)
-			actor.scale = Vector3.ONE*(0.62 if "rover" in c.equipment else 0.45)
+			actor.scale = Vector3.ONE*(0.67 if "rover" in c.equipment else 0.51)
 			actors_root.add_child(actor)
 			actor.set_process(is_visible_in_tree() and not suspended and animated)
 			actors[id] = actor
@@ -245,15 +276,20 @@ func update_actors() -> void:
 				var to = actor_position(next)
 				var direction = atan2((to-from).x,(to-from).z)
 				tween.tween_callback(func(): if is_instance_valid(actor): actor.rotation.y = direction)
-				tween.tween_property(actor,"position",to,0.20 if animated else 0.001)
+				tween.tween_method(func(value: float):
+					if is_instance_valid(actor):
+						var point = from.lerp(to,value)
+						point = surface_world(point)
+						point.y += 0.035
+						actor.position = point,0.0,1.0,0.20 if animated else 0.001)
 				from = to
 			tween.tween_callback(func():
-				if is_instance_valid(actor): actor.stop(); actor.rotation.y = c.facing
+				if is_instance_valid(actor): actor.position = actor_position(tile); actor.stop(); actor.rotation.y = c.facing
 				tweens.erase(id))
 		elif not tweens.has(id): actor.rotation.y = c.facing
 func actor_position(tile: String) -> Vector3:
 	var occupied = not R.site_at(state,tile).is_empty() or not R.district_at(state,tile).is_empty() or state.neutralSites.has(tile)
-	return pos(state.tiles[tile])+Vector3(0,0.07,0.38 if occupied else 0.16)
+	return surface(tile,Vector3(0,0.07,0.38 if occupied else 0.16))
 func fit_map() -> void:
 	if state.is_empty(): return
 	target = (pos(state.tiles.values()[0])+pos(state.tiles.values().back()))/2
@@ -274,15 +310,22 @@ func update_camera() -> void:
 func pick(point: Vector2) -> String:
 	if not built: return ""
 	var local = point*Vector2(viewport.size)/size
-	var hit = Plane(Vector3.UP,0).intersects_ray(camera.project_ray_origin(local),camera.project_ray_normal(local))
-	if hit == null: return ""
+	var origin = camera.project_ray_origin(local)
+	var direction = camera.project_ray_normal(local)
+	var nearest = INF
 	var best = ""
-	var best_dist = 1.0
 	for t in state.tiles.values():
-		var d = pos(t).distance_squared_to(hit)
-		if d < best_dist:
-			best = t.id
-			best_dist = d
+		var centre = pos(t)
+		var crossing = Plane(Vector3.UP,0.28 if t.relief == "hills" else 0).intersects_ray(origin,direction)
+		if crossing == null or Vector2(crossing.x-centre.x,crossing.z-centre.z).length_squared() > 2.5: continue
+		var hills = t.relief == "hills"
+		if not pick_faces.has(hills): pick_faces[hills] = A.land_mesh(hills).get_faces()
+		var faces = pick_faces[hills]
+		for i in range(0,faces.size(),3):
+			var hit = Geometry3D.ray_intersects_triangle(origin-centre,direction,faces[i],faces[i+1],faces[i+2])
+			if hit != null:
+				var distance = origin.distance_squared_to(hit+centre)
+				if distance < nearest: nearest = distance; best = t.id
 	return best
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -356,19 +399,19 @@ func _draw() -> void:
 			points.append(screen(pos(state.tiles[key])+Vector3(cos(angle)*0.84,0.045,sin(angle)*0.84)))
 		var color = Color("8bd4df") if c.home == "main" else Color("d0a2e4")
 		draw_polyline(points,color,1.2,true)
-		draw_string(font,screen(pos(state.tiles[key])+Vector3(-0.4,0.95,0)),c.name,HORIZONTAL_ALIGNMENT_LEFT,-1,10,color)
+		draw_string(font,screen(surface(key,Vector3(-0.4,0.95,0))),c.name,HORIZONTAL_ALIGNMENT_LEFT,-1,10,color)
 	if actors.has(selected_unit): draw_arc(screen(actors[selected_unit].position),13,0,TAU,20,Color("f6d48a"),2,true)
 	for site in state.settlements.values():
-		draw_string(font,screen(pos(state.tiles[site.tileId])+Vector3(-0.5,1,0)),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("ffe5b2"))
+		draw_string(font,screen(surface(site.tileId,Vector3(-0.5,1,0))),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("ffe5b2"))
 	if state.movementQueues.has(selected_unit):
 		var prev = R.mobile(state,selected_unit).tileId
 		for next in state.movementQueues[selected_unit]:
-			draw_line(screen(pos(state.tiles[prev])+Vector3(0,0.07,0)),screen(pos(state.tiles[next])+Vector3(0,0.07,0)),Color("85dce3"),2,true)
+			draw_line(screen(surface(prev,Vector3(0,0.07,0))),screen(surface(next,Vector3(0,0.07,0))),Color("85dce3"),2,true)
 			prev = next
 	if show_yields:
 		for t in state.tiles.values():
 			var output = R.map_yield(state,t.id)
-			var p = screen(pos(t)+Vector3(0,0.10,0))
+			var p = screen(surface(t.id,Vector3(0,0.10,0)))
 			if not Rect2(Vector2.ZERO,size).has_point(p): continue
 			var i = 0
 			for key in output:

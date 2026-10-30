@@ -1,3 +1,5 @@
+> Historical 0.8 guide. The current approved medium frontier treatment is in [Visual Style 0.9](Visual_Style_09.md).
+
 # Alien Planet visual direction — version 0.8
 
 Viktoras selected **A / Symbolic for the sprite view** and **B / Balanced for 3D**, from the preceding Hybrid Studies concept board. These are practical adaptations to the existing small Godot shell, not a promise to reproduce a generated painting pixel for pixel. This document is the continuing visual-change guide. The concept experiment and this implementation are recorded in the main development log.

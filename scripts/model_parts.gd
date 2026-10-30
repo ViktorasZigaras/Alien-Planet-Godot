@@ -90,3 +90,16 @@ static func softened(parent: Node3D, position: Vector3, size: Vector3, color: Co
 	# Explicit normals keep small chamfers readable from both sides.
 	result.material_override = material(color,true)
 	return result
+
+static func oval(parent: Node3D, position: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
+	var key = "oval"+str(size)
+	if not shapes.has(key):
+		var shape = SphereMesh.new()
+		shape.radius = 0.5
+		shape.height = 1.0
+		shape.radial_segments = 10
+		shape.rings = 5
+		shapes[key] = shape
+	var result = mesh(parent,shapes[key],position,color)
+	result.scale = size
+	return result

@@ -90,7 +90,7 @@ func run() -> void:
 	await process_frame
 	var active = app.model_lab.viewports.filter(func(v): return v.render_target_update_mode == SubViewport.UPDATE_ALWAYS)
 	check(active.size() == 1,"Catalogue renders one viewport")
-	check(app.model_lab.catalogue_entries.size() == 113,"All current sprite/model variants catalogued")
+	check(app.model_lab.catalogue_entries.size() == C.entries().size(),"All current sprite/model variants catalogued")
 	app.model_lab.show_asset(66)
 	check(app.model_lab.catalogue_actor is RoverRig,"Catalogue switches to Rover")
 	app.model_lab.walk()

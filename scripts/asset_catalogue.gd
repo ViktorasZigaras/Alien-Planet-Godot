@@ -14,6 +14,7 @@ static func entries() -> Array:
 	for type in R.content().bonuses: list.append({"key":"bonus_"+type,"kind":"bonus","type":type,"label":R.content().bonuses[type].name})
 	for main in [true,false]: list.append({"key":"settlement_main" if main else "settlement_field","kind":"settlement","main":main,"label":"Main Base" if main else "Field Station"})
 	for feature in ["forest","hills"]: list.append({"key":"overlay_"+feature,"kind":"overlay","type":feature,"label":feature.capitalize()+" layer"})
+	for terrain in ["plains","grassland","desert","tundra","fungal"]: list.append({"key":"hill_"+terrain,"kind":"hill","type":terrain,"label":terrain.capitalize()+" rounded hill"})
 	return list
 static func create(entry: Dictionary) -> Node3D:
 	match entry.kind:
@@ -24,9 +25,10 @@ static func create(entry: Dictionary) -> Node3D:
 		"bonus": return A.bonus(entry.type)
 		"settlement": return A.settlement(entry.main)
 		"improvement": return A.improvement(entry.type)
+		"hill": return A.hill_sprite(entry.type)
 		"overlay":
 			var model = A.terrain({"baseTerrain":"plains","feature":"forest" if entry.type == "forest" else null,"relief":"hills" if entry.type == "hills" else "flat"})
-			model.get_child(0).free()
+			if entry.type == "forest": model.get_child(0).free()
 			return model
 	return Node3D.new()
 static func person_key(c: Dictionary) -> String:

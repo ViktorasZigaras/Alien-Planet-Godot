@@ -99,7 +99,7 @@ func build_ui() -> void:
 	title.custom_minimum_size.x = 220
 	header.add_child(title)
 	label(title, "ALIEN PLANET", 26, Color("e5ebdf"))
-	label(title, "GODOT / EXPEDITION SANDBOX 0.8", 11, Color("d5b77a"))
+	label(title, "GODOT / EXPEDITION SANDBOX 0.9", 11, Color("d5b77a"))
 	for key in Rules.RESOURCES:
 		var box = VBoxContainer.new()
 		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -148,8 +148,8 @@ func build_ui() -> void:
 	left.add_child(map_tools)
 	view_selector = OptionButton.new()
 	view_selector.name = "MapMode"
-	view_selector.add_item("Sprite A / symbolic")
-	view_selector.add_item("3D B / balanced")
+	view_selector.add_item("Sprite / illustrated")
+	view_selector.add_item("3D / frontier")
 	view_selector.item_selected.connect(set_map_mode)
 	map_tools.add_child(view_selector)
 	var motion = CheckButton.new()

@@ -91,7 +91,16 @@ static func resource_icon(key: String) -> Texture2D:
 	if resource_cache.has(key):
 		return resource_cache[key]
 	var result: Texture2D
-	if key in ["food", "industry"]:
+	var bonuses = {"food":"edible_flora","minerals":"ore_seam","energy":"geothermal_vent","science":"alien_specimens","culture":"resonant_stones"}
+	if bonuses.has(key):
+		var full = world_icon("bonus_"+bonuses[key])
+		# UI pictograms use tight bounds rather than the bake camera's empty margins.
+		var bounds = full.get_image().get_used_rect()
+		var trimmed = AtlasTexture.new()
+		trimmed.atlas = full
+		trimmed.region = Rect2(bounds)
+		result = trimmed
+	elif key == "industry":
 		result = icon(key)
 	else:
 		result = load("res://assets/icons/%s.svg" % {"science":"research"}.get(key,key))

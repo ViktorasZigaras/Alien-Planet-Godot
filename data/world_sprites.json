@@ -197,6 +197,36 @@
     80,
     80
   ],
+  "hill_desert": [
+    400,
+    880,
+    80,
+    80
+  ],
+  "hill_fungal": [
+    560,
+    880,
+    80,
+    80
+  ],
+  "hill_grassland": [
+    320,
+    880,
+    80,
+    80
+  ],
+  "hill_plains": [
+    240,
+    880,
+    80,
+    80
+  ],
+  "hill_tundra": [
+    480,
+    880,
+    80,
+    80
+  ],
   "improvement_energy_tap": [
     480,
     720,
