@@ -24,6 +24,7 @@ var supply: Dictionary = {}
 var route: Dictionary = {}
 var font: Font
 var focus_key = ""
+var missing_sprite_keys: Dictionary = {}
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -125,7 +126,7 @@ func _gui_input(event: InputEvent) -> void:
 			drag_distance += event.relative.length()
 			if dragging or drag_distance >= 5:
 				focus_key = ""
-				pan += event.relative
+				pan += Vector2(event.relative.x,-event.relative.y)
 				queue_redraw()
 		else:
 			var key = pick(event.position)
@@ -155,8 +156,6 @@ func _draw() -> void:
 		var outline = poly.duplicate()
 		outline.append(poly[0])
 		draw_polyline(outline, edge, 3 if selected_tile == t.id else 0.65, true)
-		if t.relief == "hills": draw_world_sprite("hill_"+t.baseTerrain,c+Vector2(0,-4),Vector2(82,86))
-		if t.feature == "forest": draw_world_sprite("overlay_forest",c+Vector2(0,-16 if t.relief == "hills" else -9),Vector2(78,78))
 		if t.baseTerrain == "water":
 			for neighbour in Rules.neighbours(state,t.id):
 				if state.tiles[neighbour].baseTerrain == "water": continue
@@ -166,13 +165,18 @@ func _draw() -> void:
 				draw_line(mid-along,mid+along,Color("667f79"),3.0,true)
 				draw_line(mid-along,mid+along,Color("b2c9b6"),0.9,true)
 		if t.id == selected_tile or t.id == hovered: text_at(t.id,c+Vector2(0,27),10,Color("fff1c9"))
+	# Second pass: objects can overlap neighbouring tiles without being erased.
+	for t in state.tiles.values():
+		var c = centre(t)
+		if t.relief == "hills": draw_world_sprite("hill_"+t.baseTerrain,c+Vector2(0,-4),Vector2(82,86))
+		if t.feature == "forest": draw_world_sprite("overlay_forest",c+Vector2(0,-16 if t.relief == "hills" else -9),Vector2(78,78))
 		var site = Rules.site_at(state, t.id)
 		var district = Rules.district_at(state, t.id)
 		if not site.is_empty(): draw_world_sprite("settlement_main" if site.id == "main" else "settlement_field",c+Vector2(0,-3),Vector2(85,85))
 		if not district.is_empty():
 			draw_world_sprite("district_"+district.type,c,Vector2(85,85))
 			var buildings = state.buildings.values().filter(func(b): return b.get("districtId","") == district.id)
-			for i in range(buildings.size()): draw_world_sprite("building_%s_%d" % [buildings[i].type,buildings[i].tier],c+Vector2(-10+i*20,-9),Vector2(70,70))
+			for i in range(buildings.size()): draw_world_sprite("building_%s_%d" % [buildings[i].type,buildings[i].tier],c+Vector2(-10+i*20,-9),Vector2(50,50))
 		if state.constructionProject != null and state.constructionProject.targetTileId == t.id:
 			text_at("BUILD", c+Vector2(0, 1), 12, Color("ffdb96"))
 	for edge_key in state.rivers:
@@ -186,7 +190,7 @@ func _draw() -> void:
 	for t in state.tiles.values():
 		if t.bonus != "":
 			var resource = Rules.content().bonuses[t.bonus].yields.keys()[0]
-			draw_world_sprite("bonus_"+t.bonus,centre(t)+Vector2(-15,-13 if t.relief != "hills" else -21),Vector2(82,82))
+			draw_world_sprite("bonus_"+t.bonus,centre(t)+Vector2(-20,-13 if t.relief != "hills" else -21),Vector2(82,82))
 	for key in state.neutralSites:
 		var c = centre(state.tiles[key])
 		draw_world_sprite("building_exchange_1" if state.neutralSites[key].resource == "culture" else "building_research_lab_1",c,Vector2(85,85))
@@ -201,7 +205,7 @@ func _draw() -> void:
 	for tile in people:
 		var c = state.cohorts[people[tile]]
 		if c.state.kind == "mobile" or (c.state.get("job") is String and c.state.job.begins_with("tile:")): continue
-		draw_world_sprite(Catalogue.person_key(c),centre(state.tiles[tile])+Vector2(0,-7 if state.tiles[tile].relief == "hills" else 2),Vector2(56,56))
+		draw_world_sprite(Catalogue.person_key(c),centre(state.tiles[tile])+Vector2(10,8 if state.tiles[tile].relief == "hills" else 15),Vector2(56,56))
 	draw_queued_route()
 	if not route.is_empty() and route.path.size() > 1:
 		for i in range(route.path.size()-1):
@@ -213,7 +217,8 @@ func _draw() -> void:
 	for u in units:
 		var same = units.filter(func(v): return v.tileId == u.tileId)
 		var offset = (same.find(u) - (same.size()-1)/2.0)*23.0
-		var c = centre(state.tiles[u.tileId]) + Vector2(offset, -13 if state.tiles[u.tileId].relief == "hills" else -3)
+		var occupied = not Rules.site_at(state,u.tileId).is_empty() or not Rules.district_at(state,u.tileId).is_empty() or state.neutralSites.has(u.tileId)
+		var c = centre(state.tiles[u.tileId]) + Vector2(offset+18 if occupied else offset, 20 if occupied else -13 if state.tiles[u.tileId].relief == "hills" else -3)
 
 		draw_arc(c, 20, 0, TAU, 32, Color("f5cc82") if selected_unit == u.id else Color("a2ccd6"), 2, true)
 		var key = "rover" if u.classId == "rover" else state.cohorts[u.id].qualification
@@ -270,7 +275,7 @@ func draw_worker(tile: Dictionary) -> void:
 	draw_polyline(ring, colour, 1.8, true)
 	draw_style_box(yield_backplate(), Rect2(c+Vector2(-31,-28), Vector2(62,16)))
 	text_at(worker.name, c+Vector2(0,-16), 9, colour)
-	draw_world_sprite(Catalogue.person_key(worker),c+Vector2(0,-14 if tile.relief == "hills" else -4),Vector2(56,56))
+	draw_world_sprite(Catalogue.person_key(worker),c+Vector2(10,-14 if tile.relief == "hills" else -4),Vector2(56,56))
 
 func draw_improvements() -> void:
 	for key in state.get("improvements", {}):
@@ -314,4 +319,22 @@ func draw_terrain(tile: Dictionary, points: PackedVector2Array) -> bool:
 
 func draw_world_sprite(key: String,at: Vector2,dimensions: Vector2) -> void:
 	var texture = Art.world_icon(key)
-	if texture != null: draw_texture_rect(texture,Rect2(at-dimensions/2,dimensions),false)
+	if texture == null:
+		if not missing_sprite_keys.has(key):
+			missing_sprite_keys[key] = true
+			push_warning("Missing map sprite: "+key)
+		draw_circle(at,8,Color("dd6d91"))
+		return
+	if key.begins_with("hill_"):
+		draw_texture_rect(texture,Rect2(at-dimensions/2,dimensions),false)
+		return
+	texture = Art.tight_icon(key)
+	var fraction = 0.76
+	if key.begins_with("bonus_"): fraction = 0.46
+	elif key.begins_with("district_"): fraction = 0.57
+	elif key == "overlay_forest": fraction = 0.88
+	elif key.begins_with("person_"): fraction = 0.85
+	var limit = dimensions*fraction
+	var scale_factor = minf(limit.x/texture.get_width(),limit.y/texture.get_height())
+	var drawn = texture.get_size()*scale_factor
+	draw_texture_rect(texture,Rect2(at-drawn/2,drawn),false)

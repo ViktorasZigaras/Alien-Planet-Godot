@@ -1,3 +1,17 @@
+# Alien Planet — Godot 0.901
+
+Open `project.godot` in **Godot 4.5.1 Standard** and press **F5**. [0.901 notes](docs/Batch_0901_Notes.md) cover visibility fixes, controls, transports and the simpler model catalogue.
+
+- Sprite ground draws before objects; tightly cropped sprites make resources, portraits and structures visible at useful sizes.
+- Both maps face the same cardinal direction. Dragging follows horizontal input and inverts vertical input.
+- Select a deployed **Transport**: its panel offers **Board** for idle residents/mobile people on the same tile, and **Unload** for carried people. Driver plus two passenger slots; all professions can travel. Unloaded people regain movement next turn.
+- Transport travel and wheels animate at half their former speed. Model library selects a base person, then tools/weapons/exoskeleton settings.
+- **1,291 checks pass.** Save schema 8 migrates earlier supported saves; older game versions cannot load the new cargo states.
+
+Actual opening captures are game renders, not concept paintovers. The art remains a geometric approximation of the illustrated concepts. This upload is source only; no Windows executable or physical-hardware play test is claimed.
+
+---
+
 # Alien Planet — Godot 0.9
 
 Open `project.godot` in **Godot 4.5.1 Standard** and press **F5**. Choose **Sprite / illustrated** or **3D / frontier** above the map. This release implements the approved medium frontier direction with quieter painted ground, rounded raised hills, layered foliage, larger physical resources, lighter field outfits and matching pictorial UI icons.

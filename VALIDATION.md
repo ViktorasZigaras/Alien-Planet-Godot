@@ -1,4 +1,12 @@
-# Current version 0.9
+# Current version 0.901
+
+**1,291 checks pass:** 421 rules, 22 UI, 247 model lab, 322 world/art, 55 style, 39 frontier and 185 version-0.901 checks. Native OpenGL captures reviewed both opening views and a developed layer fixture; opening capture verifies unchanged default simulation. The 0.901 suite tests every profession boarding, cargo persistence/capacity/upkeep, unload movement, invalid cargo saves, shared cardinal projection/pan signs, independent model configurations and halved transport timing/wheel speed. See `docs/Batch_0901_Notes.md`.
+
+Previous tests remain versioned records below. No physical Windows test or executable export is claimed.
+
+---
+
+# Historical version 0.9
 
 **1,106 checks pass, zero failures:** 421 simulation/content/migration, 22 UI, 247 model lab, 322 world/art, 55 visual style and 39 frontier checks. The catalogue and bake now contain 118 model/sprite variants. Frontier checks exercise raised hill shoulders and shared borders, level water, terrain-specific sprites, physical-icon bounds, actual mesh picking on crests/shoulders, queued uphill movement, Motion-off landing and road construction across sloping terrain.
 

@@ -334,7 +334,7 @@
       "requires": "field_security"
     },
     "rover": {
-      "name": "Rover",
+      "name": "Transport",
       "cost": 5,
       "requires": "surveying"
     },

@@ -50,7 +50,7 @@ static func roster() -> Texture2D:
 
 static func icon(key: String) -> Texture2D:
 	var game_sprite = world_icon("person_"+key+"_0_0")
-	if game_sprite != null: return game_sprite
+	if game_sprite != null: return tight_icon("person_"+key+"_0_0")
 	key = {"Biologist":"Farmer","Extractor":"Engineer","Medic":"Scientist","Soldier":"Security","Explorer":"Specialist","Artist":"Merchant","rover":"rover"}.get(key,key)
 	if population_regions.is_empty(): population_regions = JSON.parse_string(FileAccess.get_file_as_string("res://data/population_sprites.json"))
 	if population_regions.has(key):
@@ -93,16 +93,22 @@ static func resource_icon(key: String) -> Texture2D:
 	var result: Texture2D
 	var bonuses = {"food":"edible_flora","minerals":"ore_seam","energy":"geothermal_vent","science":"alien_specimens","culture":"resonant_stones"}
 	if bonuses.has(key):
-		var full = world_icon("bonus_"+bonuses[key])
-		# UI pictograms use tight bounds rather than the bake camera's empty margins.
-		var bounds = full.get_image().get_used_rect()
-		var trimmed = AtlasTexture.new()
-		trimmed.atlas = full
-		trimmed.region = Rect2(bounds)
-		result = trimmed
+		result = tight_icon("bonus_"+bonuses[key])
 	elif key == "industry":
 		result = icon(key)
 	else:
 		result = load("res://assets/icons/%s.svg" % {"science":"research"}.get(key,key))
 	resource_cache[key] = result
 	return result
+
+static var tight_cache: Dictionary = {}
+static func tight_icon(key: String) -> Texture2D:
+	if tight_cache.has(key): return tight_cache[key]
+	var full = world_icon(key)
+	if full == null: return null
+	var bounds = full.get_image().get_used_rect()
+	var trimmed = AtlasTexture.new()
+	trimmed.atlas = full.atlas
+	trimmed.region = Rect2(full.region.position+Vector2(bounds.position),Vector2(bounds.size))
+	tight_cache[key] = trimmed
+	return trimmed

@@ -99,6 +99,8 @@ static func mobile(s: Dictionary,key: String) -> Dictionary:
 	var u = c.state.duplicate(true)
 	u.merge({"id":c.id,"name":c.name,"classId":"rover" if "rover" in c.equipment else "cohort"})
 	return u
+static func passengers(s: Dictionary,transport_id: String) -> Array:
+	return s.cohorts.values().filter(func(c): return c is Dictionary and c.get("state") is Dictionary and c.state.get("kind") == "cargo" and c.state.get("transportId", "") == transport_id)
 static func builder(c: Dictionary) -> bool: return "work_suit" in c.get("equipment",[]) or "reinforced_suit" in c.get("equipment",[])
 static func has_site_improvement(s: Dictionary,key: String) -> bool:
 	for k in s.improvements.get(key,{}):
@@ -307,8 +309,19 @@ static func reason(s: Dictionary,cmd: Dictionary) -> String:
 			var d = content().equipment[item]
 			if d.requires not in s.completed: return "Requires "+nodes()[d.requires].name+"."
 			return "Needs %d Industry." % d.cost if s.resources.industry < d.cost else ""
+		"board":
+			var carrier = s.cohorts.get(cmd.get("transportId", ""),{})
+			if carrier.is_empty() or carrier.state.kind != "mobile" or "rover" not in carrier.equipment: return "Choose a deployed Transport."
+			if c.is_empty() or c.id == carrier.id or c.state.kind not in ["resident","mobile"]: return "Choose another resident or mobile person."
+			if c.state.kind == "resident" and c.state.job != null: return "Set the passenger to Idle first."
+			if person_tile(s,c) != carrier.state.tileId: return "Passenger must share the Transport's tile."
+			if not passengers(s,c.id).is_empty(): return "Unload that Transport before boarding it."
+			return "Transport full (2/2)." if passengers(s,carrier.id).size() >= 2 else ""
+		"unload":
+			return "Choose a carried person." if c.is_empty() or c.state.kind != "cargo" else ""
 		"join":
 			if c.is_empty() or c.state.kind != "mobile": return "Only mobile people can join."
+			if not passengers(s,c.id).is_empty(): return "Unload passengers before joining a settlement."
 			return "Move onto a settlement." if site_at(s,c.state.tileId).is_empty() else ""
 		"visit":
 			if c.is_empty() or c.state.kind != "mobile" or not s.neutralSites.has(c.state.get("tileId","")): return "Move onto a neutral inhabited site."
@@ -405,6 +418,17 @@ static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
 		"mobilise":
 			c.state = {"kind":"mobile","tileId":s.settlements[c.state.settlementId].tileId,"movementRemaining":0.0}
 			message = c.name+" deployed; movement refreshes next turn."
+		"board":
+			s.movementQueues.erase(c.id)
+			s.moveProgress.erase(c.id)
+			c.state = {"kind":"cargo","transportId":cmd.transportId}
+			message = c.name+" boarded Transport ("+str(passengers(s,cmd.transportId).size())+"/2)."
+		"unload":
+			var carrier = s.cohorts[c.state.transportId]
+			c.state = {"kind":"mobile","tileId":carrier.state.tileId,"movementRemaining":0.0}
+			c.facing = carrier.facing
+			c.lastRoute = []
+			message = c.name+" unloaded; movement refreshes next turn."
 		"join":
 			s.movementQueues.erase(c.id)
 			s.moveProgress.erase(c.id)
@@ -477,6 +501,7 @@ static func mark_used(s: Dictionary,key: String) -> void:
 	s.visualCounter += 1
 	s.cohorts[key].lastUsed = s.visualCounter
 static func person_tile(s: Dictionary,c: Dictionary) -> String:
+	if c.state.kind == "cargo": return s.cohorts[c.state.transportId].state.tileId
 	if c.state.kind == "mobile": return c.state.tileId
 	var job = c.state.get("job","")
 	if job is String and job.begins_with("tile:"): return job.substr(5)
@@ -487,6 +512,7 @@ static func person_tile(s: Dictionary,c: Dictionary) -> String:
 static func visible_people(s: Dictionary) -> Dictionary:
 	var top = {}
 	for c in s.cohorts.values():
+		if c.state.kind == "cargo": continue
 		var tile = person_tile(s,c)
 		if not top.has(tile) or c.lastUsed >= s.cohorts[top[tile]].lastUsed: top[tile] = c.id
 	return top
@@ -545,7 +571,12 @@ static func end_turn(s: Dictionary) -> void:
 static func migrate_save(data):
 	if not data is Dictionary: return data
 	var s = data.duplicate(true)
-	if s.get("schemaVersion") == 7: return s
+	if s.get("schemaVersion") == 8: return s
+	if s.get("schemaVersion") == 7:
+		if s.get("rulesVersion") != 7: return s
+		s.schemaVersion = 8
+		s.rulesVersion = 8
+		return s
 	if s.get("schemaVersion") == 6:
 		if s.get("rulesVersion") != 6: return s
 		if not s.get("cohorts") is Dictionary: return s
@@ -557,7 +588,7 @@ static func migrate_save(data):
 			c.facing = 0.0
 			c.lastUsed = 0
 			c.lastRoute = []
-		return s
+		return migrate_save(s)
 	if not whole(s.get("schemaVersion"),1,5) or s.get("rulesVersion") != s.schemaVersion: return s
 	if not has_fields(s,["resources","tiles","settlements","cohorts","buildings","units","districts","completed"]): return s
 	for k in ["resources","tiles","settlements","cohorts","buildings","units","districts"]:
@@ -644,7 +675,7 @@ static func valid_movement(v,maximum: float) -> bool:
 	return (v is int or v is float) and is_finite(float(v)) and v >= 0 and v <= maximum+EPSILON
 static func validate(s) -> String:
 	if not s is Dictionary or not has_fields(s,["schemaVersion","rulesVersion","visualCounter","turn","map","tiles","rivers","resources","settlements","cohorts","equipment","units","buildings","districts","improvements","completed","movementQueues","moveProgress","neutralSites","trainingProject","constructionProject","nextCohortNumber","log","warnings"]): return "Missing save fields."
-	if s.schemaVersion != 7 or s.rulesVersion != 7: return "Unsupported save version."
+	if s.schemaVersion != 8 or s.rulesVersion != 8: return "Unsupported save version."
 	for k in ["map","tiles","resources","settlements","cohorts","equipment","units","buildings","districts","improvements","movementQueues","moveProgress","neutralSites"]:
 		if not s[k] is Dictionary: return "Invalid "+k+"."
 	for k in ["rivers","completed","log","warnings"]:
@@ -726,6 +757,9 @@ static func validate(s) -> String:
 		var st = c.state
 		if st.get("kind") == "mobile":
 			if not has_fields(st,["tileId","movementRemaining"]) or not s.tiles.has(st.tileId) or is_inf(movement_cost(s,st.tileId)) or not valid_movement(st.movementRemaining,movement_budget(c)): return "Invalid mobile person."
+		elif st.get("kind") == "cargo":
+			var carrier = s.cohorts.get(st.get("transportId", ""),{})
+			if carrier.is_empty() or not carrier.get("state") is Dictionary or carrier.state.get("kind") != "mobile" or not carrier.get("equipment") is Array or "rover" not in carrier.equipment or passengers(s,st.transportId).size() > 2: return "Invalid Transport passenger."
 		elif st.get("kind") in ["resident","training","building"]:
 			if not s.settlements.has(st.get("settlementId","")) or st.settlementId != c.home or (st.kind == "resident" and not st.has("job")): return "Invalid resident."
 		else: return "Unknown person state."

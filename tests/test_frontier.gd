@@ -42,7 +42,7 @@ func run() -> void:
 	var origin = world.actors.pop_rover.position
 	check(app.issue({"type":"queueMove","unitId":"pop_rover","target":"2,2"}),"Queue uphill movement")
 	check(world.tweens.has("pop_rover"),"Uphill visual travel starts")
-	world.tweens.pop_rover.custom_step(0.15)
+	world.tweens.pop_rover.custom_step(0.30)
 	var halfway = world.actors.pop_rover.position
 	check(halfway != origin and halfway.y > origin.y,"Travel climbs surface between centres")
 	world.set_animation(false)

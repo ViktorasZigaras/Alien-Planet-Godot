@@ -90,8 +90,8 @@ func run() -> void:
 	await process_frame
 	var active = app.model_lab.viewports.filter(func(v): return v.render_target_update_mode == SubViewport.UPDATE_ALWAYS)
 	check(active.size() == 1,"Catalogue renders one viewport")
-	check(app.model_lab.catalogue_entries.size() == C.entries().size(),"All current sprite/model variants catalogued")
-	app.model_lab.show_asset(66)
+	check(app.model_lab.catalogue_entries.size() == C.library_entries().size(),"All current sprite/model variants catalogued")
+	app.model_lab.show_asset(11)
 	check(app.model_lab.catalogue_actor is RoverRig,"Catalogue switches to Rover")
 	app.model_lab.walk()
 	check(app.model_lab.catalogue_actor.rolling,"Catalogue Walk drives wheels")
@@ -124,7 +124,7 @@ func run() -> void:
 	for c in old.cohorts.values():
 		c.erase("lastUsed"); c.erase("facing"); c.erase("lastRoute")
 	var migrated = R.migrate_save(old)
-	check(R.validate(migrated) == "" and migrated.schemaVersion == 7,"Version 6 saves migrate without gameplay loss")
+	check(R.validate(migrated) == "" and migrated.schemaVersion == 8,"Version 6 saves migrate without gameplay loss")
 	app.queue_free()
 	await process_frame
 	print("WORLD CHECKS: ",checks,"; FAILURES: ",failures.size())

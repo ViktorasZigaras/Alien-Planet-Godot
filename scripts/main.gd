@@ -99,7 +99,7 @@ func build_ui() -> void:
 	title.custom_minimum_size.x = 220
 	header.add_child(title)
 	label(title, "ALIEN PLANET", 26, Color("e5ebdf"))
-	label(title, "GODOT / EXPEDITION SANDBOX 0.9", 11, Color("d5b77a"))
+	label(title, "GODOT / EXPEDITION SANDBOX 0.901", 11, Color("d5b77a"))
 	for key in Rules.RESOURCES:
 		var box = VBoxContainer.new()
 		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -162,7 +162,7 @@ func build_ui() -> void:
 	var support = OptionButton.new()
 	support_selector = support
 	support.add_item("Population")
-	support.add_item("Rover")
+	support.add_item("Transport")
 	support.add_item("Off")
 	support.item_selected.connect(func(index): overlay = ["cohort", "rover", "none"][index]; update_map())
 	map_tools.add_child(support)
@@ -231,7 +231,7 @@ func build_ui() -> void:
 	add_child(reset_dialog)
 	help_dialog = AcceptDialog.new()
 	help_dialog.title = "Alien Planet — quick controls"
-	help_dialog.dialog_text = "Click: inspect. Left or middle drag: pan. Wheel: zoom. Fit map: overview.\nRight-click: replace route and move now. Shift+right-click: append waypoint.\nHard terrain and river crossings cost more; unfinished steps retain progress.\nRoad-to-road: ⅓ move. Entering/leaving roads uses normal destination terrain.\n\nPeople keep their professions and can combine equipment from town stocks.\nWork Suit: builder capability. Rover: transport for any profession.\nSelect a resident to assign a tile/building slot, train, equip or deploy.\nIndustry manufactures equipment and builds infrastructure. Workshops convert Minerals.\nBuildings and districts use Energy; unpowered facilities produce nothing.\nTown growth = Food output − consumption − population + medical reduction.\nGrowth reaches 20: a new Worker. Surplus medicine adds to growth.\nNeutral sites: explicit Visit, once per person/site; Merchants receive double.\n\nTechnology: five groups, four capabilities each; inspect prerequisite explanations.\nSpace: End Turn. Ctrl+S/L: quick save/load. Saves use schema 7; older saves migrate.\nNumbers are provisional. Combat values are a preview; no opponents yet."
+	help_dialog.dialog_text = "Click: inspect. Left or middle drag: pan (vertical inverted). Wheel: zoom. Fit map: overview.\nRight-click: replace route and move now. Shift+right-click: append waypoint.\nHard terrain and river crossings cost more; unfinished steps retain progress.\nRoad-to-road: ⅓ move. Entering/leaving roads uses normal destination terrain.\n\nPeople keep their professions and can combine equipment from town stocks.\nWork Suit: builder capability. Transport: driver plus two passengers of any profession. Board/unload on the same tile.\nSelect a resident to assign a tile/building slot, train, equip or deploy.\nIndustry manufactures equipment and builds infrastructure. Workshops convert Minerals.\nBuildings and districts use Energy; unpowered facilities produce nothing.\nTown growth = Food output − consumption − population + medical reduction.\nGrowth reaches 20: a new Worker. Surplus medicine adds to growth.\nNeutral sites: explicit Visit, once per person/site; Merchants receive double.\n\nTechnology: five groups, four capabilities each; inspect prerequisite explanations.\nSpace: End Turn. Ctrl+S/L: quick save/load. Saves use schema 8; older saves migrate.\nNumbers are provisional. Combat values are a preview; no opponents yet."
 	add_child(help_dialog)
 	tech_dialog = AcceptDialog.new()
 	tech_dialog.title = "Technology — expedition capabilities"
@@ -322,7 +322,7 @@ func status(text: String, good: bool = true) -> void:
 func update_map() -> void:
 	support_selector.select(["cohort", "rover", "none"].find(overlay))
 	support_selector.set_item_text(0, "Population · reach %d" % Rules.reach(state, "cohort"))
-	support_selector.set_item_text(1, "Rover · reach %d" % Rules.reach(state, "rover"))
+	support_selector.set_item_text(1, "Transport · reach %d" % Rules.reach(state, "rover"))
 	map_view.update_view(state, selected_tile, selected_unit, overlay)
 
 func select_tile(key: String) -> void:
@@ -392,6 +392,7 @@ func render_mobile() -> void:
 	for key in keys:
 		var u = Rules.mobile(state, key)
 		var name_text = "%s%s  %s  [%.2f move]" % ["● " if key == selected_unit else "", u.name, u.tileId, u.movementRemaining]
+		if "rover" in state.cohorts[key].equipment: name_text += " · cargo %d/2" % Rules.passengers(state,key).size()
 		if state.movementQueues.has(key): name_text += " → " + str(state.movementQueues[key].back())
 		var node = button(mobile_bar, name_text, select_mobile.bind(key))
 		node.set_meta("unit_id", key)
@@ -427,6 +428,14 @@ func render_orders() -> void:
 			command_button(orders,"Cancel route",{"type":"cancelMove","unitId":u.id})
 		command_button(orders,"Join settlement",{"type":"join","cohortId":u.id})
 		command_button(orders,"Visit inhabited site",{"type":"visit","cohortId":u.id})
+		if "rover" in state.cohorts[u.id].equipment:
+			heading(orders,"Transport · passengers %d/2" % Rules.passengers(state,u.id).size())
+			label(orders,"Driver is separate. Any profession may board. Unload onto this tile; passenger movement returns next turn.",11)
+			for passenger in Rules.passengers(state,u.id):
+				command_button(orders,"Unload "+passenger.name+" · "+passenger.qualification,{"type":"unload","cohortId":passenger.id})
+			for candidate in state.cohorts.values():
+				if candidate.id == u.id or candidate.state.kind not in ["resident","mobile"] or Rules.person_tile(state,candidate) != u.tileId: continue
+				command_button(orders,"Board "+candidate.name+" · "+candidate.qualification,{"type":"board","cohortId":candidate.id,"transportId":u.id})
 		button(orders,"Deselect unit",func(): selected_unit = ""; render())
 	if not site.is_empty():
 		var ledger = Rules.economy(state)
@@ -729,7 +738,7 @@ func set_map_mode(index: int) -> void:
 	map_view.show_yields = yields_on
 	view_selector.select(index)
 	update_map()
-	map_view.focus_tile(selected_tile) if index == 1 else pixel_view.focus_tile(selected_tile)
+	map_view.focus_tile("4,3") if index == 1 else pixel_view.focus_tile("4,3")
 	status("3D isometric world: click/drag/zoom and right-click orders." if index == 1 else "Pixel top-down world.")
 
 func select_person(id: String) -> void:

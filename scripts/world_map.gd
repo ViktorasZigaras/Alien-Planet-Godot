@@ -44,7 +44,7 @@ var progress = ""
 var font: Font
 var metrics_clock = 0.0
 var metrics = ""
-var yaw = -PI/4
+var yaw = 0.0
 var pick_faces: Dictionary = {}
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -281,7 +281,7 @@ func update_actors() -> void:
 						var point = from.lerp(to,value)
 						point = surface_world(point)
 						point.y += 0.035
-						actor.position = point,0.0,1.0,0.20 if animated else 0.001)
+						actor.position = point,0.0,1.0,(0.40 if "rover" in c.equipment else 0.20) if animated else 0.001)
 				from = to
 			tween.tween_callback(func():
 				if is_instance_valid(actor): actor.position = actor_position(tile); actor.stop(); actor.rotation.y = c.facing
@@ -289,7 +289,7 @@ func update_actors() -> void:
 		elif not tweens.has(id): actor.rotation.y = c.facing
 func actor_position(tile: String) -> Vector3:
 	var occupied = not R.site_at(state,tile).is_empty() or not R.district_at(state,tile).is_empty() or state.neutralSites.has(tile)
-	return surface(tile,Vector3(0,0.07,0.38 if occupied else 0.16))
+	return surface(tile,Vector3(0.37 if occupied else 0,0.07,0.52 if occupied else 0.16))
 func fit_map() -> void:
 	if state.is_empty(): return
 	target = (pos(state.tiles.values()[0])+pos(state.tiles.values().back()))/2

@@ -6,7 +6,7 @@ static func entries() -> Array:
 	for role in R.content().qualifications:
 		for suit in range(3):
 			for arms in range(2): list.append({"key":"person_%s_%d_%d" % [role,suit,arms],"kind":"person","role":role,"suit":suit,"arms":arms,"label":role+(" · Work Suit" if suit == 1 else " · Reinforced Suit" if suit == 2 else "")+(" · Small Arms" if arms else "")})
-	list.append({"key":"vehicle_rover","kind":"rover","label":"Rover · five-joint wheel rig"})
+	list.append({"key":"vehicle_rover","kind":"rover","label":"Transport · two passenger slots"})
 	for type in R.content().buildings:
 		for tier in [1,2]: list.append({"key":"building_%s_%d" % [type,tier],"kind":"building","type":type,"tier":tier,"label":R.content().buildings[type].name+" · T"+str(tier)})
 	for type in R.content().improvements: list.append({"key":"improvement_"+type,"kind":"improvement","type":type,"label":R.content().improvements[type].name})
@@ -34,3 +34,6 @@ static func create(entry: Dictionary) -> Node3D:
 static func person_key(c: Dictionary) -> String:
 	if "rover" in c.equipment: return "vehicle_rover"
 	return "person_%s_%d_%d" % [c.qualification,2 if "reinforced_suit" in c.equipment else 1 if "work_suit" in c.equipment else 0,1 if "small_arms" in c.equipment else 0]
+
+static func library_entries() -> Array:
+	return entries().filter(func(e): return e.kind != "person" or (e.suit == 0 and e.arms == 0))

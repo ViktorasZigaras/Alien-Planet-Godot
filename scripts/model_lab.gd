@@ -24,6 +24,9 @@ var catalogue_world: Node3D
 var catalogue_actor: Node3D
 var catalogue_entries = []
 var catalogue_selector: OptionButton
+var suit_choice: OptionButton
+var arms_choice: CheckButton
+var tools_choice: CheckButton
 
 func text(parent: Node, value: String, size: int = 15, color: Color = Color("dce7e6")) -> Label:
 	var label = Label.new()
@@ -165,11 +168,26 @@ func _ready() -> void:
 		terrains.append(tile)
 	var catalogue = page("World asset catalogue")
 	text(catalogue,"All current professions / gear / vehicles / buildings / improvements / resources",18)
-	catalogue_entries = Catalogue.entries()
+	catalogue_entries = Catalogue.library_entries()
 	catalogue_selector = OptionButton.new()
 	catalogue_selector.name = "WorldAssetChoice"
 	for entry in catalogue_entries: catalogue_selector.add_item(entry.label)
 	catalogue.add_child(catalogue_selector)
+	var settings = HBoxContainer.new()
+	catalogue.add_child(settings)
+	suit_choice = OptionButton.new()
+	for value in ["No exoskeleton","Work exoskeleton","Reinforced exoskeleton"]: suit_choice.add_item(value)
+	settings.add_child(suit_choice)
+	arms_choice = CheckButton.new()
+	arms_choice.text = "Small Arms"
+	settings.add_child(arms_choice)
+	tools_choice = CheckButton.new()
+	tools_choice.text = "Profession tools"
+	tools_choice.button_pressed = true
+	settings.add_child(tools_choice)
+	suit_choice.item_selected.connect(func(_i): show_asset(catalogue_selector.selected))
+	arms_choice.toggled.connect(func(_on): show_asset(catalogue_selector.selected))
+	tools_choice.toggled.connect(func(_on): show_asset(catalogue_selector.selected))
 	catalogue_world = stage(catalogue,470,true)
 	catalogue_selector.item_selected.connect(show_asset)
 	show_asset(0)
@@ -321,8 +339,16 @@ func update_activity() -> void:
 
 func show_asset(index: int) -> void:
 	if is_instance_valid(catalogue_actor): catalogue_actor.free()
-	var entry = catalogue_entries[index]
+	var entry = catalogue_entries[index].duplicate()
+	var is_person = entry.kind == "person"
+	suit_choice.disabled = not is_person
+	arms_choice.disabled = not is_person
+	tools_choice.disabled = not is_person
+	if is_person:
+		entry.suit = suit_choice.selected
+		entry.arms = 1 if arms_choice.button_pressed else 0
 	catalogue_actor = Catalogue.create(entry)
+	if is_person: catalogue_actor.show_tools = tools_choice.button_pressed
 	catalogue_world.add_child(catalogue_actor)
 	var camera = catalogue_world.get_viewport().get_camera_3d()
 	var person = entry.kind == "person"

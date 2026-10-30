@@ -44,7 +44,7 @@ func run() -> void:
 	map._gui_input(motion)
 	up.position = motion.position
 	map._gui_input(up)
-	check(map.pan == pan+motion.relative,"Left drag pans")
+	check(map.pan == pan+Vector2(motion.relative.x,-motion.relative.y),"Left drag preserves horizontal and inverts vertical")
 	check(clicks.size() == 1,"Drag does not select")
 	check(JSON.stringify(app.state) == initial,"Navigation preserves simulation")
 	map.fit_map()

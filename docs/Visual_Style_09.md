@@ -1,3 +1,5 @@
+> Updated by [0.901 visibility and transport notes](Batch_0901_Notes.md): ground-first rendering, tight sprite bounds, shared map orientation, separate model configurations and schema 8.
+
 # Illustrated frontier — medium treatment, version 0.9
 
 This supersedes the 0.8 Symbolic/Balanced treatment. Viktoras approved the medium-detail Colonization-inspired studies and their game-screen paintovers for implementation in both views. Those images are visual references, not tile-accurate game states or a promise of identical illustration quality.

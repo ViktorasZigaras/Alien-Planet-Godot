@@ -18,6 +18,8 @@ var role = "Rig"
 var work_suit = false
 var reinforced = false
 var small_arms = false
+var show_tools = true
+var tool_groups: Array[Node3D] = []
 var skeleton: Skeleton3D
 var walking = false
 var phase = 0.0
@@ -76,6 +78,16 @@ func build() -> void:
 	else:
 		build_outfit()
 
+func begin_tools() -> Dictionary:
+	var saved = attachments.duplicate()
+	for label in attachments:
+		var group = Node3D.new()
+		group.name = "Tools"
+		group.visible = show_tools
+		attachments[label].add_child(group)
+		attachments[label] = group
+		tool_groups.append(group)
+	return saved
 func build_outfit() -> void:
 	var colors = {"Biologist":["68844e","b4cf74","e7dcb6"],"Extractor":["bf7736","e8c76a","bacbd0"],"Medic":["deded1","bd5350","cde9df"],"Soldier":["526579","8297a5","d7bd73"],"Explorer":["44727b","ba9d65","91d4c8"],"Artist":["8a5383","e5ac60","e8d8ca"]}.get(role,PALETTES.get(role,PALETTES.Worker))
 	var cloth = Color(colors[0]).lerp(Color("d6d2bb"),0.48)
@@ -104,6 +116,7 @@ func build_outfit() -> void:
 		Parts.softened(attachments.spine, Vector3(0, 0.13, -0.25), Vector3(0.34, 0.35, 0.20), accent.darkened(0.25))
 		for side in [-1, 1]:
 			Parts.softened(attachments.spine, Vector3(side*0.17, 0.13, 0.18), Vector3(0.055, 0.43, 0.04), accent)
+	var outfit_attachments = begin_tools()
 	if role == "Worker" or role in ["Farmer","Biologist"]:
 		Parts.softened(attachments.forearm_r, Vector3(0.08, -0.30, 0), Vector3(0.045, 0.92, 0.045), Color("8e7048"))
 		Parts.softened(attachments.forearm_r, Vector3(0.08, -0.80, 0), Vector3(0.22, 0.24, 0.055) if role == "Worker" else Vector3(0.32, 0.08, 0.18), Color("8c9e9d"))
@@ -139,6 +152,7 @@ func build_outfit() -> void:
 		Parts.softened(attachments.head, Vector3(-0.17, 0.10, 0), Vector3(0.08, 0.16, 0.18), accent)
 		Parts.softened(attachments.spine, Vector3(-0.12, 0.21, -0.36), Vector3(0.045, 0.68, 0.045), light)
 
+	attachments = outfit_attachments
 	add_outfit_details(cloth,accent,light,skin,dark)
 	add_game_equipment(accent)
 	if role in GAME_ROLES and role not in ["Administrator","Artist","Merchant"]:
@@ -147,6 +161,7 @@ func build_outfit() -> void:
 
 
 func add_game_equipment(accent: Color) -> void:
+	var outfit_attachments = begin_tools()
 	if role == "Medic":
 		Parts.box(attachments.spine,Vector3(0,0.12,0.22),Vector3(0.18,0.06,0.03),Color("bf4c46"))
 		Parts.box(attachments.spine,Vector3(0,0.12,0.23),Vector3(0.06,0.18,0.03),Color("bf4c46"))
@@ -158,6 +173,7 @@ func add_game_equipment(accent: Color) -> void:
 	if role == "Artist":
 		Parts.box(attachments.forearm_l,Vector3(0,-0.31,0.1),Vector3(0.32,0.04,0.20),Color("b5a47d"))
 		Parts.cylinder(attachments.forearm_r,Vector3(0,-0.35,0.07),0.018,0.43,Color("dcc394"),5)
+	attachments = outfit_attachments
 	if small_arms:
 		Parts.box(attachments.spine,Vector3(0.20,0.03,0.28),Vector3(0.12,0.13,0.52),Color("343e49"))
 	if work_suit or reinforced:

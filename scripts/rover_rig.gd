@@ -40,7 +40,7 @@ func joint(label: String,parent: int,offset: Vector3) -> BoneAttachment3D:
 	return a
 func _process(delta: float) -> void:
 	if rolling:
-		angle += delta*6.0
+		angle += delta*3.0
 		for wheel in wheels: skeleton.set_bone_pose_rotation(wheel,Quaternion(Vector3.RIGHT,angle))
 func walk() -> void: rolling = true
 func stop() -> void: rolling = false
