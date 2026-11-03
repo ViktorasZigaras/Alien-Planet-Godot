@@ -134,12 +134,13 @@ static func slots(b: Dictionary) -> int: return 2 if b.get("tier",1) == 2 else 1
 static func list_jobs(s: Dictionary,town: String) -> Array:
 	var jobs = []
 	for t in s.tiles.values():
-		if distance(t,s.tiles[s.settlements[town].tileId]) <= preset().workRange and not tile_yield(s,t.id).is_empty() and not reserved_for_district(s,t.id):
+		if distance(t,s.tiles[s.settlements[town].tileId]) <= 3 and access(s,town,t.id) and not tile_yield(s,t.id).is_empty() and not reserved_for_district(s,t.id):
 			jobs.append({"id":"tile:"+t.id,"label":t.baseTerrain.capitalize()+" · "+t.id+" · "+yield_text(tile_yield(s,t.id)),"type":"tile"})
 	for b in s.buildings.values():
 		if b.settlementId != town or b.type == "training": continue
 		for i in range(slots(b)):
 			jobs.append({"id":"building:"+b.id+"#"+str(i),"label":building_name(b)+" · slot "+str(i+1),"type":b.type})
+	jobs.sort_custom(func(a,b):return a.id < b.id)
 	return jobs
 static func occupied(s: Dictionary,job: String,except: String = "") -> bool:
 	return s.cohorts.values().any(func(c): return c.id != except and c.state.kind == "resident" and c.state.get("job") == job)
@@ -297,6 +298,19 @@ static func reason(s: Dictionary,cmd: Dictionary) -> String:
 	var c = s.cohorts.get(cmd.get("cohortId",""),{})
 	match cmd.get("type",""):
 		"endTurn": return ""
+		"found":
+			if c.is_empty() or c.state.kind != "mobile" or c.qualification == "Soldier": return "Needs a mobile civilian founder."
+			if not passengers(s,c.id).is_empty(): return "Unload passengers first."
+			if s.resources.industry < 4: return "Founding needs 4 Industry."
+			return founding_reason(s,c.state.tileId)
+		"buyTile":
+			var town = cmd.get("settlementId", "")
+			var key = cmd.get("target", "")
+			if not s.settlements.has(town) or not s.tiles.has(key) or s.tiles[key].baseTerrain == "water": return "Choose town and land tile."
+			if access(s,town,key): return "Already accessible."
+			if distance(s.tiles[key],s.tiles[s.settlements[town].tileId]) > 3: return "Beyond radius three."
+			if not neighbours(s,key).any(func(k):return access(s,town,k)): return "Needs connected access."
+			return "Needs 4 Culture." if s.resources.culture < 4 else ""
 		"focusPerson": return "Unknown person." if c.is_empty() else ""
 		"develop": return tech_reason(s,cmd.get("nodeId",""))
 		"grow": return "Growth now accumulates automatically; inspect the town's growth meter."
@@ -409,6 +423,23 @@ static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
 	var message = "Order completed."
 	match cmd.type:
 		"focusPerson": return {"ok":true,"state":s,"message":"Selected "+c.name+"."}
+		"buyTile":
+			s.resources.culture -= 4
+			s.tileAccess[cmd.settlementId].append(cmd.target)
+			message = "Tile access purchased."
+		"found":
+			var tile = c.state.tileId
+			var key = s.get("idPrefix", "")+"town_"+tile.replace(",", "_")
+			s.resources.industry -= 4
+			s.settlements[key] = {"id":key,"name":"Outpost "+tile,"tileId":tile,"growth":0}
+			s.equipment[key] = {}
+			s.tileAccess[key] = [tile]+neighbours(s,tile)
+			for person_at in s.cohorts.values():
+				if person_at.state.kind == "resident" and person_at.state.get("job") == "tile:"+tile: person_at.state.job = null
+			c.home = key
+			c.state = {"kind":"resident","settlementId":key,"job":null}
+			s.movementQueues.erase(c.id); s.moveProgress.erase(c.id)
+			message = "Founded "+s.settlements[key].name+"; founder joins, no free population."
 		"endTurn":
 			end_turn(s)
 			return {"ok":true,"state":s,"message":s.log[0]}
@@ -560,7 +591,7 @@ static func new_person(s: Dictionary,town: String) -> void:
 		s.nextCohortNumber += 1
 		key = s.get("idPrefix", "")+"pop_%03d" % s.nextCohortNumber
 	s.nextCohortNumber += 1
-	s.cohorts[key] = {"id":key,"name":"Settler "+str(s.nextCohortNumber-1),"qualification":"Worker","home":town,"equipment":[],"facing":0.0,"lastUsed":0,"lastRoute":[],"state":{"kind":"resident","settlementId":town,"job":null}}
+	s.cohorts[key] = {"id":key,"name":"Settler "+str(int(s.nextCohortNumber)-1),"qualification":"Worker","home":town,"equipment":[],"facing":0.0,"lastUsed":0,"lastRoute":[],"state":{"kind":"resident","settlementId":town,"job":null}}
 static func end_turn(s: Dictionary) -> void:
 	var ledger = economy(s)
 	s.warnings = []
@@ -569,7 +600,8 @@ static func end_turn(s: Dictionary) -> void:
 		s.resources[k] = maxi(0,s.resources[k]+ledger.delta[k])
 	for key in ledger.status:
 		if "No Energy" in ledger.status[key] or "no Energy" in ledger.status[key]: s.warnings.append(key+": "+ledger.status[key])
-	for town in s.settlements:
+	var growth_towns = s.settlements.keys(); growth_towns.sort()
+	for town in growth_towns:
 		var growth = ledger.towns[town].growth
 		if s.resources.food == 0: growth = mini(0,growth)
 		s.settlements[town].growth = maxi(0,s.settlements[town].growth+growth)
@@ -609,12 +641,21 @@ static func end_turn(s: Dictionary) -> void:
 static func migrate_save(data):
 	if not data is Dictionary: return data
 	var s = data.duplicate(true)
-	if s.get("schemaVersion") == 11: return s
+	if whole(s.get("schemaVersion"),11,14):
+		if s.get("rulesVersion") != s.schemaVersion: return s
+		s.schemaVersion = 14; s.rulesVersion = 14
+		if not s.has("tileAccess"):
+			s.tileAccess = {}
+			for town in s.settlements:
+				s.tileAccess[town] = []
+				for key in s.tiles:
+					if distance(s.tiles[key],s.tiles[s.settlements[town].tileId]) <= 2: s.tileAccess[town].append(key)
+		return s
 	if s.get("schemaVersion") == 10:
 		if s.get("rulesVersion") != 10: return s
 		s.schemaVersion = 11; s.rulesVersion = 11
 		Layers.initialise(s.tiles)
-		return s
+		return migrate_save(s)
 	if s.get("schemaVersion") == 9:
 		if s.get("rulesVersion") != 9: return s
 		s.schemaVersion = 10
@@ -738,7 +779,7 @@ static func valid_movement(v,maximum: float) -> bool:
 	return (v is int or v is float) and is_finite(float(v)) and v >= 0 and v <= maximum+EPSILON
 static func validate(s) -> String:
 	if not s is Dictionary or not has_fields(s,["schemaVersion","rulesVersion","visualCounter","turn","map","tiles","rivers","resources","settlements","cohorts","equipment","units","buildings","districts","improvements","completed","movementQueues","moveProgress","neutralSites","trainingProject","constructionProject","nextCohortNumber","log","warnings"]): return "Missing save fields."
-	if s.schemaVersion != 11 or s.rulesVersion != 11: return "Unsupported save version."
+	if s.schemaVersion != 14 or s.rulesVersion != 14: return "Unsupported save version."
 	for k in ["map","tiles","resources","settlements","cohorts","equipment","units","buildings","districts","improvements","movementQueues","moveProgress","neutralSites"]:
 		if not s[k] is Dictionary: return "Invalid "+k+"."
 	for k in ["rivers","completed","log","warnings"]:
@@ -762,6 +803,13 @@ static func validate(s) -> String:
 	if not same_keys(s.resources,{"food":0,"minerals":0,"industry":0,"energy":0,"science":0,"culture":0}): return "Invalid resource types."
 	for k in RESOURCES:
 		if not whole(s.resources[k],0,9007199254740991): return "Invalid stock."
+	if not s.get("tileAccess") is Dictionary or not same_keys(s.tileAccess,s.settlements): return "Invalid tile access."
+	for town in s.tileAccess:
+		if not s.tileAccess[town] is Array: return "Invalid town access."
+		var seen_access = []
+		for key in s.tileAccess[town]:
+			if not key is String or not s.tiles.has(key) or key in seen_access or distance(s.tiles[key],s.tiles[s.settlements[town].tileId]) > 3: return "Invalid access tile."
+			seen_access.append(key)
 	if s.settlements.is_empty() or not s.units.is_empty(): return "Invalid settlements or detached vehicles."
 	var town_tiles = []
 	for key in s.settlements:
@@ -870,4 +918,13 @@ static func validate(s) -> String:
 	if s.log.size() > 100 or s.warnings.size() > 100: return "Oversized report."
 	for line in s.log+s.warnings:
 		if not line is String or line.length() > 4000: return "Invalid report."
+	return ""
+
+static func access(s: Dictionary,town: String,key: String) -> bool:
+	return key in s.get("tileAccess",{}).get(town,[]) if s.has("tileAccess") else distance(s.tiles[key],s.tiles[s.settlements[town].tileId]) <= 2
+static func founding_reason(s: Dictionary,key: String) -> String:
+	if not s.tiles.has(key) or s.tiles[key].baseTerrain == "water": return "Needs land."
+	if s.tiles[key].get("hostiles",0) > 0 or not district_at(s,key).is_empty() or has_site_improvement(s,key) or s.neutralSites.has(key): return "Occupied location."
+	for town in s.settlements.values():
+		if distance(s.tiles[key],s.tiles[town.tileId]) < 3: return "Needs two intervening hexes."
 	return ""

@@ -54,7 +54,7 @@ func run():
 	var old = R.initial_state()
 	old.schemaVersion = 7
 	old.rulesVersion = 7
-	check(R.validate(R.migrate_save(old)) == "" and R.migrate_save(old).schemaVersion == 11,"0.9 saves migrate to current schema")
+	check(R.validate(R.migrate_save(old)) == "" and R.migrate_save(old).schemaVersion == 14,"0.9 saves migrate to current schema")
 	var people = C.library_entries().filter(func(e): return e.kind == "person")
 	check(people.size() == 11,"Eleven base people in library")
 	check(C.library_entries().size() == 89 and C.entries().size() == 144,"Configurations separated; complete bake retained")

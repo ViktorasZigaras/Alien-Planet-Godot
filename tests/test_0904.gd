@@ -17,7 +17,7 @@ func clear_tile(s: Dictionary,id: String):
 func run():
 	var s = S.initial_state()
 	check(S.validate(s) == "","Fresh world valid: "+S.validate(s))
-	check(s.schemaVersion == 11 and s.worldVersion == 3,"Save versions advanced")
+	check(s.schemaVersion == 14 and s.worldVersion == 4,"Save versions advanced")
 	check(is_equal_approx(C.odds(1,1),0.5),"Equal healthy strength exactly 50%")
 	check(C.odds(2,1)>0.9 and C.odds(0.5,1)<0.1,"Repeated rounds amplify strength advantage")
 	check(is_equal_approx(C.odds(1,2),1-C.odds(2,1)),"Duel symmetry")
@@ -62,6 +62,7 @@ func run():
 	fresh.completed = ["field_methods","surveying"]
 	check(R.reason(fresh,make).contains("capacity"),"Transport needs military capacity")
 	var old = S.initial_state(); old.schemaVersion = 10; old.rulesVersion = 10; old.worldVersion = 2
+	old.civilizations.erase("green"); old.xenos.deaths.erase("green")
 	for u in old.xenos.units.values(): u.hp = {"larva":4,"predator":6,"armored":11}[u.kind]
 	old.xenos.humanHealth.pop_a = 7
 	var migrated = S.migrate(JSON.parse_string(JSON.stringify(old)))

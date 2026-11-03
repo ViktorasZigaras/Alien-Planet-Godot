@@ -1,3 +1,7 @@
+# Source reconstruction notice
+
+This package is **0.910-reconstructed**, dated 3 November 2026. Start with `CONTINUE_HERE.md`. The original 0.904 README below is retained as historical baseline documentation; its version/status statements do not describe the reconstructed AI.
+
 # Alien Planet 0.904
 
 Combat and cleansing test shell: rifle/flamer Soldiers, animal duels and ranged spit, persistent wounds/healing, military equipment limits and upkeep, removable terrain layers. Includes the previously local blue/red civilizations and xeno ecology.

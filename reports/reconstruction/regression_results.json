@@ -1,0 +1,87 @@
+[
+  {
+    "suite": "test_batch",
+    "exit": 0,
+    "passed": true,
+    "seconds": 2.76,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nBATCH CHECKS: 421; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_batch_ui",
+    "exit": 0,
+    "passed": true,
+    "seconds": 5.1,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nBATCH UI CHECKS: 22; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_0901",
+    "exit": 0,
+    "passed": true,
+    "seconds": 3.25,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\n0.901 CHECKS: 185; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_0903",
+    "exit": 0,
+    "passed": true,
+    "seconds": 5.46,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\n0.903 CHECKS: 163; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_0904",
+    "exit": 0,
+    "passed": true,
+    "seconds": 1.0,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\n0.904 CHECKS 80 FAILURES 0\n"
+  },
+  {
+    "suite": "test_frontier",
+    "exit": 0,
+    "passed": true,
+    "seconds": 2.02,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nFRONTIER CHECKS: 39; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_model_lab",
+    "exit": 0,
+    "passed": true,
+    "seconds": 1.36,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nMODEL LAB CHECKS: 247; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_visual_style",
+    "exit": 0,
+    "passed": true,
+    "seconds": 0.35,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nVISUAL STYLE CHECKS: 55; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_world",
+    "exit": 0,
+    "passed": true,
+    "seconds": 2.4,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nWORLD CHECKS: 381; FAILURES: 0\n"
+  },
+  {
+    "suite": "test_reconstruction",
+    "exit": 0,
+    "passed": true,
+    "seconds": 27.9,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nRECONSTRUCTION CHECKS 232 FAILURES 0\n",
+    "latest_rerun": "232 checks, including unrecorded visual-focus AI isolation; successful final rerun."
+  },
+  {
+    "suite": "reconstruction_ui",
+    "exit": 0,
+    "passed": true,
+    "seconds": 1.65,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\nUI views, Green inspection, Testing and Survey/Atlas opened; state preserved\n"
+  },
+  {
+    "suite": "test_0902",
+    "exit": 0,
+    "passed": true,
+    "seconds": 377.46,
+    "tail": "Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org\n\n0.902 CHECKS: 362; FAILURES: 0\n"
+  }
+]

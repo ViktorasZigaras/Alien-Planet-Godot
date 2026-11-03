@@ -395,4 +395,4 @@ This brief is a concrete, intentionally small interpretation of the ten proposal
 
 The earlier proposal notebook remains the discussion record. This brief is the operational handoff for a first test. It includes everything required to understand that test without retrieving the SMAC wiki or relying on past chat memory. Refer back to the notebook only when deciding how to grow the prototype after its current loop works.
 
-Source discussion notebook: [SMAC Proposed Changes](https://chatgpt.com/library?file_id=libfile_f8bb8352a5f48191937914dd1d41b3a1&account_id=personal), version 2, read 29 October 2026. Example mechanics in this brief are original provisional design choices, not copied rules from SMAC, Colonization, Civilization VI or Endless Legend.
+Source discussion notebook: SMAC Proposed Changes (personal reference link omitted), version 2, read 29 October 2026. Example mechanics in this brief are original provisional design choices, not copied rules from SMAC, Colonization, Civilization VI or Endless Legend.

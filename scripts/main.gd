@@ -41,6 +41,7 @@ var tech_dialog: AcceptDialog
 var tech_tabs: TabContainer
 var tech_pages: Dictionary = {}
 var model_lab
+var survey_panel: VBoxContainer
 var testing_panel: VBoxContainer
 var test_export: FileDialog
 
@@ -199,6 +200,7 @@ func build_ui() -> void:
 	development = make_tab("Technology")
 	report = make_tab("Report")
 	testing_panel = make_tab("Testing")
+	survey_panel = make_tab("Survey / Atlas")
 	test_export = FileDialog.new()
 	test_export.use_native_dialog = true
 	test_export.title = "Export civilization test record"
@@ -386,6 +388,7 @@ func render() -> void:
 	render_development()
 	render_report()
 	render_testing()
+	render_survey()
 	render_mobile()
 	milestones_label.text = "Temperate · Lush · Dry · Cold · Fungal · Coastal   |   24 × 16 test world"
 	refreshing = false
@@ -414,6 +417,11 @@ func render_orders() -> void:
 		for layer in ["pollution","xenomass","obstacle","vegetation","forest"]:
 			var clean = {"type":"cleanse","cohortId":cleaner.id,"target":selected_tile,"layer":layer}
 			if Session.reason_for(state,"blue",clean) == "": command_button(orders,"Cleanse "+layer+" · one action",clean)
+	if not cleaner.is_empty() and cleaner.state.kind == "mobile":
+		command_button(orders,"Found settlement here · 4 Industry",{"type":"found","cohortId":cleaner.id})
+	for town_id in state.settlements:
+		if not Rules.access(state,town_id,selected_tile) and Rules.distance(t,state.tiles[state.settlements[town_id].tileId])<=3:
+			command_button(orders,"Buy access for "+state.settlements[town_id].name+" · 4 Culture",{"type":"buyTile","settlementId":town_id,"target":selected_tile})
 	var wild = state.xenos.units.values().filter(func(u):return u.tile == selected_tile)
 	var nests = state.xenos.nests.values().filter(func(n):return n.tile == selected_tile)
 	if not wild.is_empty() or not nests.is_empty():
@@ -435,16 +443,15 @@ func render_orders() -> void:
 			label(orders,explorer.name+" · health %d/100 · %.2f movement" % [state.xenos.humanHealth.get(explorer.id,100),explorer.movementRemaining],12)
 			command_button(orders,"Approach / replace route",{"type":"queueMove","unitId":explorer.id,"target":selected_tile})
 		return
-	var red = state.civilizations.red
-	var foreign_town = Rules.site_at(red,selected_tile)
-	var red_people = red.cohorts.values().filter(func(c): return Rules.person_tile(red,c) == selected_tile)
-	if not foreign_town.is_empty() or not red_people.is_empty():
-		heading(orders,"RED CIVILIZATION")
-		label(orders,"Independent population, stocks, technologies and projects.",12)
+	for owner in state.civilizations:
+		var foreign = state.civilizations[owner]
+		var foreign_town = Rules.site_at(foreign,selected_tile)
+		var foreign_people = foreign.cohorts.values().filter(func(c):return Rules.person_tile(foreign,c)==selected_tile)
+		if foreign_town.is_empty() and foreign_people.is_empty(): continue
+		heading(orders,owner.to_upper()+" CIVILIZATION")
 		if not foreign_town.is_empty(): label(orders,foreign_town.name+" · growth "+str(foreign_town.growth)+"/20",14)
-		for c in red_people: label(orders,c.name+" · "+c.qualification,12)
-		label(orders,"Observe only. Red hunts animals independently.",12)
-		button(orders,"View red progress",func(): tabs.current_tab = 3)
+		for c in foreign_people: label(orders,c.name+" · "+c.qualification,12)
+		label(orders,"Independent stocks, research, council and campaign. Inspect the Testing tab.",12)
 		return
 	var site = Rules.site_at(state,selected_tile)
 	var district = Rules.district_at(state,selected_tile)
@@ -799,9 +806,11 @@ func select_person(id: String) -> void:
 func render_testing() -> void:
 	clear(testing_panel)
 	heading(testing_panel,"Civilization testing")
-	label(testing_panel,"Blue: human commands. Red: deterministic growth / development / research policy. Red acts once per End Turn.",12)
+	label(testing_panel,"0.910 reconstruction. Blue is human-controlled here; Red and Green have independent councils. End Turn advances their decisions.",12)
 	button(testing_panel,"Focus Red Haven",func(): map_view.focus_tile(Session.RED_TOWN); selected_tile = Session.RED_TOWN; render())
 	button(testing_panel,"Focus blue settlements",func(): map_view.focus_tile("4,3"))
+	if state.civilizations.has("green"): button(testing_panel,"Focus Green Reach",func(): map_view.focus_tile(Session.GREEN_TOWN))
+	button(testing_panel,"Step one round with all three AIs",func(): state = Session.advance_round(state); render())
 	var snapshot = Session.summary(state)
 	for id in Session.players(state):
 		var item = snapshot[id]
@@ -809,9 +818,22 @@ func render_testing() -> void:
 		label(testing_panel,"%d people · %d/20 techs · %d buildings · %d improved tiles" % [item.population,item.techs.size(),item.buildings,item.improvedTiles],12)
 		label(testing_panel,", ".join(item.resources.keys().map(func(k): return k.capitalize()+" "+str(item.resources[k]))),11)
 		label(testing_panel,"Growth: "+", ".join(item.growth.map(func(g): return Session.players(state)[id].settlements[g.id].name+" "+str(g.growth)+"/20")),11)
+		var p = Session.players(state)[id]
+		var a = p.get("ai",{})
+		if not a.is_empty():
+			label(testing_panel,"Doctrine: "+a.doctrine+" · council review T"+str(a.lastReview),12)
+			label(testing_panel,"Authorized: "+", ".join(a.authorizations),11)
+			for proposal in a.proposals.slice(0,4): label(testing_panel,proposal.advisor+" · "+proposal.id+" · "+str(proposal.score)+" · "+proposal.reason,11)
+			if not a.operation.is_empty():
+				var op = a.operation
+				label(testing_panel,"Nest operation: "+op.phase+" · target "+op.target+" · force "+str(op.force.size())+"/6 · releases "+str(op.releases),12)
+				label(testing_panel,"Blockers: "+", ".join(op.blockers),11)
+			label(testing_panel,"Lieutenant: retreat "+str(a.lieutenant.retreatHP)+" HP · charge "+str(a.lieutenant.chargeOdds)+" · terrain classes "+str(a.lieutenant.terrain.size()),11)
+			for event in a.history.slice(maxi(0,a.history.size()-3)): label(testing_panel,"T"+str(event.turn)+" · "+event.rule,11)
 	heading(testing_panel,"Xeno ecology · wildlife")
 	var ecology = Session.X.summary(state.xenos)
 	label(testing_panel,"Deaths — blue %d · red %d · animals %d; active nests %d" % [ecology.deaths.blue,ecology.deaths.red,ecology.deaths.animals,ecology.activeNests],13)
+	if ecology.deaths.has("green"): label(testing_panel,"Green deaths: "+str(ecology.deaths.green),12)
 	label(testing_panel,"%d nests · %d larvae · %d predators (%d armored) · %d xenomass tiles" % [ecology.nests,ecology.workers,ecology.predators,ecology.armored,ecology.massTiles],12)
 	button(testing_panel,"Focus xeno nest",func():
 		if not state.xenos.nests.is_empty(): map_view.focus_tile(state.xenos.nests.values()[0].tile))
@@ -832,3 +854,16 @@ func export_test(path: String) -> bool:
 	file.close()
 	status("Test record exported." if success else "Test export failed.",success)
 	return success
+
+func render_survey() -> void:
+	clear(survey_panel)
+	heading(survey_panel,"Survey / Atlas")
+	label(survey_panel,"Potential extraction is not current output. Map is fully revealed in this prototype.",12)
+	var Survey = preload("res://scripts/tile_survey.gd")
+	var row = Survey.inspect(Session.projection(state),selected_tile)
+	label(survey_panel,JSON.stringify(row,"  "),12)
+	for owner in Session.players(state):
+		var p = Session.players(state)[owner]
+		heading(survey_panel,owner.capitalize()+" settlements")
+		for town in p.settlements.values():
+			label(survey_panel,town.name+" · "+town.tileId+" · "+str(Rules.population(p,town.id))+" people · "+str(p.tileAccess[town.id].size())+" accessible hexes",12)

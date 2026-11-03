@@ -1,3 +1,7 @@
+# Reconstruction validation notice
+
+Latest: `reports/reconstruction/VALIDATION_SUMMARY.md` — 3 November 2026. The historical baseline validation below is retained for provenance and does not establish current test counts or original 0.910 equivalence.
+
 # Version 0.904
 
 1,880 checks pass across ten suites; 80 new checks cover combat odds, ranged attacks, cleansing, animal pollution penalties, capacity, upkeep, healing, blocking, occupation and migrations. Native OpenGL default/staged captures reviewed with no missing sprite or script errors. 144 sprites and 89 catalogue entries ship in the repository.

@@ -124,7 +124,7 @@ func run() -> void:
 	for c in old.cohorts.values():
 		c.erase("lastUsed"); c.erase("facing"); c.erase("lastRoute")
 	var migrated = R.migrate_save(old)
-	check(R.validate(migrated) == "" and migrated.schemaVersion == 11,"Version 6 saves migrate without gameplay loss")
+	check(R.validate(migrated) == "" and migrated.schemaVersion == 14,"Version 6 saves migrate without gameplay loss")
 	app.queue_free()
 	await process_frame
 	print("WORLD CHECKS: ",checks,"; FAILURES: ",failures.size())

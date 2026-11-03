@@ -6,7 +6,37 @@ const R = preload("res://scripts/game_rules.gd")
 const Agent = preload("res://scripts/civilization_agent.gd")
 const Claims = preload("res://scripts/claim_map.gd")
 const RED_TOWN = "10,8"
-static func initial_state() -> Dictionary: return attach(R.initial_state())
+const GREEN_TOWN = "16,2"
+const Coordinator = preload("res://scripts/ai_coordinator.gd")
+const Operation = preload("res://scripts/ai_operation.gd")
+static func initial_state() -> Dictionary:
+	var s = attach(R.initial_state())
+	var green = s.civilizations.red.duplicate(true)
+	green.idPrefix = "green_"; green.policyProfile = {"defence":"nest_campaign"}
+	green.settlements = {"green_town":{"id":"green_town","name":"Green Reach","tileId":GREEN_TOWN,"growth":0}}
+	green.cohorts = {}; green.buildings = {}; green.districts = {}; green.improvements = {}
+	green.resources = R.preset().start.duplicate(true)
+	green.equipment = {"green_town":{"work_suit":2,"small_arms":1,"flamer":0,"rover":0,"survey_kit":0,"reinforced_suit":0}}
+	green.tileAccess = {"green_town":[]}
+	for key in s.tiles:
+		if R.distance(s.tiles[key],s.tiles[GREEN_TOWN])<=2: green.tileAccess.green_town.append(key)
+	for i in range(5):
+		R.new_person(green,"green_town")
+	for kind in ["lab","civic","training"]:
+		var key = "green_"+kind
+		green.buildings[key] = {"id":key,"type":kind,"tier":1,"settlementId":"green_town"}
+	green.ai = Coordinator.initial("green")
+	s.civilizations.green = green; s.xenos.deaths.green = 0
+	for player in ["red","green"]:
+		var state = s.civilizations[player]
+		var town = state.settlements.keys()[0]
+		var center = state.settlements[town].tileId
+		var positions = [center]+R.neighbours(state,center).filter(func(key):return state.tiles[key].baseTerrain!="water")
+		for i in range(4):
+			var key = player+"_field_"+str(i)
+			state.cohorts[key] = {"id":key,"name":player.capitalize()+" field Soldier "+str(i+1),"qualification":"Soldier","home":town,"equipment":["flamer" if i==3 else "small_arms"],"facing":0.0,"lastUsed":0,"lastRoute":[],"state":{"kind":"mobile","tileId":positions[i/3],"movementRemaining":1.0}}
+	X.sync_tiles(s)
+	return s
 static func own_state(s: Dictionary) -> Dictionary:
 	var own = s.duplicate(true)
 	own.erase("civilizations")
@@ -19,7 +49,15 @@ static func players(s: Dictionary) -> Dictionary:
 	for id in s.get("civilizations",{}): result[id] = s.civilizations[id]
 	return result
 static func attach(s: Dictionary) -> Dictionary:
-	if s.get("worldVersion") == 3: return s
+	if s.get("worldVersion") == 4: return s
+	if s.get("worldVersion") == 3:
+		s = R.migrate_save(s)
+		s.worldVersion = 4
+		Coordinator.ensure(s,"blue")
+		for id in s.civilizations:
+			s.civilizations[id] = R.migrate_save(s.civilizations[id])
+			Coordinator.ensure(s.civilizations[id],id)
+		return s
 	if s.get("worldVersion") == 2:
 		s = s.duplicate(true)
 		s.worldVersion = 3
@@ -29,7 +67,7 @@ static func attach(s: Dictionary) -> Dictionary:
 		for u in x.units.values(): u.hp = clampi(roundi(100*float(u.hp)/{"larva":4,"predator":6,"armored":11}[u.kind]),1,100)
 		for id in x.humanHealth: x.humanHealth[id] = clampi(int(x.humanHealth[id])*10,1,100)
 		X.sync_tiles(s)
-		return s
+		return attach(s)
 	if s.get("worldVersion") == 1:
 		s = s.duplicate(true)
 		s.worldVersion = 3
@@ -51,6 +89,9 @@ static func attach(s: Dictionary) -> Dictionary:
 	red.turn = s.turn
 	red.resources = R.preset().start.duplicate(true)
 	red.settlements = {"red_town":{"id":"red_town","name":"Red Haven","tileId":RED_TOWN,"growth":0}}
+	red.tileAccess = {"red_town":[]}
+	for tile in s.tiles.values():
+		if R.distance(tile,s.tiles[RED_TOWN])<=2: red.tileAccess.red_town.append(tile.id)
 	red.cohorts = {}
 	for i in range(5):
 		var id = "red_person_"+str(i)
@@ -81,7 +122,9 @@ static func summary(s: Dictionary) -> Dictionary:
 	return result
 static func start_recording(s: Dictionary) -> Dictionary:
 	s = s.duplicate(true)
-	s.testing = {"enabled":true,"events":[],"sequence":0,"dropped":0,"initial":{"blue":own_state(s),"red":s.civilizations.red.duplicate(true),"xenos":s.xenos.duplicate(true)},"outcome":{"status":"in_progress"}}
+	var initial = {"blue":own_state(s),"xenos":s.xenos.duplicate(true),"worldVersion":s.worldVersion}
+	for id in s.civilizations: initial[id] = s.civilizations[id].duplicate(true)
+	s.testing = {"enabled":true,"events":[],"sequence":0,"dropped":0,"initial":initial,"outcome":{"status":"in_progress"}}
 	return s
 static func record(s: Dictionary,player: String,cmd: Dictionary,rule: String,before: Dictionary,ok: bool,message: String) -> void:
 	if not s.testing.enabled: return
@@ -96,23 +139,41 @@ static func finish_recording(s: Dictionary,status: String = "stopped",detail: St
 	s.testing.enabled = false
 	return s
 static func report(s: Dictionary) -> Dictionary:
-	return {"format":"alien-planet-test-v4","gameVersion":"0.904","seed":s.map.seed,"initial":s.testing.initial,"events":s.testing.events,"droppedEvents":s.testing.dropped,"outcome":s.testing.outcome,"final":s.testing.outcome.get("summary",summary(s))}
+	return {"format":"alien-planet-test-reconstruction-v1","gameVersion":"0.910-reconstructed","seed":s.map.seed,"initial":s.testing.initial,"events":s.testing.events,"droppedEvents":s.testing.dropped,"outcome":s.testing.outcome,"final":s.testing.outcome.get("summary",summary(s))}
 static func reason_for(s: Dictionary,player: String,cmd: Dictionary) -> String:
 	if not players(s).has(player): return "Unknown civilization."
 	var p = players(s)[player]
+	if cmd.get("type", "") == "aiReview": return ""
+	if cmd.get("type", "") == "found":
+		var founder = p.cohorts.get(cmd.get("cohortId", ""),{})
+		if not founder.is_empty() and founder.state.kind=="mobile":
+			for other in players(s).values():
+				for town in other.settlements.values():
+					if R.distance(s.tiles[founder.state.tileId],s.tiles[town.tileId])<3: return "Too near an existing settlement."
 	if cmd.get("type", "") == "attackXeno": return X.attack_reason(s,p,cmd)
 	var target = cmd.get("target", "")
 	if cmd.get("type", "") == "assign" and cmd.get("job") is String and cmd.job.begins_with("tile:"): target = cmd.job.substr(5)
 	if cmd.get("type", "") in ["build","improve"] and s.xenos.nests.values().any(func(n):return n.tile == target): return "A xeno nest occupies this tile."
-	if cmd.get("type", "") in ["assign","build","improve","cleanse"] and target != "":
+	if cmd.get("type", "") in ["assign","build","improve","cleanse","buyTile"] and target != "":
 		var owner = Claims.owners(players(s)).get(target,player)
 		if owner != player: return "Tile claimed by another civilization."
 	return R.reason(p,cmd)
 static func command_for(state: Dictionary,player: String,cmd: Dictionary,policy_rule: String = "human_command") -> Dictionary:
+	if cmd.get("type", "") == "aiReview":
+		if not players(state).has(player): return {"ok":false,"state":state,"message":"Unknown civilization."}
+		var s = state.duplicate(true)
+		var before = summary(s) if s.testing.enabled else {}
+		Coordinator.review(s,players(s)[player],player)
+		record(s,player,cmd,policy_rule,before,true,"Council reviewed objectives and authorizations.")
+		return {"ok":true,"state":s,"message":"Council reviewed."}
+
 	if player == "xeno" and cmd.get("type", "") == "xenoTick":
 		var s = state.duplicate(true)
 		var before = summary(s) if s.testing.enabled else {}
 		X.tick(s,players(s))
+		for id in players(s):
+			Coordinator.ensure(players(s)[id],id)
+			Coordinator.L.observe(s,players(s)[id],id,s.xenos.lastEvents)
 		X.burn_occupied(s)
 		X.sync_tiles(s)
 		record(s,"xeno",cmd,policy_rule,before,true,"Xeno ecology: "+str(s.xenos.lastEvents.size())+" events")
@@ -126,15 +187,27 @@ static func command_for(state: Dictionary,player: String,cmd: Dictionary,policy_
 	var before = summary(state) if state.testing.enabled else {}
 	var s = state.duplicate(true)
 	if cmd.get("type", "") == "attackXeno":
-		var message = X.attack(s,players(s)[player],cmd)
+		var acting = players(s)[player]
+		Coordinator.ensure(acting,player)
+		var message = X.attack(s,acting,cmd)
+		Coordinator.L.observe(s,acting,player,s.xenos.lastEvents)
+		Coordinator.applied(acting,cmd,policy_rule,{}, {"plan":cmd.get("_aiPlan", ""),"world":s})
 		X.sync_tiles(s)
 		record(s,player,cmd,policy_rule,before,true,message)
 		if s.testing.enabled: s.testing.events.back().environmentEvents = s.xenos.lastEvents.duplicate(true)
 		return {"ok":true,"state":s,"message":message}
 	s.xenos.lastEvents = []
+	var acting_before = players(s)[player].cohorts.get(cmd.get("cohortId", ""),{}).get("state",{}).duplicate(true)
 	var result = R.command(s if player == "blue" else s.civilizations[player],cmd)
 	if player == "blue": s = result.state
 	else: s.civilizations[player] = result.state
+	var acting = players(s)[player]
+	Coordinator.ensure(acting,player)
+	if cmd.type != "focusPerson":
+		Coordinator.applied(acting,cmd,policy_rule,acting_before,{"plan":cmd.get("_aiPlan", ""),"world":s})
+		if not acting.ai.operation.is_empty():
+			Operation.review(s,acting)
+			if Operation.can_commission(s,acting): acting.ai.operation.phase = "commission"
 	# Cleansing edits shared geography; the animal mat is the authoritative layer.
 	if cmd.type == "cleanse":
 		var p = players(s)[player]
@@ -146,20 +219,25 @@ static func command_for(state: Dictionary,player: String,cmd: Dictionary,policy_
 		record(s,player,cmd,policy_rule,before,result.ok,result.message)
 		if s.testing.enabled: s.testing.events.back().environmentEvents = s.xenos.lastEvents.duplicate(true)
 	return {"ok":result.ok,"state":s,"message":result.message}
-static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
-	var result = command_for(state,"blue",cmd)
-	if not result.ok or cmd.type != "endTurn": return result
-	var s = result.state
-	for step in range(8):
-		var intent = military_intent(s)
-		if intent.is_empty(): intent = Agent.pick(s.civilizations.red)
+static func ai_turn(state: Dictionary,player: String) -> Dictionary:
+	var s = command_for(state,player,{"type":"aiReview"},"council_review").state
+	for step in range(12):
+		var intent = Coordinator.choose(s,players(s)[player],player)
 		if intent.is_empty(): break
-		var action = command_for(s,"red",intent.command,intent.rule)
-		s = action.state
-		if not action.ok: break
-	var red_turn = command_for(s,"red",{"type":"endTurn"},"finish_civilization_turn")
-	result.state = command_for(red_turn.state,"xeno",{"type":"xenoTick"},"local_ecology").state
-	return result
+		var cmd = intent.command.duplicate(true)
+		cmd._aiPlan = intent.get("plan", "")
+		var result = command_for(s,player,cmd,intent.rule)
+		s = result.state
+		if not result.ok: break
+	return command_for(s,player,{"type":"endTurn"},"finish_civilization_turn").state
+static func advance_round(state: Dictionary,all_ai: bool = true) -> Dictionary:
+	var s = ai_turn(state,"blue") if all_ai else command_for(state,"blue",{"type":"endTurn"}).state
+	var ids = s.civilizations.keys().map(func(id):return str(id)); ids.sort()
+	for player in ids: s = ai_turn(s,player)
+	return command_for(s,"xeno",{"type":"xenoTick"},"local_ecology").state
+static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
+	if cmd.type == "endTurn": return {"ok":true,"state":advance_round(state,false),"message":"Round complete."}
+	return command_for(state,"blue",cmd)
 static func projection(s: Dictionary) -> Dictionary:
 	var view = own_state(s)
 	view.xenos = s.xenos.duplicate(true)
@@ -176,22 +254,27 @@ static func validate(s) -> String:
 	var base = R.validate(s)
 	if base != "": return base
 	if not s.tiles.has(RED_TOWN): return "Map too small for the two-civilization test scenario."
-	if s.get("worldVersion") != 3 or not s.get("civilizations") is Dictionary or not s.civilizations.has("red") or s.civilizations.size() != 1: return "Invalid civilizations."
-	var red = s.civilizations.red
-	var error = R.validate(red)
-	if error != "": return "Red: "+error
-	if red.map != s.map or red.turn != s.turn or red.tiles != s.tiles or red.rivers != s.rivers: return "Civilizations must share geography and world turn."
+	if s.get("worldVersion") != 4 or not s.get("civilizations") is Dictionary or not s.civilizations.has("red") or s.civilizations.size() > 2 or s.civilizations.keys().any(func(k):return k not in ["red","green"]): return "Invalid civilizations."
+	var all_ids = {}
+	for id in players(s):
+		var state = players(s)[id]
+		var error = R.validate(state)
+		if error != "": return id+": "+error
+		error = Coordinator.validate(state)
+		if error != "": return id+": "+error
+		if state.map != s.map or state.turn != s.turn or state.tiles != s.tiles or state.rivers != s.rivers: return "Civilizations must share geography and world turn."
+		for group in ["cohorts","settlements","buildings","districts"]:
+			for key in state[group]:
+				if all_ids.has(key): return "Duplicate civilization object identity."
+				all_ids[key] = true
 	var xeno_error = X.validate(s.get("xenos"),s,players(s))
 	if xeno_error != "": return xeno_error
-	for group in ["cohorts","settlements","buildings","districts"]:
-		for key in red[group]:
-			if s[group].has(key): return "Duplicate civilization object identity."
 	if not s.get("testing") is Dictionary or not s.testing.get("enabled") is bool or not s.testing.get("events") is Array or s.testing.events.size() > 10000 or not s.testing.get("initial") is Dictionary or not s.testing.get("outcome") is Dictionary: return "Invalid test recorder."
 	if not R.whole(s.testing.get("sequence"),0,9007199254740991) or not R.whole(s.testing.get("dropped"),0,9007199254740991) or not s.testing.outcome.get("status") is String: return "Invalid recorder counters/outcome."
 	var previous = 0
 	for event in s.testing.events:
 		if not event is Dictionary or not R.has_fields(event,["sequence","turn","player","command","policyRule","accepted","message","before","after"]): return "Invalid test event."
-		if not R.whole(event.sequence,previous+1,s.testing.sequence) or not R.whole(event.turn,1,s.turn) or event.player not in ["blue","red","xeno"] or not event.command is Dictionary or not event.command.get("type") is String or not event.policyRule is String or not event.accepted is bool or not event.before is Dictionary or not event.after is Dictionary: return "Invalid test event fields."
+		if not R.whole(event.sequence,previous+1,s.testing.sequence) or not R.whole(event.turn,1,s.turn) or event.player not in ["blue","red","green","xeno"] or not event.command is Dictionary or not event.command.get("type") is String or not event.policyRule is String or not event.accepted is bool or not event.before is Dictionary or not event.after is Dictionary: return "Invalid test event fields."
 		previous = event.sequence
 	if not s.testing.initial.is_empty():
 		if not s.testing.initial.has("blue") or not s.testing.initial.has("red") or R.validate(s.testing.initial.blue) != "" or R.validate(s.testing.initial.red) != "": return "Invalid test starting snapshot."
@@ -202,7 +285,7 @@ static func migrate(data):
 	if base.get("civilizations") is Dictionary:
 		for id in base.civilizations: base.civilizations[id] = R.migrate_save(base.civilizations[id])
 	if base.get("testing") is Dictionary and base.testing.get("initial") is Dictionary:
-		for id in ["blue","red"]:
+		for id in ["blue"]+base.get("civilizations",{}).keys():
 			if base.testing.initial.has(id): base.testing.initial[id] = R.migrate_save(base.testing.initial[id])
 	return attach(base)
 
@@ -263,3 +346,13 @@ static func military_intent(s: Dictionary) -> Dictionary:
 		var move = {"type":"queueMove","unitId":c.id,"target":target}
 		if R.reason(p,move) == "": return Agent.choice(move,"hunt_animals_or_occupy_nest")
 	return {}
+
+static func from_recording(initial: Dictionary) -> Dictionary:
+	var s = initial.blue.duplicate(true)
+	s.worldVersion = int(initial.get("worldVersion",4))
+	s.civilizations = {}
+	for id in initial:
+		if id not in ["blue","xenos","worldVersion"]: s.civilizations[id] = initial[id].duplicate(true)
+	s.xenos = initial.xenos.duplicate(true)
+	s.testing = {"enabled":false,"events":[],"sequence":0,"dropped":0,"initial":{},"outcome":{"status":"in_progress"}}
+	return migrate(s)

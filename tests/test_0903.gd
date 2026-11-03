@@ -106,15 +106,13 @@ func run():
 	check(S.validate(invalid) != "","Mat cannot occupy water")
 	invalid = S.initial_state(); invalid.xenos.units.xeno_0001.nestId = "not_a_nest"
 	check(S.validate(invalid) != "","Unknown nest reference rejected")
-	var older = S.initial_state(); older.worldVersion = 1; older.erase("xenos"); older.schemaVersion = 9; older.rulesVersion = 9
+	var older = S.initial_state(); older.worldVersion = 1; older.erase("xenos"); older.civilizations.erase("green"); older.schemaVersion = 9; older.rulesVersion = 9
 	var upgraded = S.migrate(older)
-	check(S.validate(upgraded) == "" and upgraded.schemaVersion == 11 and upgraded.worldVersion == 3,"0.902 save migrates with ecology")
+	check(S.validate(upgraded) == "" and upgraded.schemaVersion == 14 and upgraded.worldVersion == 4,"0.902 save migrates with ecology")
 	var trace = S.start_recording(S.initial_state())
 	trace = S.command(trace,{"type":"endTurn"}).state
 	check(trace.testing.events.any(func(e):return e.player == "xeno" and e.has("environmentEvents")),"Ecology actions/outcomes enter recorder")
-	var replay = S.attach(trace.testing.initial.blue)
-	replay.civilizations.red = trace.testing.initial.red.duplicate(true)
-	replay.xenos = trace.testing.initial.xenos.duplicate(true)
+	var replay = S.from_recording(trace.testing.initial)
 	for e in trace.testing.events:replay = S.command_for(replay,e.player,e.command,e.policyRule).state
 	check(S.summary(replay) == S.summary(trace) and same_ecology(replay.xenos,trace.xenos),"Recorded ecology replays without a language model")
 	check(C.entries().size() == 144 and C.library_entries().size() == 89,"Nest, three bodies and two mat assets in catalogue")

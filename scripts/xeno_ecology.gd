@@ -43,6 +43,7 @@ static func members(x: Dictionary,nest_id: String,workers: bool) -> Array:
 	return x.units.values().filter(func(u): return u.nestId == nest_id and (u.kind == "larva") == workers)
 static func summary(x: Dictionary) -> Dictionary:
 	var counts = {"deaths":{"blue":int(x.deaths.blue),"red":int(x.deaths.red),"animals":int(x.deaths.animals)},"activeNests":x.nests.values().filter(func(n):return not n.get("burned",false)).size(),"nests":x.nests.size(),"workers":0,"predators":0,"armored":0,"massTiles":x.mass.size(),"biomass":0,"minerals":0,"woundedPeople":x.humanHealth.size()}
+	if x.deaths.has("green"): counts.deaths.green = int(x.deaths.green)
 	for unit in x.units.values():
 		if unit.kind == "larva": counts.workers += 1
 		else: counts.predators += 1
@@ -87,8 +88,9 @@ static func worker_turn(s: Dictionary,x: Dictionary,u: Dictionary,index: int) ->
 		for key in options:
 			if s.tiles[key].baseTerrain == "water" or x.mass.has(key) or R.distance(center,s.tiles[key]) > 3: continue
 			var town_tile = R.site_at(s,key).is_empty()
-			for red_town in s.civilizations.red.settlements.values():
-				if red_town.tileId == key: town_tile = false
+			for state in s.civilizations.values():
+				for other_town in state.settlements.values():
+					if other_town.tileId == key: town_tile = false
 			if not town_tile: continue
 			x.mass[key] = u.nestId
 			nest.biomass -= 1
@@ -169,7 +171,7 @@ static func hit_person(s: Dictionary,players: Dictionary,u: Dictionary,victim: D
 	x.lastHumanAttack[victim.id] = int(s.turn)
 	u.activity = "spitting" if ranged else "attacking"; u.target = victim.id
 	effect(x,"spit" if ranged else "claw",u.tile,victim.tile)
-	event(x,"attack",{"unit":u.id,"victim":victim.id,"player":victim.player,"ranged":ranged,"damage":before-int(x.humanHealth[victim.id]),"health":x.humanHealth[victim.id],"unitHealth":u.hp})
+	event(x,"attack",{"unit":u.id,"victim":victim.id,"player":victim.player,"ranged":ranged,"damage":before-int(x.humanHealth[victim.id]),"health":x.humanHealth[victim.id],"unitHealth":u.hp,"tile":victim.tile,"soldier":victim.person.qualification == "Soldier","support":p.cohorts.values().filter(func(c):return c.qualification=="Soldier" and c.state.kind=="mobile" and R.distance(s.tiles[c.state.tileId],s.tiles[victim.tile])<=2).size()})
 	p.log.push_front("%s attacks %s (%d/100 HP)." % [DATA[u.kind].name,victim.person.name,x.humanHealth[victim.id]])
 	p.log = p.log.slice(0,100)
 	if x.humanHealth[victim.id] <= 0: kill_person(s,players,victim,"xeno_combat")
@@ -268,12 +270,17 @@ static func attack(s: Dictionary,p: Dictionary,cmd: Dictionary) -> String:
 	event(x,"human_attack",{"person":c.id,"target":target.id,"mode":"ranged" if ranged else "melee","damage":before-int(target.hp),"personHealth":hp(x,c.id),"targetHealth":target.hp})
 	if target.hp <= 0: kill_animal(x,target.id,"human_attack")
 	if hp(x,c.id) <= 0:
-		var owner = "blue" if s.cohorts.has(c.id) else "red"
+		var owner = "blue"
+		for player in people_states(s):
+			if people_states(s)[player].cohorts.has(c.id): owner = player
 		kill_person(s,people_states(s),{"id":c.id,"tile":c.state.tileId,"player":owner},"animal_defence")
 	var message = "Animal encounter: %d damage, %d/100 HP remaining." % [before-int(target.hp),target.hp]
 	p.log.push_front(message); p.log = p.log.slice(0,100)
 	return message
-static func people_states(s: Dictionary) -> Dictionary: return {"blue":s,"red":s.civilizations.red}
+static func people_states(s: Dictionary) -> Dictionary:
+	var result = {"blue":s}
+	result.merge(s.get("civilizations",{}))
+	return result
 static func burn_occupied(s: Dictionary,check_routes: bool = false,owner: String = "",unit_id: String = "") -> void:
 	for person in people(people_states(s)):
 		if person.person.state.kind != "mobile" or person.person.qualification != "Soldier": continue
@@ -287,14 +294,18 @@ static func burn_occupied(s: Dictionary,check_routes: bool = false,owner: String
 static func sync_tiles(s: Dictionary) -> void:
 	for t in s.tiles.values(): t.xenomass = s.xenos.mass.has(t.id); t.hostiles = 0
 	for u in s.xenos.units.values(): s.tiles[u.tile].hostiles += 1
-	s.civilizations.red.tiles = s.tiles.duplicate(true)
+	for other in s.civilizations.values(): other.tiles = s.tiles.duplicate(true)
+	# Environmental depletion must not leave a now-unavailable job invalid.
+	for state in people_states(s).values():
+		for c in state.cohorts.values():
+			if c.state.kind == "resident" and c.state.get("job") is String and c.state.job.begins_with("tile:") and R.tile_yield(state,c.state.job.substr(5)).is_empty(): c.state.job = null
 static func validate(x,world: Dictionary,players: Dictionary) -> String:
 	if not x is Dictionary or not R.has_fields(x,["tick","rng","nextUnit","nests","units","mass","humanHealth","lastHumanAttack","lastEvents","deaths","lastAnimalAttack","effects","effectSequence"]): return "Missing xeno fields."
 	if not R.whole(x.tick,0,1000000) or not R.whole(x.rng,0,2147483647) or not R.whole(x.nextUnit,1,1000000): return "Invalid xeno counters."
 	for key in ["nests","units","mass","humanHealth","lastHumanAttack"]:
 		if not x[key] is Dictionary: return "Invalid xeno dictionaries."
 	if x.nests.size() > 20 or x.units.size() > 180 or not x.lastEvents is Array or x.lastEvents.size() > 1000: return "Xeno population/event limit."
-	if not x.deaths is Dictionary or not R.same_keys(x.deaths,{"blue":0,"red":0,"animals":0}) or not x.lastAnimalAttack is Dictionary or not x.effects is Array or x.effects.size() > 24 or not R.whole(x.effectSequence,0,9007199254740991): return "Invalid combat statistics."
+	if not x.deaths is Dictionary or not (x.deaths.has("animals") and players.keys().all(func(k):return x.deaths.has(k))) or not x.lastAnimalAttack is Dictionary or not x.effects is Array or x.effects.size() > 24 or not R.whole(x.effectSequence,0,9007199254740991): return "Invalid combat statistics."
 	for count in x.deaths.values():
 		if not R.whole(count,0,9007199254740991): return "Invalid death count."
 	for e in x.effects:

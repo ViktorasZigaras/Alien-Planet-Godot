@@ -27,9 +27,9 @@ Known limits: primitive geometry, rigid coat panels, simple in-place gait with n
 
 Use these discussion references when changing systems; their proposals remain options, not automatic implementation instructions:
 
-- [Technology Areas and Ideas](https://chatgpt.com/library?file_id=libfile_1d9d1e05901881918a854fe4ee611f41&account_id=personal)
-- [Beyond Earth Reference and Professions](https://chatgpt.com/library?file_id=libfile_b581ed0029988191863cd98d78d9c64b&account_id=personal)
-- [SMAC Reference](https://chatgpt.com/library?file_id=libfile_ca3babdd20a88191bd90facc93b0aeb0&account_id=personal)
+- Technology Areas and Ideas (personal reference link omitted)
+- Beyond Earth Reference and Professions (personal reference link omitted)
+- SMAC Reference (personal reference link omitted)
 
 Upload status: local cloud work only. Last uploaded GitHub source remains `f9369a5`.
 

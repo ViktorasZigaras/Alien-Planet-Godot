@@ -1,3 +1,7 @@
+# Reconstruction boundary — 3 November 2026
+
+Read `docs/RECONSTRUCTION.md` and `CONTINUE_HERE.md` before development. This is newly reconstructed 0.910 code on recovered 0.904, not the original lost checkout. Current validation is under `reports/reconstruction/`; older numbers are historical. The current design review is S01–S18, with S01 first. Preserve a durable source archive at the end of a batch; temporary local Git alone is insufficient. Upload only on explicit instruction.
+
 # Alien Planet project notes
 
 For visual changes, follow `docs/Visual_Style_09.md`: the medium Illustrated Frontier treatment supersedes 0.8 for both sprite and 3D views. Shared palette/model definitions and a developer sprite bake keep them consistent. Also read `docs/Batch_0901_Notes.md` for ground-first rendering, visible-content sprite bounds, shared view/control directions, cargo and configurable base models. Read `docs/Batch_0902_Notes.md` for isolated civilization states, shared map projection, claims and the optional action recorder. Read `docs/Batch_0903_Notes.md` for non-civilization xeno ecology, provisional encounters, biomass/mineral costs, mat overlays and schema 10 / recorder v3. Future versions use 0.9xx. Game rules must not depend on rendering style. Capture real default opening scenes for previews; label any staged fixtures.

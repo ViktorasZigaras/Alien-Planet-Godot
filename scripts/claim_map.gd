@@ -1,7 +1,7 @@
 class_name ClaimMap
 extends RefCounted
 const R = preload("res://scripts/game_rules.gd")
-const COLORS = {"blue":Color("70b8ee"),"red":Color("df786b")}
+const COLORS = {"blue":Color("70b8ee"),"red":Color("df786b"),"green":Color("80b868")}
 static func center(t: Dictionary) -> Vector2: return Vector2(sqrt(3.0)*(t.q+t.r*0.5),1.5*t.r)
 static func owners(players: Dictionary) -> Dictionary:
 	var result = {}
@@ -11,7 +11,7 @@ static func owners(players: Dictionary) -> Dictionary:
 		for town in state.settlements.values():
 			for tile in state.tiles.values():
 				var d = R.distance(state.tiles[town.tileId],tile)
-				if d <= 2 and d < distances.get(tile.id,INF): result[tile.id] = player; distances[tile.id] = d
+				if R.access(state,town.id,tile.id) and d < distances.get(tile.id,INF): result[tile.id] = player; distances[tile.id] = d
 	return result
 static func boundary(tiles: Dictionary,claimed: Dictionary) -> Array:
 	var result = []
