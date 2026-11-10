@@ -11,6 +11,11 @@ const R = preload("res://scripts/game_rules.gd")
 const A = preload("res://scripts/world_assets.gd")
 const Batch = preload("res://scripts/world_batch.gd")
 const Art = preload("res://scripts/starter_art.gd")
+# Presentation units/second: distance controls time, never the turn rules.
+const WALK_SPEED = 1.4
+const ROVER_SPEED = 2.1
+static func travel_seconds(from: Vector3, to: Vector3, rover: bool = false) -> float:
+	return Vector2(to.x-from.x,to.z-from.z).length() / (ROVER_SPEED if rover else WALK_SPEED)
 var combat_sequence = -1
 var fx: Control
 var state: Dictionary = {}
@@ -339,6 +344,7 @@ func update_actors() -> void:
 			if tweens.has(id): tweens[id].kill()
 			actor_tiles[id] = tile
 			actor.walk()
+			if not "rover" in c.equipment: actor.gait_speed = 1.6
 			var tween = create_tween()
 			tweens[id] = tween
 			var steps = c.lastRoute.slice(1) if c.state.kind == "mobile" and c.lastRoute.size() > 1 else [tile]
@@ -352,7 +358,7 @@ func update_actors() -> void:
 						var point = from.lerp(to,value)
 						point = surface_world(point)
 						point.y += 0.035
-						actor.position = point,0.0,1.0,(0.40 if "rover" in c.equipment else 0.20) if animated else 0.001)
+						actor.position = point,0.0,1.0,maxf(0.001,travel_seconds(from,to,"rover" in c.equipment)) if animated else 0.001)
 				from = to
 			tween.tween_callback(func():
 				if is_instance_valid(actor): actor.position = actor_position(tile); actor.stop(); actor.rotation.y = c.facing

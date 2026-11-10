@@ -1,4 +1,21 @@
-# Current implementation status — 5 November 2026
+# Current implementation status — 10 November 2026
+
+After user play review, distance-based travel presentation replaces fixed
+0.20-second human tile steps. Five equal steps last 2.5× two; gait cadence is
+consistent across routes. Gameplay remains independent of animation. User
+explicitly requested upload of the current work after checks. B03 next concerns
+enforceable proposals/prerequisites/people-resource commitments and useful
+outcomes, after B02's remaining prerequisite interfaces are reviewed.
+
+B01 was pushed as `c138f6f` on explicit user instruction. A local B02 economy
+trial is now available in `b02.tscn` (F6); B01 remains the default scene. See
+`Batch_0911_B02_Review.md` for the implemented contract and remaining work.
+Windows Godot 4.5.1 import and all five local suites passed, including B02's
+24 checks and 100-turn simulation. This is partial B02 implementation, not
+whole-batch acceptance. `Run-Local-Tests.ps1` preserves timestamped local results
+separately from historical evidence. No B02 upload has been requested.
+
+## Previous status — 5 November 2026
 
 Local **0.911-b01-review** implements the first reduced fixed-map shell. See `../CONTINUE_HERE.md` and `Batch_0911_B01_Review.md`. User play review/final signoff is pending; no repository push. New grouped design, B01–B23 plan and source audit in `current_design/` supersede earlier cursors and visual directions below.
 

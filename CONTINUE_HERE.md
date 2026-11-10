@@ -1,4 +1,20 @@
-# Alien Planet 0.911 — B01 review copy
+# Current local handoff — 10 November 2026
+
+Open `b02.tscn` and press F6 for the partial B02 economy trial; F5 retains B01.
+The user reviewed the trial and requested upload after walking-timing adjustment.
+Walking now uses constant horizontal speed across route segments (1.4 world
+units/second; rover 2.1), with matching fixed walking cadence. Longer routes
+take proportionally longer; no route-duration cap or gameplay delay is added.
+Motion Off still snaps to the authoritative destination. This has automated
+timing/regression checks; final visual pace remains subject to user preference.
+
+See `docs/Batch_0911_B02_Review.md` for B02's exact limits. Next planned B03 is
+shared proposals, legal actions and real people/resource commitments: useful
+goals acquire prerequisites, act legally, observe results and replan, without
+double reservations. B02 prerequisites must be settled before B03 acceptance;
+project queues remain B04. Current local checks use `Run-Local-Tests.ps1`.
+
+## Historical B01 handoff
 
 5 November 2026. Local-first restart from audited 0.910-reconstructed, repository main `8a9f3d6a9f9787bc11e8489f5426f9d3a650395c`. No repository push is authorized until Viktoras gives final signoff after downloading and playing.
 

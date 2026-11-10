@@ -1,4 +1,24 @@
-# Current restart — 5 November 2026
+# Current handoff — 10 November 2026
+
+B01 is on main at `c138f6f`. The user reviewed the local B02 trial and explicitly
+requested upload after distance-based walking timing changes. B02 is a partial
+economy implementation: see `docs/Batch_0911_B02_Review.md` for remaining work.
+Run `Run-Local-Tests.ps1` with the standalone Godot 4.5.1 executable in the parent
+folder; fresh results go to ignored timestamped `builds/local-tests` directories.
+
+Next planned batch is **B03: shared proposals, legal actions and commitments**.
+Trace purpose → prerequisite → allocation → legal command → observed useful
+outcome → revision. Enforce actual authorization and reservations of people and
+resources, share reusable prerequisites, expose blockers, release commitments
+when purpose disappears, and reconsider failed or bad alternatives. No duplicate
+reservations, decorative authorization, arbitrary expiry, fixed success scripts,
+or claims of competence from command counts. Complete/review the required B02
+accounting interfaces before accepting B03. Construction queues belong to B04.
+
+The older restart notes below are historical; current explicit user authorization
+supersedes their upload hold. Do not upload screenshots automatically.
+
+# Previous restart — 5 November 2026
 
 Current local build is **0.911-b01-review**. Read `CONTINUE_HERE.md` and `docs/Batch_0911_B01_Review.md` first. The current grouped design and revised batch plan supersede historical S01/Q080 cursors, sprite-map direction and zoom controls. B01 is a deliberately reduced movement/inspection fixture. Await Viktoras's play review and final signoff before any repository push. Always save local source first, preserve a durable archive at completed versions, and keep new test reports separate from historical reconstruction evidence. Do not upload screenshots automatically. B02 accounting/phase decisions remain unresolved and are not silently adopted here.
 

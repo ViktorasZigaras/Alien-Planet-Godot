@@ -9,6 +9,12 @@ func check(value: bool,label: String) -> void:
 	if not value: failures.append(label); printerr("FAIL: ",label)
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
+	var movement_view = preload("res://scripts/world_map.gd")
+	var two_tiles = movement_view.travel_seconds(Vector3.ZERO,Vector3(2,0,0))
+	var five_tiles = movement_view.travel_seconds(Vector3.ZERO,Vector3(5,0,0))
+	check(is_equal_approx(five_tiles/two_tiles,2.5),"Five equal tile distances take 2.5 times two")
+	check(is_equal_approx(movement_view.travel_seconds(Vector3.ZERO,Vector3(1,0,0))*5,five_tiles),"Multi-step duration adds at constant walking speed")
+	check(movement_view.travel_seconds(Vector3.ZERO,Vector3(1,0,0),true)<movement_view.travel_seconds(Vector3.ZERO,Vector3(1,0,0)),"Rovers retain a distinct travel speed")
 	root.size = Vector2i(1440,900)
 	var app = load("res://main.tscn").instantiate()
 	root.add_child(app)
