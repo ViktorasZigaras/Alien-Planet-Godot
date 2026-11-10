@@ -55,7 +55,7 @@ try {
     & $GodotPath --version | Set-Content -LiteralPath (Join-Path $runRoot 'engine-version.txt')
     $results += Invoke-Check 'import' @('--headless','--path',$sandbox,'--editor','--import')
     if ($results[-1].passed) {
-        foreach ($suite in @('test_b01','test_b02','test_0901','test_world','test_reconstruction')) {
+        foreach ($suite in @('test_b01','test_b02','test_b03','test_0901','test_world','test_reconstruction')) {
             $results += Invoke-Check $suite @('--headless','--path',$sandbox,'--script',('tests/' + $suite + '.gd'))
         }
     }
@@ -64,5 +64,5 @@ try {
     ConvertTo-Json -InputObject $results -Depth 5 | Set-Content -LiteralPath (Join-Path $runRoot 'results.json')
     Write-Host "Logs and isolated test project: $runRoot"
 }
-if ($results.Count -ne 6 -or @($results | Where-Object { -not $_.passed }).Count) { exit 1 }
+if ($results.Count -ne 7 -or @($results | Where-Object { -not $_.passed }).Count) { exit 1 }
 exit 0

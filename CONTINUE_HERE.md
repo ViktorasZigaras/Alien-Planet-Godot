@@ -1,5 +1,13 @@
 # Current local handoff — 10 November 2026
 
+Latest: `b03.tscn` (F6) adds the shared planning trial. Propose Industry reserve,
+Authorize, enable automatic work, then End Turn. Two goals share prerequisites
+and cannot reserve the same worker/stock twice. Cancel releases the purpose;
+disable automation for manual assignment. Save/load is separate from B02.
+See `docs/Batch_0911_B03_Review.md`. The user requested implementation and upload.
+This is a partial B03 trial on working B02 accounting, not whole-batch acceptance.
+Finish/review the remaining B02/B03 interfaces before proceeding to B04 queues.
+
 Open `b02.tscn` and press F6 for the partial B02 economy trial; F5 retains B01.
 The user reviewed the trial and requested upload after walking-timing adjustment.
 Walking now uses constant horizontal speed across route segments (1.4 world

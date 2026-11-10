@@ -43,6 +43,8 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 		"assign":
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
+			var reserved = s.get("commitments",{}).get("people",{}).get(cmd.person,{})
+			if not reserved.is_empty() and reserved.job != job: return "Person committed to an authorized plan; cancel its goals or disable planning first."
 			if not jobs(s).any(func(j): return j.id == job): return "Unknown or inaccessible workplace."
 			if job.begins_with("tile:"):
 				for c in s.cohorts.values():
@@ -70,8 +72,10 @@ static func resolve(state: Dictionary, remedies: bool = true) -> Dictionary:
 			var trial = resolve(s,false)
 			if trial.ledger.closing.food >= 0: break
 			var best = s; var best_food = trial.ledger.closing.food
+			var emergency = s.duplicate(true)
+			if emergency.has("commitments"): emergency.commitments.people = {}
 			for job in jobs(s):
-				if not job.id.begins_with("tile:") or reason(s,{"type":"assign","person":id,"job":job.id}) != "": continue
+				if not job.id.begins_with("tile:") or reason(emergency,{"type":"assign","person":id,"job":job.id}) != "": continue
 				var candidate = s.duplicate(true)
 				candidate.cohorts[id].state.job = job.id
 				var food = resolve(candidate,false).ledger.closing.food

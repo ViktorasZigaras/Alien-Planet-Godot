@@ -1,5 +1,11 @@
 # Current handoff — 10 November 2026
 
+Latest work: user requested implement/upload; B03 trial in `b03.tscn` now uses
+`economy_planner.gd`, actual authorized reserve goals and shared prerequisites.
+Read `docs/Batch_0911_B03_Review.md` for scope/evidence. B02 and B03 remain partial
+until their documented integrations and user review are complete. B04 queues
+have not started. Preserve new evidence under `reports/b03`, not historical paths.
+
 B01 is on main at `c138f6f`. The user reviewed the local B02 trial and explicitly
 requested upload after distance-based walking timing changes. B02 is a partial
 economy implementation: see `docs/Batch_0911_B02_Review.md` for remaining work.

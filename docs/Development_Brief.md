@@ -1,5 +1,13 @@
 # Current implementation status — 10 November 2026
 
+Implemented a B03 planning slice over B02: real authorized Industry reserve goals,
+shared Food/material prerequisites, one joint worker allocator, stock reservation,
+legal command locks, emergency override, result observation and cancellation.
+Open `b03.tscn` (F6). Separate save/load rebuilds derived commitments. The user
+requested upload after local checks. See `Batch_0911_B03_Review.md`; this does not
+close B02 or establish complete B03/full-game AI acceptance. B04 remains next
+only after remaining prerequisites and play review.
+
 After user play review, distance-based travel presentation replaces fixed
 0.20-second human tile steps. Five equal steps last 2.5× two; gait cadence is
 consistent across routes. Gameplay remains independent of animation. User

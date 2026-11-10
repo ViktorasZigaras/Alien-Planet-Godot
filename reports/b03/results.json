@@ -1,0 +1,51 @@
+[
+  {
+    "suite": "import",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 3.72
+  },
+  {
+    "suite": "test_b01",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 0.9
+  },
+  {
+    "suite": "test_b02",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 1.04
+  },
+  {
+    "suite": "test_b03",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 7.76
+  },
+  {
+    "suite": "test_0901",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 2.63
+  },
+  {
+    "suite": "test_world",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 1.78
+  },
+  {
+    "suite": "test_reconstruction",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 21.83
+  }
+]

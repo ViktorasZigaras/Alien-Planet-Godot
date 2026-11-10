@@ -1,0 +1,152 @@
+extends RefCounted
+## B03 bounded planner for the two-civilian economy trial, not legacy military AI.
+const E = preload("res://scripts/economy_fixture.gd")
+
+static func attach(state: Dictionary) -> Dictionary:
+	var s = state.duplicate(true)
+	if not s.has("planning"):
+		s.planning = {"enabled":false,"next":1,"goals":[],"trace":[],"review":{}}
+		s.commitments = {"people":{},"stocks":{},"prerequisites":[]}
+	return s
+
+static func available(s: Dictionary, resource: String) -> int:
+	var used = 0
+	for stock in s.commitments.stocks.values(): used += int(stock.get(resource,0))
+	return maxi(0,int(s.resources[resource])-used-int(s.obligations.get(resource,0)))
+
+static func allocate(s: Dictionary) -> void:
+	s.commitments = {"people":{},"stocks":{},"prerequisites":[]}
+	for goal in s.planning.goals:
+		if not goal.authorized or goal.status == "cancelled": continue
+		var amount = mini(int(goal.amount),available(s,"industry"))
+		s.commitments.stocks[goal.id] = {"industry":amount}
+		goal.status = "fulfilled" if amount == goal.amount else "pending"
+		goal.blocker = "" if goal.status == "fulfilled" else "Needs %d more Industry" % (goal.amount-amount)
+
+static func candidates(s: Dictionary) -> Array:
+	# Prune by useful Food and material yield, not by hex identity. Preserve
+	# current work as an equal-score alternative to avoid assignment churn.
+	var food = []; var minerals = []
+	for job in E.jobs(s):
+		if job.id.begins_with("tile:"):
+			food.append(job); minerals.append(job)
+	food.sort_custom(func(a,b): return a.yield.get("food",0)>b.yield.get("food",0) if a.yield.get("food",0)!=b.yield.get("food",0) else a.id<b.id)
+	minerals.sort_custom(func(a,b): return a.yield.get("minerals",0)>b.yield.get("minerals",0) if a.yield.get("minerals",0)!=b.yield.get("minerals",0) else a.id<b.id)
+	var ids = ["idle","manufacture"]
+	for list in [food.slice(0,3),minerals.slice(0,3)]:
+		for job in list:
+			if job.id not in ids: ids.append(job.id)
+	for c in s.cohorts.values():
+		if c.state.job != null and c.state.job not in ids: ids.append(c.state.job)
+	return ids
+
+static func plan(state: Dictionary) -> Dictionary:
+	var s = attach(state)
+	allocate(s)
+	if not s.planning.enabled: return s
+	var purposes = []; var missing = 0
+	for goal in s.planning.goals:
+		if goal.authorized and goal.status == "pending":
+			purposes.append(goal.id); missing += int(goal.amount)-int(s.commitments.stocks[goal.id].industry)
+	var options = candidates(s)
+	var best = {}; var best_score = -INF; var examined = 0; var rejected = 0
+	var baseline = E.resolve(s,false).ledger
+	# Exhaustive, bounded pair allocation fits this disclosed two-person fixture.
+	# It forecasts ordinary legal commands rather than executing a scripted route.
+	for first in options:
+		for second in options:
+			var trial = s.duplicate(true); trial.commitments.people = {}
+			# Clear pending work before simultaneous reallocation, allowing swaps.
+			for c in trial.cohorts.values(): c.state.job = null
+			var legal = true
+			for pair in [["pop_a",first],["pop_b",second]]:
+				var result = E.command(trial,{"type":"assign","person":pair[0],"job":pair[1]})
+				if not result.ok: legal = false; break
+				trial = result.state
+			if not legal: rejected += 1; continue
+			examined += 1
+			var ledger = E.resolve(trial,false).ledger
+			# Food safety dominates capital ambitions. No desired universal stock
+			# reserve: only cover this turn and the explicit outstanding purpose.
+			var shortage = maxi(0,-int(ledger.closing.food))
+			var score = -10000.0*shortage
+			if missing > 0:
+				score += 100.0*mini(missing,int(ledger.gross.industry))
+				var raw_need = maxi(0,missing-int(ledger.closing.minerals))
+				score -= 10.0*raw_need
+			else:
+				# Keep the colony alive while avoiding purposeless capital hoards.
+				score -= float(ledger.gross.industry+ledger.gross.minerals)
+			if ledger.net.food < 0: score += 5.0*ledger.net.food
+			for id in trial.cohorts:
+				if trial.cohorts[id].state.job == s.cohorts[id].state.job: score += 0.1
+			if score > best_score: best_score = score; best = trial
+	if best.is_empty():
+		s.planning.review = {"blocked":"No legal joint allocation","candidates":examined,"rejected":rejected}
+		return s
+	# One shared work package serves all active goals, rather than duplicating
+	# the same Food/mineral prerequisite and worker for each goal.
+	for id in best.cohorts:
+		var job = best.cohorts[id].state.job
+		if job != null:
+			s.commitments.people[id] = {"job":job,"purposes":purposes.duplicate(),"emergency":purposes.is_empty()}
+		if job == "manufacture":
+			var inputs = mini(2,available(s,"minerals"))
+			if inputs>0: s.commitments.stocks["input:"+id] = {"minerals":inputs}
+	# Apply the exact allocated jobs through shared legality/effect commands.
+	for c in s.cohorts.values(): c.state.job = null
+	for id in best.cohorts:
+		var job = best.cohorts[id].state.job
+		var result = E.command(s,{"type":"assign","person":id,"job":"idle" if job == null else job})
+		if result.ok: s = result.state
+	if not purposes.is_empty():
+		s.commitments.prerequisites = [{"id":"shared-material-work","purposes":purposes,"inputs":"Minerals → Industry; real Food jobs sustain workers"}]
+	s.planning.review = {"candidates":examined,"rejected":rejected,"score":best_score,"prior_food_net":baseline.net.food,"reason":"Food safety, then useful goal progress and prerequisites; stable work breaks ties"}
+	return s
+
+static func command(state: Dictionary, cmd: Dictionary) -> Dictionary:
+	var s = attach(state)
+	match cmd.get("type",""):
+		"planning":
+			if not cmd.get("enabled") is bool: return {"ok":false,"state":state,"message":"Expected planning on/off."}
+			s.planning.enabled = cmd.enabled
+		"goal":
+			if not E.R.whole(cmd.get("amount"),1,100): return {"ok":false,"state":state,"message":"Choose 1–100 Industry to reserve."}
+			var id = "goal_"+str(s.planning.next); s.planning.next += 1
+			s.planning.goals.append({"id":id,"amount":int(cmd.amount),"authorized":false,"status":"proposed","blocker":"Awaiting authorization"})
+		"authorize", "cancel":
+			var found = false
+			for goal in s.planning.goals:
+				if goal.id == cmd.get("id") and goal.status != "cancelled":
+					found = true
+					goal.authorized = cmd.type == "authorize"
+					goal.status = "pending" if goal.authorized else "cancelled"
+					goal.blocker = "" if goal.authorized else "Purpose cancelled; reservations released"
+			if not found: return {"ok":false,"state":state,"message":"Unknown or cancelled goal."}
+		"endTurn":
+			s = plan(s)
+			var before = s.resources.duplicate(true)
+			var result = E.command(s,cmd)
+			s = result.state
+			s.planning.trace.append({"turn":s.turn-1,"before":before,"after":s.resources.duplicate(true),"work":s.commitments.people.duplicate(true)})
+		_: return E.command(s,cmd)
+	s = plan(s)
+	return {"ok":true,"state":s,"message":"Plan reconciled with actual stocks and legal work."}
+
+static func validate(s) -> String:
+	# Ignore untrusted saved claims even while validating ordinary assignments.
+	if not s is Dictionary: return "Not a planning save."
+	var clean = s.duplicate(true)
+	clean.commitments = {"people":{},"stocks":{},"prerequisites":[]}
+	var error = E.validate(clean)
+	if error != "": return error
+	if not s.get("planning") is Dictionary or not s.get("commitments") is Dictionary: return "Missing planning state."
+	var p = s.planning
+	if not p.get("enabled") is bool or not p.get("goals") is Array or not p.get("trace") is Array or not p.get("review") is Dictionary or not E.R.whole(p.get("next"),1,9007199254740991): return "Invalid planning state."
+	var ids = []
+	for g in p.goals:
+		if not g is Dictionary or not g.get("id") is String or g.id in ids or not E.R.whole(g.get("amount"),1,100) or not g.get("authorized") is bool or g.get("status") not in ["proposed","pending","fulfilled","cancelled"] or not g.get("blocker") is String: return "Invalid goal."
+		if not g.id.begins_with("goal_") or not g.id.substr(5).is_valid_int() or int(g.id.substr(5))<1 or int(g.id.substr(5))>=p.next: return "Invalid goal identity."
+		ids.append(g.id)
+	# Commitments are derived, never trusted from a save. Caller rebuilds them.
+	return ""
