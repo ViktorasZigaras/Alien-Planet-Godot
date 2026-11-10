@@ -42,7 +42,7 @@ static func spawn(x: Dictionary,nest_id: String,kind: String) -> void:
 static func members(x: Dictionary,nest_id: String,workers: bool) -> Array:
 	return x.units.values().filter(func(u): return u.nestId == nest_id and (u.kind == "larva") == workers)
 static func summary(x: Dictionary) -> Dictionary:
-	var counts = {"deaths":{"blue":int(x.deaths.blue),"red":int(x.deaths.red),"animals":int(x.deaths.animals)},"activeNests":x.nests.values().filter(func(n):return not n.get("burned",false)).size(),"nests":x.nests.size(),"workers":0,"predators":0,"armored":0,"massTiles":x.mass.size(),"biomass":0,"minerals":0,"woundedPeople":x.humanHealth.size()}
+	var counts = {"deaths":{"blue":int(x.deaths.blue),"red":int(x.deaths.get("red",0)),"animals":int(x.deaths.animals)},"activeNests":x.nests.values().filter(func(n):return not n.get("burned",false)).size(),"nests":x.nests.size(),"workers":0,"predators":0,"armored":0,"massTiles":x.mass.size(),"biomass":0,"minerals":0,"woundedPeople":x.humanHealth.size()}
 	if x.deaths.has("green"): counts.deaths.green = int(x.deaths.green)
 	for unit in x.units.values():
 		if unit.kind == "larva": counts.workers += 1

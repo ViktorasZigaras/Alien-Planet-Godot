@@ -416,6 +416,7 @@ static func reason(s: Dictionary,cmd: Dictionary) -> String:
 static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
 	var blocked = reason(state,cmd)
 	if blocked != "": return {"ok":false,"state":state,"message":blocked}
+	if cmd.get("type", "") == "focusPerson": return {"ok":true,"state":state,"message":"Selected person."}
 	var s = state.duplicate(true)
 	var c = s.cohorts.get(cmd.get("cohortId",""),{})
 	var person = c.id if not c.is_empty() else cmd.get("unitId","")

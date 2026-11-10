@@ -1,0 +1,3 @@
+Godot Engine v4.5.1.stable.official.f62fdbde1 - https://godotengine.org
+
+{"balance":"local movement choices only; no strategic economy/AI claim","build":"0.911-b01-review","checks":39,"failures":[],"fixture":"b01-shell-v1","measurements":{"fixture_state_bytes":14539,"recorded_state_bytes":31068,"save_bytes":21336,"selection_200_us":215921,"static_memory_bytes":39124284.0,"turn_100_us":22832},"renderer":"headless correctness; not GPU performance","seed":731}

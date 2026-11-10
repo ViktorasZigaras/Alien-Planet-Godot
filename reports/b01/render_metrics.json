@@ -1,0 +1,16 @@
+{
+	"build": "0.911-b01-review",
+	"draw_calls": 144,
+	"frame_ms_max": 89.84,
+	"frame_ms_median": 36.647,
+	"frame_ms_p95": 47.191,
+	"note": "Xvfb software OpenGL on this host; not representative of the user's GPU",
+	"samples": 120,
+	"static_memory_bytes": 44715051.0,
+	"terrain_build_ms": 97.961,
+	"unchanged_state": true,
+	"viewport": [
+		1920,
+		1080
+	]
+}

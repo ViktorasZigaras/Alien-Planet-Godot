@@ -329,7 +329,7 @@ func status(text: String, good: bool = true) -> void:
 
 func update_map() -> void:
 	overlay = "none"
-	map_view.update_view(Session.projection(state), selected_tile, selected_unit, overlay)
+	map_view.update_view(Session.projection(state), selected_tile, selected_unit if selected_unit != "" else selected_cohort, overlay)
 
 func select_tile(key: String) -> void:
 	selected_tile = key
@@ -345,7 +345,6 @@ func select_tile(key: String) -> void:
 	render()
 
 func select_mobile(key: String) -> void:
-	state = Session.command(state,{"type":"focusPerson","cohortId":key}).state
 	selected_unit = key
 	var u = Rules.mobile(state, key)
 	selected_tile = u.tileId
@@ -799,7 +798,7 @@ func set_map_mode(index: int) -> void:
 	status("3D isometric world: click/drag/zoom and right-click orders." if index == 1 else "Pixel top-down world.")
 
 func select_person(id: String) -> void:
-	state = Session.command(state,{"type":"focusPerson","cohortId":id}).state
+	selected_unit = ""
 	selected_cohort = id
 	render()
 

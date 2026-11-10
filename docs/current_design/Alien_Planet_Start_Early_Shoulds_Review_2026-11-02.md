@@ -197,7 +197,7 @@ Animal control is the first middle-game specialization: control one animal → p
 
 ## Governing records
 
-- Authoritative decisions, Q001–Q128 and D001–D020 (personal reference link omitted).
-- Four-stage synthesis and completed direction-round consolidation (personal reference link omitted).
+- [Authoritative decisions, Q001–Q128 and D001–D020](https://chatgpt.com/library?file_id=libfile_4bb48d3203e881919b9014182cedbcc8&account_id=personal).
+- [Four-stage synthesis and completed direction-round consolidation](https://chatgpt.com/library?file_id=libfile_5959be2c4f608191bc9f83915f9cc710&account_id=personal).
 
 Future S-item discussion answers should also be recorded in the authoritative decision ledger, with this working review updated to reflect agreed scope and evidence. No item is currently claimed to have passed.

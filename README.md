@@ -1,3 +1,9 @@
+# Current review build: Alien Planet 0.911 B01
+
+Open `project.godot` in Godot 4.5.1 Standard and press F5. Read [CONTINUE_HERE.md](CONTINUE_HERE.md) for play-review controls and scope, and [B01 review](docs/Batch_0911_B01_Review.md) for fresh evidence. Default is a one-town/one-Worker development fixture, with economy/AI inactive. `main.tscn` retains the historical game. No repository push until final user signoff.
+
+---
+
 # Source reconstruction notice
 
 This package is **0.910-reconstructed**, dated 3 November 2026. Start with `CONTINUE_HERE.md`. The original 0.904 README below is retained as historical baseline documentation; its version/status statements do not describe the reconstructed AI.

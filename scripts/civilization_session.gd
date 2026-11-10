@@ -1,6 +1,7 @@
 class_name CivilizationSession
 extends RefCounted
 ## Blue's compatible rule state plus isolated rival rule states and an optional recorder.
+const Shell = preload("res://scripts/shell_fixture.gd")
 const X = preload("res://scripts/xeno_ecology.gd")
 const R = preload("res://scripts/game_rules.gd")
 const Agent = preload("res://scripts/civilization_agent.gd")
@@ -38,11 +39,11 @@ static func initial_state() -> Dictionary:
 	X.sync_tiles(s)
 	return s
 static func own_state(s: Dictionary) -> Dictionary:
-	var own = s.duplicate(true)
-	own.erase("civilizations")
-	own.erase("testing")
-	own.erase("worldVersion")
-	own.erase("xenos")
+	var own = {}
+	# Exclude recorder/rivals before copying; history must not be copied then discarded.
+	for key in s:
+		if key not in ["civilizations","testing","worldVersion","xenos"]:
+			own[key] = s[key].duplicate(true) if s[key] is Dictionary or s[key] is Array else s[key]
 	return own
 static func players(s: Dictionary) -> Dictionary:
 	var result = {"blue":s}
@@ -143,6 +144,8 @@ static func report(s: Dictionary) -> Dictionary:
 static func reason_for(s: Dictionary,player: String,cmd: Dictionary) -> String:
 	if not players(s).has(player): return "Unknown civilization."
 	var p = players(s)[player]
+	if cmd.get("type", "") == "focusPerson": return R.reason(p,cmd)
+	if s.get("scenario", "") == Shell.ID: return Shell.reason(s,cmd)
 	if cmd.get("type", "") == "aiReview": return ""
 	if cmd.get("type", "") == "found":
 		var founder = p.cohorts.get(cmd.get("cohortId", ""),{})
@@ -159,6 +162,18 @@ static func reason_for(s: Dictionary,player: String,cmd: Dictionary) -> String:
 		if owner != player: return "Tile claimed by another civilization."
 	return R.reason(p,cmd)
 static func command_for(state: Dictionary,player: String,cmd: Dictionary,policy_rule: String = "human_command") -> Dictionary:
+	# Selection is presentation state, even for callers using the legacy command API.
+	if cmd.get("type", "") == "focusPerson":
+		var block = "Unknown person."
+		if players(state).has(player): block = R.reason(players(state)[player],cmd)
+		return {"ok":block == "","state":state,"message":"Selection updated." if block == "" else block}
+	if state.get("scenario", "") == Shell.ID:
+		if player != "blue": return {"ok":false,"state":state,"message":"Only Blue exists in B01."}
+		var before = summary(state) if state.testing.enabled else {}
+		var result = Shell.command(state,cmd)
+		if not result.ok: result.state = state.duplicate(true)
+		record(result.state,player,cmd,policy_rule,before,result.ok,result.message)
+		return result
 	if cmd.get("type", "") == "aiReview":
 		if not players(state).has(player): return {"ok":false,"state":state,"message":"Unknown civilization."}
 		var s = state.duplicate(true)
@@ -231,11 +246,13 @@ static func ai_turn(state: Dictionary,player: String) -> Dictionary:
 		if not result.ok: break
 	return command_for(s,player,{"type":"endTurn"},"finish_civilization_turn").state
 static func advance_round(state: Dictionary,all_ai: bool = true) -> Dictionary:
+	if state.get("scenario", "") == Shell.ID: return command_for(state,"blue",{"type":"endTurn"})
 	var s = ai_turn(state,"blue") if all_ai else command_for(state,"blue",{"type":"endTurn"}).state
 	var ids = s.civilizations.keys().map(func(id):return str(id)); ids.sort()
 	for player in ids: s = ai_turn(s,player)
 	return command_for(s,"xeno",{"type":"xenoTick"},"local_ecology").state
 static func command(state: Dictionary,cmd: Dictionary) -> Dictionary:
+	if state.get("scenario", "") == Shell.ID: return command_for(state,"blue",cmd)
 	if cmd.type == "endTurn": return {"ok":true,"state":advance_round(state,false),"message":"Round complete."}
 	return command_for(state,"blue",cmd)
 static func projection(s: Dictionary) -> Dictionary:
@@ -253,14 +270,31 @@ static func projection(s: Dictionary) -> Dictionary:
 static func validate(s) -> String:
 	var base = R.validate(s)
 	if base != "": return base
-	if not s.tiles.has(RED_TOWN): return "Map too small for the two-civilization test scenario."
-	if s.get("worldVersion") != 4 or not s.get("civilizations") is Dictionary or not s.civilizations.has("red") or s.civilizations.size() > 2 or s.civilizations.keys().any(func(k):return k not in ["red","green"]): return "Invalid civilizations."
+	var shell = s.get("scenario", "") == Shell.ID
+	if s.has("scenario") and not shell: return "Unknown development fixture."
+	if not shell and not s.tiles.has(RED_TOWN): return "Map too small for the two-civilization test scenario."
+	if s.get("worldVersion") != 4 or not s.get("civilizations") is Dictionary: return "Invalid civilizations."
+	if shell:
+		if not s.civilizations.is_empty() or s.map.width != 9 or s.map.height != 7 or s.settlements.size() != 1 or s.cohorts.size() != 1: return "Invalid B01 fixture population/map."
+		if not s.settlements.has("main") or not s.cohorts.has("pop_a") or s.settlements.main.tileId != "2,3": return "Invalid B01 fixture identities."
+		var person = s.cohorts.pop_a
+		if person.state.kind != "mobile" or person.qualification != "Worker" or not person.equipment.is_empty(): return "Invalid B01 survey party."
+		for group in ["buildings","districts","improvements","neutralSites"]:
+			if not s[group].is_empty(): return "B01 development is inactive."
+		if s.trainingProject != null or s.constructionProject != null or not s.completed.is_empty() or s.settlements.main.growth != 0: return "B01 projects/growth are inactive."
+		for stock in s.resources.values():
+			if stock != 0: return "B01 resource accounting is inactive."
+		if not s.get("xenos") is Dictionary: return "Missing B01 environment."
+		for group in ["nests","units","mass","humanHealth","lastHumanAttack","lastAnimalAttack"]:
+			if not s.xenos.get(group) is Dictionary or not s.xenos[group].is_empty(): return "B01 ecology is inactive."
+
+	elif not s.civilizations.has("red") or s.civilizations.size() > 2 or s.civilizations.keys().any(func(k):return k not in ["red","green"]): return "Invalid civilizations."
 	var all_ids = {}
 	for id in players(s):
 		var state = players(s)[id]
 		var error = R.validate(state)
 		if error != "": return id+": "+error
-		error = Coordinator.validate(state)
+		error = "" if shell else Coordinator.validate(state)
 		if error != "": return id+": "+error
 		if state.map != s.map or state.turn != s.turn or state.tiles != s.tiles or state.rivers != s.rivers: return "Civilizations must share geography and world turn."
 		for group in ["cohorts","settlements","buildings","districts"]:
@@ -277,11 +311,15 @@ static func validate(s) -> String:
 		if not R.whole(event.sequence,previous+1,s.testing.sequence) or not R.whole(event.turn,1,s.turn) or event.player not in ["blue","red","green","xeno"] or not event.command is Dictionary or not event.command.get("type") is String or not event.policyRule is String or not event.accepted is bool or not event.before is Dictionary or not event.after is Dictionary: return "Invalid test event fields."
 		previous = event.sequence
 	if not s.testing.initial.is_empty():
-		if not s.testing.initial.has("blue") or not s.testing.initial.has("red") or R.validate(s.testing.initial.blue) != "" or R.validate(s.testing.initial.red) != "": return "Invalid test starting snapshot."
+		if not s.testing.initial.has("blue") or R.validate(s.testing.initial.blue) != "": return "Invalid test starting snapshot."
+		for id in s.civilizations:
+			if not s.testing.initial.has(id) or R.validate(s.testing.initial[id]) != "": return "Invalid test starting snapshot."
 	return ""
 static func migrate(data):
 	var base = R.migrate_save(data)
-	if R.validate(base) != "" or not base.tiles.has(RED_TOWN): return base
+	if R.validate(base) != "": return base
+	if base.get("scenario", "") == Shell.ID: return base
+	if not base.tiles.has(RED_TOWN): return base
 	if base.get("civilizations") is Dictionary:
 		for id in base.civilizations: base.civilizations[id] = R.migrate_save(base.civilizations[id])
 	if base.get("testing") is Dictionary and base.testing.get("initial") is Dictionary:

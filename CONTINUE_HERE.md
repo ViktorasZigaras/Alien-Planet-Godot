@@ -1,24 +1,32 @@
-# Continue Alien Planet from this source package
+# Alien Planet 0.911 — B01 review copy
 
-3 November 2026. Open `project.godot` in **Godot 4.5.1 Standard** and press F5. This is a source project, not a Windows executable. Its version is `0.910-reconstructed`, rebuilt on the recovered 0.904 repository snapshot after the unuploaded 0.905–0.910 source was lost.
+5 November 2026. Local-first restart from audited 0.910-reconstructed, repository main `8a9f3d6a9f9787bc11e8489f5426f9d3a650395c`. No repository push is authorized until Viktoras gives final signoff after downloading and playing.
 
-1. Read `AGENTS.md`, `docs/RECONSTRUCTION.md` and `reports/reconstruction/VALIDATION_SUMMARY.md`.
-2. Read `docs/current_design/Alien_Planet_Start_Early_Shoulds_Review_2026-11-02.md`: the next design/build comparison starts at **S01**, not Q080. The full current decision ledger and four-stage synthesis are beside it.
-3. Inspect the actual reconstructed source before claiming a historical capability is present. The saved architecture and 0.908–0.910 reports in `docs/recovered_evidence/` describe the original lost implementation. Their test counts are historical.
-4. Use the Testing tab for private council proposals, operation blockers and lieutenant memory. End Turn keeps Blue human-controlled and runs Red/Green; the explicit all-AI button runs all three. Survey/Atlas inspects the selected tile and settlement access.
-5. To verify: `python3 tests/run_reconstruction_checks.py --godot /absolute/path/to/godot`. Optional historical-scenario diagnostic: run `tests/run_reconstruction_campaign.gd` headlessly; it writes under `reports/reconstruction/final_campaign/`. It is deliberately not a victory script. Check the user’s current testing authorization before proposing new scenarios.
-6. Save a persistent source archive at the end of the next batch. A local Git commit in temporary storage is not a backup. Upload to GitHub only when the user authorizes it.
+Open `project.godot` in Godot **4.5.1 Standard**, then F5. The default scene is `b01.tscn`: the explicitly reduced **B01 fixture**, not the final opening. The retained historical three-faction game is `main.tscn` (open that scene and F6). Historical scene rules are not reconciled with the new design.
 
-The two highest-value follow-ups are auditing reconstruction parity against the retained reports, and then reviewing S01–S18 one capability at a time across inventory, mechanics, AI and meaningful evidence. Avoid adding new roles to explain a blocked path until its existing caller, prerequisites, actor ownership and legal action have been traced.
+B01 has one Landing Station, one mobile ordinary Worker, and a 9×7 crop of the existing seed-731 map. Movement, panning, selection, End Turn, save/load and command recording are active. Economy, growth, projects, research, AI and fauna are inactive here. The full opening remains two civilians + Soldier + Explorer, introduced in later batches.
 
-The original source commit `838460b3d376c40d3d013103956be640422670cc` is not in this package. Local reconstruction commits, if present, are new history, not recovered ancestry. Do not claim that the package reproduces the original 0.910 results.
+## Play review
 
-## Durable references
+1. Select a clear destination and compare its travel cost with a wooded or hilly hex.
+2. Right-click to travel; Shift+right-click appends a waypoint. End Turn advances queued travel. Stop route explicitly cancels it.
+3. Export during a partially paid rough-terrain step; advance, then import. Location, paid movement, route and camera should return.
+4. Pan by middle/left drag or arrows; C centers the party; Tab selects it. Scale is fixed. Esc deselects. M orders travel to the inspected hex. Space ends one turn. Ctrl+S/L quick-save/load.
+5. Toggle command recording to retain a concise reproducible trace in the save. Motion changes presentation only.
 
-- Decision ledger: (personal reference link omitted)
-- Current early-game review: (personal reference link omitted)
-- Four-stage synthesis: (personal reference link omitted)
-- Historical AI reference: (personal reference link omitted)
-- Development log: (personal reference link omitted)
+B01 saves use their own envelope and quicksave filename. Historical saves open through the historical scene. Invalid imports must preserve the current game. This does not promise arbitrary lost-original-0.910 save compatibility.
 
-Library versions may advance after this package. Read current references before updating them; preserve their identities and newer answers.
+Read `docs/Batch_0911_B01_Review.md` for changes, evidence, performance and limits. Current design/batch/audit documents are in `docs/current_design/`. They supersede old S01/Q080 cursors and earlier sprite/zoom directions. Preserve historical reports and their provenance.
+
+## Checks
+
+- `godot --headless --path . --script tests/test_b01.gd`
+- `godot --headless --path . --script tests/test_0901.gd`
+- `godot --headless --path . --script tests/test_world.gd`
+- `ALIEN_TEST_REPORT_DIR=res://reports/b01/reconstruction godot --headless --path . --script tests/test_reconstruction.gd`
+
+The environment-variable prefix is shell syntax for Linux. For Windows set it before running the last command. It keeps fresh evidence separate from retained reconstruction evidence. Do not automatically run the long historical campaign.
+
+## Next step
+
+**Await user play review and final signoff; do not push automatically.** B01 is implemented for review, not user-accepted. B02 next requires settling the exact turn-accounting contract already flagged by the handoff. The proposed same-turn-input rule was not approved. Do not slip B02–B04 mechanics into this shell.

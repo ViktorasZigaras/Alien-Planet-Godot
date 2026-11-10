@@ -1,0 +1,23 @@
+{
+	"fixture": "b01-shell-v1",
+	"focus_command_100_us_plain": 77534,
+	"focus_command_100_us_recording": 89124,
+	"frame_ms_max": 307.119,
+	"frame_ms_median": 76.085,
+	"frame_ms_p95": 240.704,
+	"label": "baseline",
+	"memory_static_bytes": 39103219.0,
+	"own_snapshot_100_us_plain": 29332,
+	"own_snapshot_100_us_recording": 26780,
+	"projection_100_us_plain": 52295,
+	"projection_100_us_recording": 63822,
+	"renderer": "software OpenGL llvmpipe; same-host comparison only",
+	"save_bytes": 32543,
+	"seed": 731,
+	"terrain_build_ms": 285.846,
+	"view_update_100_us": 148529,
+	"viewport": [
+		1920,
+		1080
+	]
+}

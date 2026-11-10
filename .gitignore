@@ -1,3 +1,7 @@
 .godot/
 builds/
 *.tmp
+
+# Review captures are delivered separately, not pushed automatically.
+reports/b01/*.png
+reports/b01/*.png.import

@@ -36,6 +36,8 @@ var actor_tiles: Dictionary = {}
 var actor_loadouts: Dictionary = {}
 var tweens: Dictionary = {}
 var target = Vector3.ZERO
+var fixed_scale = false
+var fixed_camera_size = 13.8
 var zoom = 1.0
 var pan = Vector2.ZERO
 var dragging = false
@@ -53,6 +55,7 @@ var progress = ""
 var font: Font
 var metrics_clock = 0.0
 var metrics = ""
+var show_metrics = true
 var yaw = 0.0
 var pick_faces: Dictionary = {}
 func _ready() -> void:
@@ -126,13 +129,22 @@ func update_view(s: Dictionary,tile: String,unit: String,support: String) -> voi
 	selected_tile = tile
 	selected_unit = unit
 	overlay = support
-	supply = R.supply_field(s)
+	# Supply ranges are disabled; do not run whole-map routes for an unused overlay.
+	supply = {}
 	var signature = str(hash([s.tiles.values().map(func(t):return [t.id,t.baseTerrain,t.biome,t.feature,t.relief,t.vegetation]),s.rivers,s.get("xenos",{}).get("nests",{}).values().map(func(n):return n.tile)]))
 	if signature != terrain_signature and not building:
 		terrain_signature = signature
 		build_terrain.call_deferred()
 	if built: update_structures(); update_actors(); update_xenos(); animate_combat()
 	queue_redraw()
+func select_view(tile: String,unit: String) -> void:
+	# Presentation only: no rule command, projection rebuild or actor reprioritization.
+	selected_tile = tile
+	var changed = selected_unit != unit
+	selected_unit = unit
+	if changed and built: update_actors()
+	queue_redraw()
+
 func build_terrain() -> void:
 	if building: return
 	building = true
@@ -293,6 +305,9 @@ func update_structures() -> void:
 	batch.emit(structure_root)
 func update_actors() -> void:
 	var visible_people = R.visible_people(state)
+	# Chosen stack representative is presentation state, never cohort.lastUsed.
+	if state.cohorts.has(selected_unit) and state.cohorts[selected_unit].state.kind != "cargo":
+		visible_people[R.person_tile(state,state.cohorts[selected_unit])] = selected_unit
 	var wanted = visible_people.values()
 	for id in actors.keys():
 		if id not in wanted:
@@ -359,7 +374,7 @@ func focus_tile(key: String) -> void:
 	update_camera()
 func update_camera() -> void:
 	if camera == null or state.is_empty(): return
-	camera.size = 47.0/zoom
+	camera.size = fixed_camera_size if fixed_scale else 47.0/zoom
 	camera.position = target+Vector3(sin(yaw)*23,26,cos(yaw)*23)
 	camera.look_at(target)
 	queue_redraw()
@@ -395,7 +410,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 		elif event.button_index == MOUSE_BUTTON_MIDDLE: dragging = event.pressed; accept_event()
 		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
-			zoom = clampf(zoom*(1.12 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1/1.12),0.65,7.0)
+			if not fixed_scale: zoom = clampf(zoom*(1.12 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1/1.12),0.65,7.0)
 			update_camera()
 			accept_event()
 		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
@@ -481,8 +496,8 @@ func _draw() -> void:
 				draw_texture_rect(Art.resource_icon(key),Rect2(at,Vector2(12,12)),false)
 				draw_string(font,at+Vector2(13,11),str(output[key]),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("fff0cb"))
 				i += 1
-	draw_rect(Rect2(8,size.y-30,minf(size.x-16,570),24),Color(0.02,0.06,0.09,0.85))
-	draw_string(font,Vector2(15,size.y-13),progress if building else metrics,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("c2d8d5"))
+	if show_metrics or building: draw_rect(Rect2(8,size.y-30,minf(size.x-16,570),24),Color(0.02,0.06,0.09,0.85))
+	if show_metrics or building: draw_string(font,Vector2(15,size.y-13),progress if building else metrics,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("c2d8d5"))
 
 func xeno_position(u: Dictionary) -> Vector3:
 	var occupied = state.xenos.nests.values().any(func(n):return n.tile == u.tile)

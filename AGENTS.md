@@ -1,3 +1,7 @@
+# Current restart — 5 November 2026
+
+Current local build is **0.911-b01-review**. Read `CONTINUE_HERE.md` and `docs/Batch_0911_B01_Review.md` first. The current grouped design and revised batch plan supersede historical S01/Q080 cursors, sprite-map direction and zoom controls. B01 is a deliberately reduced movement/inspection fixture. Await Viktoras's play review and final signoff before any repository push. Always save local source first, preserve a durable archive at completed versions, and keep new test reports separate from historical reconstruction evidence. Do not upload screenshots automatically. B02 accounting/phase decisions remain unresolved and are not silently adopted here.
+
 # Reconstruction boundary — 3 November 2026
 
 Read `docs/RECONSTRUCTION.md` and `CONTINUE_HERE.md` before development. This is newly reconstructed 0.910 code on recovered 0.904, not the original lost checkout. Current validation is under `reports/reconstruction/`; older numbers are historical. The current design review is S01–S18, with S01 first. Preserve a durable source archive at the end of a batch; temporary local Git alone is insufficient. Upload only on explicit instruction.

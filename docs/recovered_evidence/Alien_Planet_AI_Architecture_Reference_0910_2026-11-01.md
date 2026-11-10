@@ -39,13 +39,13 @@ Conceptual operation names below are descriptive labels, not invented function n
 
 | ID | Source and location | What to use it for | Limits |
 |---|---|---|---|
-| S1 | Development log (personal reference link omitted), version 32 read for this snapshot | Version chronology, requested work, implementation summaries, uploads, later corrections | Historical record; not source code |
-| S2 | 0.910 binding-operation report (personal reference link omitted) | Latest operation authority, force contract, release/recovery, controlled results and limitations | Mission-specific implementation; no general dependency solver |
-| S3 | 0.909 terrain rules (personal reference link omitted) | Green scenario, precise terrain learner, tactical defaults, separate faction memories | Some military release/supply policies superseded by S2 |
-| S4 | 0.908 tactical notebook (personal reference link omitted) | Lieutenant mechanism, action order, narrow adaptation, hypotheses and failed runs | Two-player experiment, before Green/binding operations |
-| S5 | 0.906 full inventory (personal reference link omitted) | Exact earlier content/rule inventory, code boundaries, initial coordinator policies | Frozen; not a current 0.910 controller specification |
-| S6 | 0.906 action coverage review (personal reference link omitted) | Legal possibilities versus AI reachability, dormant mechanics, evidence discipline | Later stock/staffing/campaign fixes must supersede old defects |
-| S7 | Original development brief (personal reference link omitted) | Architectural intent and ten originating ideas | Initial resource names, growth, supply, rover and demo restrictions are historical |
+| S1 | [Development log](https://chatgpt.com/library?file_id=libfile_45168cb0036081919cff15db493efd5f&account_id=personal), version 32 read for this snapshot | Version chronology, requested work, implementation summaries, uploads, later corrections | Historical record; not source code |
+| S2 | [0.910 binding-operation report](https://chatgpt.com/library?file_id=libfile_79b2ba57a0e0819197b172fe67f5b54e&account_id=personal) | Latest operation authority, force contract, release/recovery, controlled results and limitations | Mission-specific implementation; no general dependency solver |
+| S3 | [0.909 terrain rules](https://chatgpt.com/library?file_id=libfile_6b55ac41e0e48191b775544065630cbb&account_id=personal) | Green scenario, precise terrain learner, tactical defaults, separate faction memories | Some military release/supply policies superseded by S2 |
+| S4 | [0.908 tactical notebook](https://chatgpt.com/library?file_id=libfile_3dcf8d6003e08191929a986204033539&account_id=personal) | Lieutenant mechanism, action order, narrow adaptation, hypotheses and failed runs | Two-player experiment, before Green/binding operations |
+| S5 | [0.906 full inventory](https://chatgpt.com/library?file_id=libfile_29b1b09192d48191a0ebd84127cf7788&account_id=personal) | Exact earlier content/rule inventory, code boundaries, initial coordinator policies | Frozen; not a current 0.910 controller specification |
+| S6 | [0.906 action coverage review](https://chatgpt.com/library?file_id=libfile_4dfcba6217e481919a8785738ef446e8&account_id=personal) | Legal possibilities versus AI reachability, dormant mechanics, evidence discipline | Later stock/staffing/campaign fixes must supersede old defects |
+| S7 | [Original development brief](https://chatgpt.com/library?file_id=libfile_aefa535cbafc81919a77d7b5075c8536&account_id=personal) | Architectural intent and ten originating ideas | Initial resource names, growth, supply, rover and demo restrictions are historical |
 | S8 | User/assistant conversation supplied with this request | Ruler/adviser/lieutenant intent; earlier code-analysis findings and proposed solution | Earlier explanations can be overtaken by subsequently implemented work |
 
 For a campaign question read S2, then S3/S4, then S1's matching batch. For basic mechanics use S5/S6, then check later overrides. For user intent use S8 and S7. Never treat a proposed next test in these reports as completed work.
