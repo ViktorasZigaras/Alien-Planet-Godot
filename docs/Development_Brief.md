@@ -1,4 +1,19 @@
-# Current implementation status — 10 November 2026
+# Current implementation status — 11 November 2026
+
+B04 local construction implementation is now the F5 default. Ordered queue skips
+blocked/held entries and carries effort forward by explicit user choice. Materials
+and labor are paid separately; settlement-only, on-site builder and combined work
+share real effort/input budgets. Includes reusable kit/travel accounting, split
+manufacturing effort, proportional progress/payment, Farm/upgrade, Agriculture
+district and staffed Greenhouse. Connects project funding to B03 reservations.
+See `Batch_0911_B04_Review.md` and fresh `reports/b04` evidence. B05 next after
+review; broader B02/B03 limitations remain explicit. Latest 50%-faster walking
+adjustment remains present. Source is local, no new upload authorized here.
+
+Restored GitHub main into the permanent `Alien-Planet` working folder after old
+versioned extractions were removed. Future development updates this checkout in
+place. At user request, visual travel and walking cadence are 50% faster than
+the reviewed B03 version; simulation costs and proportional route timing remain.
 
 Implemented a B03 planning slice over B02: real authorized Industry reserve goals,
 shared Food/material prerequisites, one joint worker allocator, stock reservation,

@@ -1,4 +1,20 @@
-# Current local handoff — 10 November 2026
+# Current local handoff — 11 November 2026
+
+F5 now opens B04 construction in the permanent `Alien-Planet` checkout. See
+`docs/Batch_0911_B04_Review.md`. Queue a Farm on a flat land hex; enable automatic
+authorized work, or manually gather/manufacture/construct. User selected skipping
+blocked/held entries with effort overflow. B04 includes a reusable physical builder
+kit, split manufacturing/construction effort, partial payment, upgrades, district
+suppression and a staffed building. Save/load is separate. Earlier scenes remain.
+Next planned B05 is growth/support/training/operational research, after play review
+and resolution of its outstanding accounting/support interfaces. No upload is
+implied by this local implementation request. Older default-scene notes below
+describe their historical versions.
+
+Use the permanent `Alien-Planet` checkout in the parent folder. It is updated in
+place; adjacent ZIP files are backups. Latest local pacing adjustment increases
+travel speed 50% (human 2.1, rover 3.15 world units/second) and human gait 50%.
+Travel takes two-thirds of the previous time; distance ratios remain unchanged.
 
 Latest: `b03.tscn` (F6) adds the shared planning trial. Propose Industry reserve,
 Authorize, enable automatic work, then End Turn. Two goals share prerequisites

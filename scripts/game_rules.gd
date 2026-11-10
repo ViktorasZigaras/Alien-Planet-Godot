@@ -108,6 +108,8 @@ static func has_site_improvement(s: Dictionary,key: String) -> bool:
 		if k != "road" and s.improvements[key][k]: return true
 	return false
 static func tile_yield(s: Dictionary,key: String, penalties: bool = true) -> Dictionary:
+	for project in s.get("construction",{}).get("queue",[]):
+		if project.recipe == "district" and project.tile == key and project.started: return {}
 	if not s.tiles.has(key) or is_inf(movement_cost(s,key)) or not site_at(s,key).is_empty() or not district_at(s,key).is_empty(): return {}
 	var t = s.tiles[key]
 	var out = {"plains":{"food":2,"minerals":1},"grassland":{"food":3},"desert":{"minerals":1},"tundra":{"food":1,"minerals":1},"fungal":{"food":2,"science":1}}.get(t.baseTerrain,{}).duplicate()
@@ -127,6 +129,7 @@ static func tile_yield(s: Dictionary,key: String, penalties: bool = true) -> Dic
 	for k in out.keys():
 		out[k] = maxi(0,int(out[k]))
 		if out[k] == 0: out.erase(k)
+	if out.has("food") and s.get("construction",{}).get("farmTiers",{}).get(key,1)>1: out.food += 1
 	return Layers.apply(t,out) if penalties else out
 static func reserved_for_district(s: Dictionary,key: String) -> bool: return s.constructionProject != null and s.constructionProject.order == "district" and s.constructionProject.targetTileId == key
 static func job_building(job: String) -> String: return job.substr(9).split("#")[0]

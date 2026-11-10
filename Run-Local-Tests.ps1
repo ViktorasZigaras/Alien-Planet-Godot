@@ -47,7 +47,7 @@ function Invoke-Check([string]$Name, [string[]]$EngineArgs) {
     [IO.File]::WriteAllText($stdout, $outputTask.Result)
     [IO.File]::WriteAllText($stderr, $errorTask.Result)
     $log = [IO.File]::ReadAllText($stdout) + [IO.File]::ReadAllText($stderr)
-    $passed = -not $timedOut -and $process.ExitCode -eq 0 -and $log -notmatch '(?m)(SCRIPT ERROR:|^ERROR:|^FAIL\b)'
+    $passed = -not $timedOut -and $process.ExitCode -eq 0 -and $log -notmatch '(?m)(SCRIPT ERROR:|^ERROR:|^FAIL\b|CrashHandlerException|Program crashed)'
     Write-Host (('{0}: {1}' -f $Name, $(if ($passed) { 'PASS' } else { 'FAIL' })))
     [pscustomobject]@{ suite=$Name; passed=$passed; exit=$process.ExitCode; timeout=$timedOut; seconds=[math]::Round($timer.Elapsed.TotalSeconds,2) }
 }
@@ -55,7 +55,7 @@ try {
     & $GodotPath --version | Set-Content -LiteralPath (Join-Path $runRoot 'engine-version.txt')
     $results += Invoke-Check 'import' @('--headless','--path',$sandbox,'--editor','--import')
     if ($results[-1].passed) {
-        foreach ($suite in @('test_b01','test_b02','test_b03','test_0901','test_world','test_reconstruction')) {
+        foreach ($suite in @('test_b01','test_b02','test_b03','test_b04','test_0901','test_world','test_reconstruction')) {
             $results += Invoke-Check $suite @('--headless','--path',$sandbox,'--script',('tests/' + $suite + '.gd'))
         }
     }
@@ -64,5 +64,5 @@ try {
     ConvertTo-Json -InputObject $results -Depth 5 | Set-Content -LiteralPath (Join-Path $runRoot 'results.json')
     Write-Host "Logs and isolated test project: $runRoot"
 }
-if ($results.Count -ne 7 -or @($results | Where-Object { -not $_.passed }).Count) { exit 1 }
+if ($results.Count -ne 8 -or @($results | Where-Object { -not $_.passed }).Count) { exit 1 }
 exit 0

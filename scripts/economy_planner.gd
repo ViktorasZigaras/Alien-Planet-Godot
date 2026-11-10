@@ -33,6 +33,7 @@ static func candidates(s: Dictionary) -> Array:
 	food.sort_custom(func(a,b): return a.yield.get("food",0)>b.yield.get("food",0) if a.yield.get("food",0)!=b.yield.get("food",0) else a.id<b.id)
 	minerals.sort_custom(func(a,b): return a.yield.get("minerals",0)>b.yield.get("minerals",0) if a.yield.get("minerals",0)!=b.yield.get("minerals",0) else a.id<b.id)
 	var ids = ["idle","manufacture"]
+	if s.has("construction"): ids.append_array(["construct","mixed","builder"])
 	for list in [food.slice(0,3),minerals.slice(0,3)]:
 		for job in list:
 			if job.id not in ids: ids.append(job.id)
@@ -70,6 +71,7 @@ static func plan(state: Dictionary) -> Dictionary:
 			# reserve: only cover this turn and the explicit outstanding purpose.
 			var shortage = maxi(0,-int(ledger.closing.food))
 			var score = -10000.0*shortage
+			score += 120.0*ledger.get("work",0)
 			if missing > 0:
 				score += 100.0*mini(missing,int(ledger.gross.industry))
 				var raw_need = maxi(0,missing-int(ledger.closing.minerals))
@@ -122,6 +124,9 @@ static func command(state: Dictionary, cmd: Dictionary) -> Dictionary:
 					goal.authorized = cmd.type == "authorize"
 					goal.status = "pending" if goal.authorized else "cancelled"
 					goal.blocker = "" if goal.authorized else "Purpose cancelled; reservations released"
+					if cmd.type == "cancel":
+						for project in s.get("construction",{}).get("queue",[]):
+							if project.goal == goal.id and project.status != "complete": project.held = true
 			if not found: return {"ok":false,"state":state,"message":"Unknown or cancelled goal."}
 		"endTurn":
 			s = plan(s)

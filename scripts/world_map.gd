@@ -12,8 +12,8 @@ const A = preload("res://scripts/world_assets.gd")
 const Batch = preload("res://scripts/world_batch.gd")
 const Art = preload("res://scripts/starter_art.gd")
 # Presentation units/second: distance controls time, never the turn rules.
-const WALK_SPEED = 1.4
-const ROVER_SPEED = 2.1
+const WALK_SPEED = 2.1
+const ROVER_SPEED = 3.15
 static func travel_seconds(from: Vector3, to: Vector3, rover: bool = false) -> float:
 	return Vector2(to.x-from.x,to.z-from.z).length() / (ROVER_SPEED if rover else WALK_SPEED)
 var combat_sequence = -1
@@ -344,7 +344,7 @@ func update_actors() -> void:
 			if tweens.has(id): tweens[id].kill()
 			actor_tiles[id] = tile
 			actor.walk()
-			if not "rover" in c.equipment: actor.gait_speed = 1.6
+			if not "rover" in c.equipment: actor.gait_speed = 2.4
 			var tween = create_tween()
 			tweens[id] = tween
 			var steps = c.lastRoute.slice(1) if c.state.kind == "mobile" and c.lastRoute.size() > 1 else [tile]

@@ -3,7 +3,12 @@ const E = preload("res://scripts/economy_fixture.gd")
 const Session = preload("res://scripts/civilization_session.gd")
 const World = preload("res://scripts/world_map.gd")
 const Planner = preload("res://scripts/economy_planner.gd")
+const Projects = preload("res://scripts/construction_session.gd")
 @export var planning_mode = false
+@export var construction_mode = false
+var construction_tile = "3,3"
+var construction_recipe = "farm"
+var builder_id = "pop_b"
 const SAVE = "user://alien_planet_b02.json"
 var state = E.initial()
 var box: VBoxContainer
@@ -14,31 +19,47 @@ var world
 var planning_box: VBoxContainer
 
 func execute(cmd: Dictionary) -> Dictionary:
+	if construction_mode: return Projects.command(state,cmd)
 	return Planner.command(state,cmd) if planning_mode else E.command(state,cmd)
 
 func save_path() -> String:
+	if construction_mode: return "user://alien_planet_b04.json"
 	return "user://alien_planet_b03.json" if planning_mode else SAVE
+
+func save_format() -> String:
+	return "alien-planet-b04-v1" if construction_mode else ("alien-planet-b03-v1" if planning_mode else "alien-planet-b02-v1")
 
 func _ready() -> void:
 	if planning_mode: state = Planner.attach(state)
+	if construction_mode: state = Projects.initial()
 	box = VBoxContainer.new(); box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.add_theme_constant_override("separation",12); add_child(box)
 	var title = Label.new(); title.text = "ALIEN PLANET · B03 SHARED PLANNING" if planning_mode else "ALIEN PLANET · B02 ECONOMY TRIAL"; title.add_theme_font_size_override("font_size",26); box.add_child(title)
+	if construction_mode: title.text = "ALIEN PLANET · B04 CONSTRUCTION"
 	var note = Label.new(); note.text = "Two ordinary civilians · seed-731 map · work resolves at End Turn · authorized planning optional; growth/projects/fauna inactive" if planning_mode else "Two ordinary civilians · same seed-731 map · planned work resolves at End Turn · AI/growth/projects/fauna inactive"; box.add_child(note)
+	if construction_mode: note.text = "Two civilians · one reusable kit · skip held/blocked projects · unused effort carries forward · growth/fauna inactive"
 	summary = Label.new(); box.add_child(summary)
 	choices = VBoxContainer.new(); box.add_child(choices)
-	planning_box = VBoxContainer.new(); box.add_child(planning_box)
+	planning_box = VBoxContainer.new()
+	if construction_mode:
+		var management = ScrollContainer.new(); management.custom_minimum_size.y = 290
+		box.add_child(management); management.add_child(planning_box)
+	else: box.add_child(planning_box)
 	var buttons = HBoxContainer.new(); box.add_child(buttons)
 	for text in ["End turn","Save","Load","Restart"]:
 		var b = Button.new(); b.text = text; buttons.add_child(b); b.pressed.connect(func(): action(text))
 	message = Label.new(); box.add_child(message)
 	world = World.new(); world.fixed_scale = true; world.show_metrics = false
 	world.size_flags_vertical = Control.SIZE_EXPAND_FILL; box.add_child(world)
+	if construction_mode:
+		world.tile_selected.connect(func(tile): construction_tile = tile; refresh())
+		world.move_requested.connect(func(tile,_append): construction_tile = tile; send({"type":"queueMove","unitId":builder_id,"target":tile,"append":_append}))
 	refresh()
 	world.focus_tile("3,3")
 
 func refresh() -> void:
-	var forecast = E.resolve(state).ledger
+	var forecast_state = E.resolve(state)
+	var forecast = forecast_state.ledger
 	var lines = ["TURN %d · Food/Minerals/Industry: Landing Station storage · other stocks: global" % state.turn]
 	for r in E.R.RESOURCES:
 		lines.append("%s: %d  | next gross %+d · inputs %d · upkeep %d · obligations %d · net %+d" % [r.capitalize(),state.resources[r],forecast.gross[r],forecast.inputs[r],forecast.upkeep[r],forecast.spending[r],forecast.net[r]])
@@ -59,6 +80,7 @@ func refresh() -> void:
 			state = result.state; message.text = result.message; refresh())
 	message.text = "Food deficit: %d · Energy deficit: %d. Forecast includes emergency Food reassignment when needed." % [state.shortages.food,state.shortages.energy]
 	refresh_planning()
+	if construction_mode: refresh_construction(forecast_state.state)
 	world.update_view(Session.projection(state),"2,3","","none")
 
 func refresh_planning() -> void:
@@ -81,19 +103,60 @@ func refresh_planning() -> void:
 	if state.planning.review.has("reason"):
 		var why = Label.new(); why.text = state.planning.review.reason; planning_box.add_child(why)
 
+func send(cmd: Dictionary) -> void:
+	var result = execute(cmd); state = result.state; refresh(); message.text = result.message
+
+func refresh_construction(forecast: Dictionary) -> void:
+	var row = HBoxContainer.new(); planning_box.add_child(row)
+	var recipes = OptionButton.new(); row.add_child(recipes)
+	var names = Projects.C.RECIPES.keys()
+	for name in names:
+		recipes.add_item(Projects.C.RECIPES[name].label+" · %d Industry / effort" % Projects.C.RECIPES[name].work)
+		if name == construction_recipe: recipes.select(recipes.item_count-1)
+	recipes.item_selected.connect(func(i): construction_recipe = names[i]; refresh())
+	var sites = OptionButton.new(); row.add_child(sites)
+	for tile in state.tileAccess.main:
+		sites.add_item(tile)
+		if tile == construction_tile: sites.select(sites.item_count-1)
+	sites.item_selected.connect(func(i): construction_tile = sites.get_item_text(i); refresh())
+	var add = Button.new(); add.text = "Queue project"; row.add_child(add)
+	var command = {"type":"enqueue","recipe":construction_recipe,"tile":construction_tile}
+	add.tooltip_text = E.reason(state,command); add.disabled = add.tooltip_text != ""
+	add.pressed.connect(func(): send(command))
+	var builders = HBoxContainer.new(); planning_box.add_child(builders)
+	var person = OptionButton.new(); builders.add_child(person)
+	for id in state.cohorts:
+		person.add_item(id)
+		if id == builder_id: person.select(person.item_count-1)
+	person.item_selected.connect(func(i): builder_id = person.get_item_text(i); refresh())
+	for pair in [["Equip kit / deploy",{"type":"deployBuilder","person":builder_id}],["Return kit",{"type":"returnBuilder","person":builder_id}],["Travel to hex "+construction_tile,{"type":"queueMove","unitId":builder_id,"target":construction_tile}]]:
+		var button = Button.new(); button.text = pair[0]; builders.add_child(button)
+		button.tooltip_text = E.reason(state,pair[1]); button.disabled = button.tooltip_text != ""
+		button.pressed.connect(func(): send(pair[1]))
+	var position = Label.new(); position.text = "Builder: %s · at %s · kit equipped: %s" % [builder_id,E.R.person_tile(state,state.cohorts[builder_id]),str(builder_id in state.construction.holders)]; builders.add_child(position)
+	var scroll = ScrollContainer.new(); scroll.custom_minimum_size.y = 110; planning_box.add_child(scroll)
+	var list = VBoxContainer.new(); scroll.add_child(list)
+	for p in state.construction.queue:
+		var line = HBoxContainer.new(); list.add_child(line)
+		var projected = forecast.construction.queue.filter(func(entry):return entry.id == p.id)[0]
+		var text = Label.new(); text.text = "%s · %s @ %s · %d/%d effort · paid %d Industry · %s" % [p.id,p.recipe,p.tile,p.work,Projects.C.RECIPES[p.recipe].work,p.paid,projected.blocker if p.status != "complete" else "Complete"]; line.add_child(text)
+		if p.status != "complete":
+			var hold = Button.new(); hold.text = "Resume" if p.held else "Hold"; line.add_child(hold)
+			hold.pressed.connect(func(): send({"type":"hold","id":p.id,"held":not p.held}))
+
 func action(text: String) -> void:
 	match text:
 		"End turn": state = execute({"type":"endTurn"}).state
-		"Restart": state = Planner.attach(E.initial()) if planning_mode else E.initial()
+		"Restart": state = Projects.initial() if construction_mode else (Planner.attach(E.initial()) if planning_mode else E.initial())
 		"Save":
 			var file = FileAccess.open(save_path(),FileAccess.WRITE)
 			if file == null: message.text = "Save failed."; return
-			file.store_string(JSON.stringify({"format":"alien-planet-b03-v1" if planning_mode else "alien-planet-b02-v1","game":state})); message.text = "Saved."; return
+			file.store_string(JSON.stringify({"format":save_format(),"game":state})); message.text = "Saved."; return
 		"Load":
 			if not FileAccess.file_exists(save_path()): message.text = "No save yet."; return
 			var data = JSON.parse_string(FileAccess.get_file_as_string(save_path()))
-			if not data is Dictionary or data.get("format") != ("alien-planet-b03-v1" if planning_mode else "alien-planet-b02-v1"): message.text = "Invalid save for this trial."; return
-			var error = Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game"))
+			if not data is Dictionary or data.get("format") != save_format(): message.text = "Invalid save for this trial."; return
+			var error = Projects.validate(data.get("game")) if construction_mode else (Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game")))
 			if error != "": message.text = error; return
 			state = Planner.plan(data.game) if planning_mode else data.game
 	refresh()

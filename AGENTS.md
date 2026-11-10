@@ -1,4 +1,18 @@
-# Current handoff — 10 November 2026
+# Current handoff — 11 November 2026
+
+B04 construction is now the default F5 scene (`b04.tscn`). Read
+`docs/Batch_0911_B04_Review.md` before further changes. User explicitly chose skip
+blocked/held entries and carry effort forward. Preserve separate B01–B03 scenes.
+B04 is locally implemented for review; no blanket whole-game acceptance. Next
+planned B05 is growth/support/training/research. Do not silently adopt support
+exceptions, Engineer bonuses, growth charging or unselected operational gates.
+New evidence belongs under `reports/b04`. No upload requested this turn.
+
+Permanent working checkout: `D:\[GPT Playground]\[Alien Planet]\Alien-Planet`.
+Update this folder in place; do not work in version-named ZIP extraction folders.
+ZIPs beside it are backups. The user removes old extracted versions.
+Latest requested presentation adjustment: travel speed and walking cadence 1.5×
+the previous B03 trial, with route-duration proportionality preserved.
 
 Latest work: user requested implement/upload; B03 trial in `b03.tscn` now uses
 `economy_planner.gd`, actual authorized reserve goals and shared prerequisites.

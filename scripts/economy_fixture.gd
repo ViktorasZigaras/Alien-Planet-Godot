@@ -2,6 +2,7 @@ extends RefCounted
 ## B02 trial: assignment is a plan; work occurs once, atomically, at End Turn.
 const Base = preload("res://scripts/shell_fixture.gd")
 const R = preload("res://scripts/game_rules.gd")
+const Construction = preload("res://scripts/construction_rules.gd")
 const ID = "b02-economy-v1"
 const LOCAL = ["food", "minerals", "industry"]
 
@@ -32,6 +33,10 @@ static func sync(s: Dictionary) -> void:
 
 static func jobs(s: Dictionary) -> Array:
 	var out = [{"id":"idle","label":"Idle · 1 Food","yield":{}} ,{"id":"manufacture","label":"Manufacture · up to 2 Minerals → 2 Industry · 2 Food","yield":{"industry":2}}]
+	if s.has("construction"):
+		out.append_array([{"id":"construct","label":"Construction · 2 effort · 2 Food","yield":{}},{"id":"mixed","label":"Split · 1 manufacturing + 1 construction effort · 2 Food","yield":{"industry":1}},{"id":"builder","label":"On-site builder · 2 effort · 1 Food","yield":{}}])
+		for b in s.buildings.values():
+			if b.type == "greenhouse": out.append({"id":"building:"+b.id+"#0","label":"Greenhouse · 3 Food · consumes 1 Energy","yield":{"food":3}})
 	for key in s.tileAccess.main:
 		var amount = R.tile_yield(s,key)
 		if not amount.is_empty(): out.append({"id":"tile:"+key,"label":"Hex %s · %s · 2 Food" % [key,R.yield_text(amount)],"yield":amount})
@@ -43,13 +48,21 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 		"assign":
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
+			var c = s.cohorts[cmd.person]
+			if c.state.kind == "mobile" and job not in ["idle","builder"]: return "Return the builder to the settlement before assigning settlement work."
+			if job == "builder" and (c.state.kind != "mobile" or cmd.person not in s.get("construction",{}).get("holders",[])): return "Equip the reusable kit and travel to the site first."
 			var reserved = s.get("commitments",{}).get("people",{}).get(cmd.person,{})
 			if not reserved.is_empty() and reserved.job != job: return "Person committed to an authorized plan; cancel its goals or disable planning first."
 			if not jobs(s).any(func(j): return j.id == job): return "Unknown or inaccessible workplace."
-			if job.begins_with("tile:"):
-				for c in s.cohorts.values():
-					if c.id != cmd.person and c.state.job == job: return "That hex already has a worker."
+			if job.begins_with("tile:") or job.begins_with("building:"):
+				for occupant in s.cohorts.values():
+					if occupant.id != cmd.person and occupant.state.job == job: return "That hex already has a worker."
 			return ""
+	if s.has("construction"):
+		if cmd.get("type","") in ["enqueue","hold","deployBuilder","returnBuilder"]: return Construction.reason(s,cmd)
+		if cmd.get("type","") in ["move","queueMove","cancelMove"]:
+			if not s.cohorts.has(cmd.get("unitId","")) or s.cohorts[cmd.unitId].state.kind != "mobile": return "Choose a deployed builder."
+			return R.reason(s,cmd)
 	return "Unavailable in B02."
 
 static func change(s: Dictionary, resource: String, amount: int) -> void:
@@ -84,36 +97,67 @@ static func resolve(state: Dictionary, remedies: bool = true) -> Dictionary:
 		for id in s.cohorts.keys():
 			if resolve(s,false).ledger.closing.food >= 0: break
 			var c = s.cohorts[id]
-			if c.state.job == "manufacture" or (c.state.job != null and c.state.job.begins_with("tile:") and R.tile_yield(s,c.state.job.substr(5)).get("food",0) == 0): c.state.job = null
+			if c.state.kind == "mobile": continue
+			if c.state.job in ["manufacture","construct","mixed"] or (c.state.job != null and c.state.job.begins_with("tile:") and R.tile_yield(s,c.state.job.substr(5)).get("food",0) == 0): c.state.job = null
 	# Gather all ordinary tile output first. One person occupies one job.
 	for c in s.cohorts.values():
 		var job = c.state.job
-		upkeep.food += 1 if job == null else 2
+		if c.id in s.get("construction",{}).get("travelled",[]): upkeep.food += 1; continue
+		upkeep.food += 1 if job == null or c.state.kind == "mobile" else 2
 		if job != null and job.begins_with("tile:"):
 			for r in R.tile_yield(s,job.substr(5)): gross[r] += R.tile_yield(s,job.substr(5))[r]
+		elif job != null and job.begins_with("building:") and s.resources.energy>upkeep.energy:
+			gross.food += 3; upkeep.energy += 1
 	for r in R.RESOURCES: change(s,r,gross[r])
 	# Capital processing uses the shared pile including this turn's raw output.
 	for c in s.cohorts.values():
-		if c.state.job == "manufacture":
-			var units = mini(2,maxi(0,s.resources.minerals-int(spent.minerals)))
+		if c.id in s.get("construction",{}).get("travelled",[]): continue
+		if c.state.job in ["manufacture","mixed"]:
+			var units = mini(1 if c.state.job == "mixed" else 2,maxi(0,s.resources.minerals-int(spent.minerals)))
 			inputs.minerals += units; gross.industry += units
 			change(s,"minerals",-units); change(s,"industry",units)
 	for r in R.RESOURCES:
 		change(s,r,-upkeep[r]-spent[r])
+	s.obligations = {}
+	var ledger = {"opening":opening,"gross":gross,"inputs":inputs,"upkeep":upkeep,"spending":spent,"net":net,"closing":{}}
+	Construction.resolve(s,ledger)
+	for r in R.RESOURCES:
 		net[r] = s.resources[r]-opening[r]
 	s.shortages.food = maxi(0,-s.resources.food)
 	s.shortages.energy = maxi(0,-s.resources.energy)
 	s.obligations = {}
-	return {"state":s,"ledger":{"opening":opening,"gross":gross,"inputs":inputs,"upkeep":upkeep,"spending":spent,"net":net,"closing":s.resources.duplicate(true)}}
+	ledger.closing = s.resources.duplicate(true)
+	return {"state":s,"ledger":ledger}
 
 static func command(state: Dictionary, cmd: Dictionary) -> Dictionary:
 	var blocked = reason(state,cmd)
 	if blocked != "": return {"ok":false,"state":state,"message":blocked}
 	var s = state.duplicate(true)
+	if s.has("construction") and cmd.type in ["enqueue","hold","deployBuilder","returnBuilder"]:
+		Construction.apply(s,cmd)
+		s.lastCommands.append(cmd.duplicate(true))
+		return {"ok":true,"state":s,"message":"Construction order updated."}
+	if s.has("construction") and cmd.type in ["move","queueMove","cancelMove"]:
+		var result = R.command(s,cmd)
+		if result.ok:
+			s = result.state
+			if s.cohorts[cmd.unitId].state.tileId != state.cohorts[cmd.unitId].state.tileId or s.moveProgress != state.moveProgress:
+				if cmd.unitId not in s.construction.travelled: s.construction.travelled.append(cmd.unitId)
+			s.cohorts[cmd.unitId].state.job = null
+		return {"ok":result.ok,"state":s,"message":result.message}
 	if cmd.type == "assign": s.cohorts[cmd.person].state.job = null if cmd.job == "idle" else cmd.job
 	else:
 		var outcome = resolve(s)
 		s = outcome.state; s.lastLedger = outcome.ledger; s.turn += 1
+		if s.has("construction"):
+			s.construction.travelled = []
+			for c in s.cohorts.values():
+				c.lastRoute = []
+				if c.state.kind == "mobile": c.state.movementRemaining = R.movement_budget(c)
+			for id in s.movementQueues.keys():
+				var before = s.cohorts[id].state.tileId; var paid = s.moveProgress.get(id,0)
+				R.advance_queue(s,id)
+				if before != s.cohorts[id].state.tileId or paid != s.moveProgress.get(id,0): s.construction.travelled.append(id)
 	s.lastCommands.append(cmd.duplicate(true))
 	return {"ok":true,"state":s,"message":"Assignment planned." if cmd.type == "assign" else "Turn reconciled once."}
 
@@ -132,7 +176,9 @@ static func validate(s) -> String:
 	for id in canonical.cohorts:
 		var c = s.cohorts[id]
 		if not c is Dictionary or not c.get("state") is Dictionary or c.get("id") != id or c.get("home") != "main" or c.get("qualification") != "Worker" or c.get("equipment") != [] or not R.whole(c.get("lastUsed"),0,9007199254740991) or not c.get("lastRoute") is Array or not (c.get("facing") is float or c.get("facing") is int): return "Invalid person."
-		if c.state.get("kind") != "resident" or c.state.get("settlementId") != "main" or not c.state.has("job"): return "Invalid job state."
+		if s.has("construction") and c.state.get("kind") == "mobile":
+			if not s.tiles.has(c.state.get("tileId","")) or not (c.state.get("movementRemaining") is float or c.state.get("movementRemaining") is int): return "Invalid builder location."
+		elif c.state.get("kind") != "resident" or c.state.get("settlementId") != "main" or not c.state.has("job"): return "Invalid job state."
 		var job = c.state.job
 		if job != null and (not job is String or reason(s,{"type":"assign","person":id,"job":job}) != ""): return "Invalid/duplicate job."
 	if s.storage.keys() != ["main"] or not s.storage.main is Dictionary or s.storage.main.keys().size() != 3: return "Invalid storage."
