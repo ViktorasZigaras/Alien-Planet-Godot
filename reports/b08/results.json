@@ -1,0 +1,86 @@
+[
+  {
+    "suite": "import",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 3.91
+  },
+  {
+    "suite": "test_b01",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 0.9
+  },
+  {
+    "suite": "test_b02",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 0.99
+  },
+  {
+    "suite": "test_b03",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 5.77
+  },
+  {
+    "suite": "test_b04",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 1.92
+  },
+  {
+    "suite": "test_b05",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 1.36
+  },
+  {
+    "suite": "test_b06",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 0.72
+  },
+  {
+    "suite": "test_b07",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 0.81
+  },
+  {
+    "suite": "test_b08",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 1.45
+  },
+  {
+    "suite": "test_0901",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 2.48
+  },
+  {
+    "suite": "test_world",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 1.74
+  },
+  {
+    "suite": "test_reconstruction",
+    "passed": true,
+    "exit": 0,
+    "timeout": false,
+    "seconds": 21.73
+  }
+]

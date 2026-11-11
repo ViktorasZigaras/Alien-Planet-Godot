@@ -55,7 +55,7 @@ static func validate(s) -> String:
 	if seen.size()>1: return "Build kit duplicated."
 	for id in s.cohorts:
 		if not s.cohorts[id] is Dictionary or not s.cohorts[id].get("state") is Dictionary: return "Invalid person."
-		if s.cohorts[id].state.get("kind") == "mobile" and id not in seen and not (s.has("knowledge") and id == "explorer"): return "Mobile builder has no kit."
+		if s.cohorts[id].state.get("kind") == "mobile" and id not in seen and not (s.has("knowledge") and id == "explorer") and not (s.has("tactics") and (s.cohorts[id].qualification == "Soldier" or s.tactics.evacuating.has(id))): return "Mobile builder has no kit."
 	for id in c.travelled:
 		if not id is String or not s.cohorts.has(id): return "Invalid travel activity."
 	var error = P.validate(s)

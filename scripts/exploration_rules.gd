@@ -57,6 +57,7 @@ static func view(s: Dictionary, projection: Dictionary) -> Dictionary:
 			if not s.knowledge.visible.has(key): actors.erase(id)
 	for key in projection.xenos.get("mass",{}).keys():
 		if not s.knowledge.visible.has(key): projection.xenos.mass.erase(key)
+	projection.xenos.effects = projection.xenos.effects.filter(func(effect): return s.knowledge.visible.has(effect.source) and s.knowledge.visible.has(effect.target))
 	return projection
 
 static func work_reason(s: Dictionary, mode: String) -> String:

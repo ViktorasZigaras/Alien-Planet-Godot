@@ -7,6 +7,10 @@ const Projects = preload("res://scripts/construction_session.gd")
 const Progression = preload("res://scripts/progression_session.gd")
 const Exploration = preload("res://scripts/exploration_session.gd")
 const Ecology = preload("res://scripts/ecology_session.gd")
+const Tactical = preload("res://scripts/tactical_session.gd")
+@export var tactical_mode = false
+var tactical_id = "guard"
+var combat_box: VBoxContainer
 @export var ecology_mode = false
 @export var exploration_mode = false
 var explorer_travel = true
@@ -28,6 +32,7 @@ var world
 var planning_box: VBoxContainer
 
 func execute(cmd: Dictionary) -> Dictionary:
+	if tactical_mode: return Tactical.command(state,cmd)
 	if ecology_mode: return Ecology.command(state,cmd)
 	if exploration_mode: return Exploration.command(state,cmd)
 	if progression_mode: return Progression.command(state,cmd)
@@ -35,6 +40,7 @@ func execute(cmd: Dictionary) -> Dictionary:
 	return Planner.command(state,cmd) if planning_mode else E.command(state,cmd)
 
 func save_path() -> String:
+	if tactical_mode: return "user://alien_planet_b08.json"
 	if ecology_mode: return "user://alien_planet_b07.json"
 	if exploration_mode: return "user://alien_planet_b06.json"
 	if progression_mode: return "user://alien_planet_b05.json"
@@ -42,6 +48,7 @@ func save_path() -> String:
 	return "user://alien_planet_b03.json" if planning_mode else SAVE
 
 func save_format() -> String:
+	if tactical_mode: return "alien-planet-b08-v1"
 	if ecology_mode: return "alien-planet-b07-v1"
 	if exploration_mode: return "alien-planet-b06-v1"
 	if progression_mode: return "alien-planet-b05-v1"
@@ -53,6 +60,7 @@ func _ready() -> void:
 	if progression_mode: state = Progression.initial()
 	if exploration_mode: state = Exploration.initial()
 	if ecology_mode: state = Ecology.initial()
+	if tactical_mode: state = Tactical.initial()
 	box = VBoxContainer.new(); box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.add_theme_constant_override("separation",12); add_child(box)
 	var title = Label.new(); title.text = "ALIEN PLANET · B03 SHARED PLANNING" if planning_mode else "ALIEN PLANET · B02 ECONOMY TRIAL"; title.add_theme_font_size_override("font_size",26); box.add_child(title)
@@ -60,9 +68,11 @@ func _ready() -> void:
 	if progression_mode: title.text = "ALIEN PLANET · B05 GROWTH & LEARNING"
 	if exploration_mode: title.text = "ALIEN PLANET · B06 EXPLORATION"
 	if ecology_mode: title.text = "ALIEN PLANET · B07 ECOLOGY"
+	if tactical_mode: title.text = "ALIEN PLANET · B08 SURVIVAL & COMBAT"
 	var note = Label.new(); note.text = "Two ordinary civilians · seed-731 map · work resolves at End Turn · authorized planning optional; growth/projects/fauna inactive" if planning_mode else "Two ordinary civilians · same seed-731 map · planned work resolves at End Turn · AI/growth/projects/fauna inactive"; box.add_child(note)
 	if construction_mode: note.text = "Two civilians · one reusable kit · skip held/blocked projects · unused effort carries forward · growth/fauna inactive"
-	if ecology_mode: note.text = "Ecology trial · roaming wildlife · waste treatment, terrain work and settlement health"
+	if tactical_mode: note.text = "Use the bottom panel to march, retreat, preview attacks or authorize an expedition."
+	elif ecology_mode: note.text = "Ecology trial · roaming wildlife · waste treatment, terrain work and settlement health"
 	elif progression_mode: note.text = "Growth/support/training/research trial · 10 Food per cohort · 2-turn training costs 2 Industry · fauna inactive"
 	summary = Label.new(); box.add_child(summary)
 	choices = VBoxContainer.new()
@@ -81,6 +91,9 @@ func _ready() -> void:
 	message = Label.new(); box.add_child(message)
 	world = World.new(); world.fixed_scale = true; world.show_metrics = false
 	world.size_flags_vertical = Control.SIZE_EXPAND_FILL; box.add_child(world)
+	if tactical_mode:
+		combat_box = VBoxContainer.new()
+		box.add_child(combat_box)
 	if construction_mode:
 		world.tile_selected.connect(func(tile): construction_tile = tile; refresh())
 		world.move_requested.connect(func(tile,_append): construction_tile = tile; send({"type":"queueMove","unitId":"explorer" if exploration_mode and explorer_travel else builder_id,"target":tile,"append":_append}))
@@ -117,7 +130,8 @@ func refresh() -> void:
 	if construction_mode: refresh_construction(forecast_state.state)
 	var projection = Session.projection(state)
 	if exploration_mode: projection = Exploration.K.view(state,projection)
-	world.update_view(projection,construction_tile if exploration_mode else "2,3","explorer" if exploration_mode and explorer_travel else "","none")
+	world.update_view(projection,construction_tile if exploration_mode else "2,3",tactical_id if tactical_mode else ("explorer" if exploration_mode and explorer_travel else ""),"none")
+	if tactical_mode: refresh_tactics()
 
 func refresh_planning() -> void:
 	for child in planning_box.get_children(): planning_box.remove_child(child); child.queue_free()
@@ -141,6 +155,52 @@ func refresh_planning() -> void:
 
 func send(cmd: Dictionary) -> void:
 	var result = execute(cmd); state = result.state; refresh(); message.text = result.message
+
+func refresh_tactics() -> void:
+	for child in combat_box.get_children():
+		combat_box.remove_child(child)
+		child.queue_free()
+	var row = HBoxContainer.new()
+	combat_box.add_child(row)
+	var roster = OptionButton.new()
+	row.add_child(roster)
+	var ids = state.cohorts.keys()
+	for id in ids:
+		roster.add_item("%s · %d HP" % [id,Tactical.X.hp(state.xenos,id)])
+		if id == tactical_id: roster.select(roster.item_count-1)
+	roster.item_selected.connect(func(index): tactical_id = ids[index]; refresh())
+	var target = ""
+	for animal in Tactical.visible_animals(state):
+		if animal.tile == construction_tile:
+			target = animal.id
+			break
+	var auto = CheckButton.new()
+	auto.text = "Auto defence"
+	auto.button_pressed = state.tactics.auto
+	row.add_child(auto)
+	auto.toggled.connect(func(on): send({"type":"tacticalAuto","enabled":on}))
+	var orders = [
+		["March",{"type":"queueMove","unitId":tactical_id,"target":construction_tile}],
+		["Retreat",{"type":"retreat","person":tactical_id}],
+		["Rifle · 1 Industry",{"type":"equipSoldier","person":tactical_id,"weapon":"small_arms"}],
+		["Flamer · 2 Industry",{"type":"equipSoldier","person":tactical_id,"weapon":"flamer"}],
+		["Fire",{"type":"attackXeno","cohortId":tactical_id,"targetId":target,"mode":"ranged"}],
+		["Duel",{"type":"attackXeno","cohortId":tactical_id,"targetId":target,"mode":"melee"}],
+		["Authorize expedition",{"type":"expedition","targetId":target}],
+		["Stand down",{"type":"standDown"}]
+	]
+	for item in orders:
+		var button = Button.new()
+		button.text = item[0]
+		row.add_child(button)
+		button.pressed.connect(func(): send(item[1]))
+	var preview = Label.new()
+	preview.text = "Hex %s · %s" % [construction_tile,"Select a visible animal for combat preview." if target == "" else Tactical.preview(state,tactical_id,target,"ranged")+" · "+Tactical.preview(state,tactical_id,target,"melee")]
+	combat_box.add_child(preview)
+	var orders_label = Label.new()
+	orders_label.text = " · ".join(state.tactics.orders)
+	orders_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	combat_box.add_child(orders_label)
 
 func refresh_ecology() -> void:
 	var row = HBoxContainer.new()
@@ -205,7 +265,7 @@ func refresh_progression() -> void:
 		if id == student_id: person.select(person.item_count-1)
 	person.item_selected.connect(func(i):student_id = state.cohorts.keys()[i]; refresh())
 	var courses = OptionButton.new(); study.add_child(courses)
-	for name in (["Biologist","Scientist","Medic"] if ecology_mode else ["Biologist","Scientist"]):
+	for name in Progression.specialties(state):
 		courses.add_item(name)
 		if name == specialty: courses.select(courses.item_count-1)
 	courses.item_selected.connect(func(i):specialty = courses.get_item_text(i); refresh())
@@ -262,7 +322,7 @@ func refresh_construction(forecast: Dictionary) -> void:
 func action(text: String) -> void:
 	match text:
 		"End turn": state = execute({"type":"endTurn"}).state
-		"Restart": state = Ecology.initial() if ecology_mode else Exploration.initial() if exploration_mode else Progression.initial() if progression_mode else (Projects.initial() if construction_mode else (Planner.attach(E.initial()) if planning_mode else E.initial()))
+		"Restart": state = Tactical.initial() if tactical_mode else Ecology.initial() if ecology_mode else Exploration.initial() if exploration_mode else Progression.initial() if progression_mode else (Projects.initial() if construction_mode else (Planner.attach(E.initial()) if planning_mode else E.initial()))
 		"Save":
 			var file = FileAccess.open(save_path(),FileAccess.WRITE)
 			if file == null: message.text = "Save failed."; return
@@ -271,7 +331,7 @@ func action(text: String) -> void:
 			if not FileAccess.file_exists(save_path()): message.text = "No save yet."; return
 			var data = JSON.parse_string(FileAccess.get_file_as_string(save_path()))
 			if not data is Dictionary or data.get("format") != save_format(): message.text = "Invalid save for this trial."; return
-			var error = Ecology.validate(data.get("game")) if ecology_mode else Exploration.validate(data.get("game")) if exploration_mode else Progression.validate(data.get("game")) if progression_mode else (Projects.validate(data.get("game")) if construction_mode else (Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game"))))
+			var error = Tactical.validate(data.get("game")) if tactical_mode else Ecology.validate(data.get("game")) if ecology_mode else Exploration.validate(data.get("game")) if exploration_mode else Progression.validate(data.get("game")) if progression_mode else (Projects.validate(data.get("game")) if construction_mode else (Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game"))))
 			if error != "": message.text = error; return
 			state = Planner.plan(data.game) if planning_mode else data.game
 	refresh()

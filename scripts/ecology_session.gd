@@ -33,7 +33,7 @@ static func command(s: Dictionary, cmd: Dictionary) -> Dictionary:
 			if int(next.turn)%3 == 0:
 				for tile in next.tiles.values():
 					if tile.vegetation and tile.pollution < 2: tile.biomass = mini(3,int(tile.biomass)+1)
-			Wildlife.tick(next,{})
+			Wildlife.tick(next,{"blue":next} if next.has("tactics") else {})
 			for key in next.ecology.repellents.keys():
 				next.ecology.repellents[key] -= 1
 				if next.ecology.repellents[key] <= 0: next.ecology.repellents.erase(key)

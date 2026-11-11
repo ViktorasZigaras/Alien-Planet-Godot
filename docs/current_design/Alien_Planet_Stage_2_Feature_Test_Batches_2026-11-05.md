@@ -123,6 +123,8 @@ The first nine have a strict dependency spine. Later batches can be reordered or
 
 **Review gate:** environmental causes and responses are legible. Split into reviewed sub-implementations for pressure, world ecology and repellent behavior; do not treat this as one giant change. First resolve exact species benefits and the chosen pollution-throughput measure. No supernatural/ancient-site layer required.
 
+Early-game follow-up idea from Viktoras: researchable, buildable wildlife-repellent towers. Decide the tech, cost, range and upkeep when designing the tower. The B07 temporary field repellent is available as a baseline.
+
 ## B08 — civilian survival and first credible military operations
 
 **Entry / functionality:** B06–B07. Food/Energy emergency responses, multiplicative health/shortage power, legal shelter/retreat, rifle/flamer distinction, garrison versus expedition priorities, General/lieutenant planning, force assembly and withdrawal/rebuilding. Combat preview reserved in bottom unit panel. Groups G02/G09/G11–G13.
@@ -146,6 +148,8 @@ The first nine have a strict dependency spine. Later batches can be reordered or
 | Balance | Several useful opening choices; modest reserves; no default starvation/deadlock or obligatory first action. Evidence beyond a single successful fixture, with causal explanation of failures. |
 
 **Review gate:** inspect readable furnished assets and convenience, not only mechanics. FPS/loading remedies follow profiling; no fixed frame cap or zoom is introduced by this gate. Optional asset previews do not add those assets to starting inventory.
+
+End-of-B09 idea from Viktoras: add an Alienopedia to the integrated interface for looking up terrain, resources, units, buildings and rules. Decide discovery handling for hidden wildlife and anomalies during the UI pass.
 
 ## B10 — deliberate expansion, roads and faction presence
 
@@ -218,6 +222,8 @@ The first nine have a strict dependency spine. Later batches can be reordered or
 | Balance | Veteran preservation without unstoppable snowball; old chassis/refit versus new manufacture; weapon/transport/support niches; leader differences do not grant hidden resources. |
 
 **Review gate:** review XP, a vehicle family and leaders separately, then interactions. Exact compatibility budgets and building-granted veterancies remain contract decisions, not requirements copied wholesale.
+
+Open mid-game design question from Viktoras: how many districts of the same type may one settlement have? Review limits alongside capacity and specialization. No cap has been selected.
 
 ## B16 — strategic capacity and automated extraction
 

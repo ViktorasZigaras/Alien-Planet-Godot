@@ -56,6 +56,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
 			var c = s.cohorts[cmd.person]
+			if job != "idle" and s.get("tactics",{}).get("down",{}).has(c.id): return "This cohort is recovering."
 			if job == "medical" and c.qualification != "Medic": return "Medical care requires a trained Medic."
 			if s.has("knowledge") and s.knowledge.work != "" and job == "tile:"+s.cohorts.explorer.state.tileId: return "The Explorer is working this site."
 			if s.has("progression"):
@@ -212,8 +213,11 @@ static func validate(s) -> String:
 		var c = s.cohorts[id]
 		var allowed = ["Worker","Biologist","Scientist"] if s.has("progression") else ["Worker"]
 		if s.has("ecology"): allowed.append("Medic")
+		if s.has("tactics"): allowed.append("Soldier")
 		if s.has("knowledge") and id == "explorer": allowed = ["Explorer"]
-		if not c is Dictionary or not c.get("state") is Dictionary or c.get("id") != id or c.get("home") != "main" or c.get("qualification") not in allowed or c.get("equipment") != [] or not R.whole(c.get("lastUsed"),0,9007199254740991) or not c.get("lastRoute") is Array or not (c.get("facing") is float or c.get("facing") is int): return "Invalid person."
+		var gear = c.get("equipment",[])
+		var equipment_ok = gear == [] or (s.has("tactics") and c.get("qualification") == "Soldier" and gear in [["small_arms"],["flamer"]])
+		if not c is Dictionary or not c.get("state") is Dictionary or c.get("id") != id or c.get("home") != "main" or c.get("qualification") not in allowed or not equipment_ok or not R.whole(c.get("lastUsed"),0,9007199254740991) or not c.get("lastRoute") is Array or not (c.get("facing") is float or c.get("facing") is int): return "Invalid person."
 		if s.has("construction") and c.state.get("kind") == "mobile":
 			if not s.tiles.has(c.state.get("tileId","")) or not (c.state.get("movementRemaining") is float or c.state.get("movementRemaining") is int): return "Invalid builder location."
 		elif c.state.get("kind") != "resident" or c.state.get("settlementId") != "main" or not c.state.has("job"): return "Invalid job state."

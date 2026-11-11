@@ -139,7 +139,13 @@ static func human_power(p: Dictionary,c: Dictionary,ranged: bool = false,animal:
 	var profile = R.combat_profile(c)
 	var power = float(profile.ranged if ranged else profile.attack)
 	if "flamer" in c.equipment and animal: power *= 2.0
-	if p.resources.food <= 0 or (("flamer" in c.equipment or "rover" in c.equipment) and p.resources.industry <= 0): power *= 0.75
+	if p.has("tactics"):
+		var food = maxi(0,int(p.shortages.food))
+		var energy = maxi(0,int(p.shortages.energy))
+		power *= 1.0/(1.0+0.25*food)
+		power *= 1.0/(1.0+0.25*energy)
+	else:
+		if p.resources.food <= 0 or (("flamer" in c.equipment or "rover" in c.equipment) and p.resources.industry <= 0): power *= 0.75
 	return maxf(0.01,power)
 static func hp(x: Dictionary,id: String) -> int: return int(x.humanHealth.get(id,100))
 static func effect(x: Dictionary,kind: String,source: String,target: String) -> void:
@@ -153,6 +159,17 @@ static func kill_animal(x: Dictionary,id: String,cause: String) -> void:
 	event(x,"xeno_lost",{"unit":id,"cause":cause})
 static func kill_person(s: Dictionary,players: Dictionary,victim: Dictionary,cause: String) -> void:
 	if not players[victim.player].cohorts.has(victim.id): return
+	var side = players[victim.player]
+	if side.has("tactics"):
+		side.tactics.down[victim.id] = true
+		s.xenos.humanHealth[victim.id] = 1
+		side.cohorts[victim.id].state.job = null
+		side.movementQueues.erase(victim.id)
+		side.moveProgress.erase(victim.id)
+		side.commitments.people.erase(victim.id)
+		if side.has("ecology"): side.ecology.terrainWork.erase(victim.id)
+		event(s.xenos,"incapacitated",{"person":victim.id})
+		return
 	remove_person(s,players,victim)
 	s.xenos.deaths[victim.player] = int(s.xenos.deaths[victim.player])+1
 	event(s.xenos,"person_lost",{"person":victim.id,"player":victim.player,"cause":cause})
@@ -181,6 +198,11 @@ static func predator_turn(s: Dictionary,players: Dictionary,u: Dictionary) -> vo
 	var victim = {}
 	var closest = 4
 	for candidate in people(players):
+		if s.has("tactics"):
+			if s.tactics.down.has(candidate.id) or s.ecology.repellents.has(candidate.tile): continue
+			if candidate.person.qualification != "Soldier" and not R.site_at(s,candidate.tile).is_empty():
+				var guard = s.cohorts.values().any(func(c): return c.qualification == "Soldier" and c.state.kind == "mobile" and c.state.tileId == candidate.tile and hp(x,c.id)>=35)
+				if guard: continue
 		var d = R.distance(s.tiles[u.tile],s.tiles[candidate.tile])
 		if d < closest: closest = d; victim = candidate
 	u.target = victim.get("id", "")
@@ -188,7 +210,7 @@ static func predator_turn(s: Dictionary,players: Dictionary,u: Dictionary) -> vo
 		for move in range(DATA[u.kind].moves):
 			if R.distance(s.tiles[u.tile],s.tiles[victim.tile]) <= (2 if u.kind == "armored" else 1): break
 			var next = step_toward(s,u.tile,victim.tile)
-			if next == u.tile: break
+			if next == u.tile or (s.has("tactics") and s.ecology.repellents.has(next)): break
 			walk(s,u,next)
 		u.activity = "pursuing"
 		if R.distance(s.tiles[u.tile],s.tiles[victim.tile]) <= (2 if u.kind == "armored" else 1): hit_person(s,players,u,victim,u.kind == "armored")
@@ -210,6 +232,7 @@ static func tick(s: Dictionary,players: Dictionary) -> void:
 	var x = s.xenos
 	for person in people(players):
 		if x.lastHumanAttack.get(person.id,-1) < int(s.turn)-1:
+			if s.has("tactics") and (s.shortages.food>0 or s.shortages.energy>0): continue
 			var healed = mini(100,hp(x,person.id)+(20 if not R.site_at(players[person.player],person.tile).is_empty() else 5))
 			if healed == 100: x.humanHealth.erase(person.id)
 			elif x.humanHealth.has(person.id): x.humanHealth[person.id] = healed
@@ -247,6 +270,9 @@ static func attack_reason(s: Dictionary,p: Dictionary,cmd: Dictionary) -> String
 	var c = p.cohorts.get(cmd.get("cohortId", ""),{})
 	if c.is_empty() or c.state.kind != "mobile": return "Select a mobile person."
 	var target = s.xenos.units.get(cmd.get("targetId", ""),{})
+	if s.has("tactics"):
+		if c.qualification != "Soldier" or s.tactics.down.has(c.id): return "A ready Soldier is required."
+		if not target.is_empty() and not s.knowledge.visible.has(target.tile): return "Choose an observed animal."
 	if target.is_empty(): return "Choose an animal. Disable a cleared nest by stepping onto it."
 	var ranged = cmd.get("mode", "melee") == "ranged"
 	if cmd.get("mode", "melee") not in ["melee","ranged"]: return "Unknown attack mode."

@@ -1,5 +1,11 @@
 # Current handoff — 11 November 2026
 
+B08 integrates civilian survival and first military operations. The user
+approved B07 and B08 ahead of the B09 interface review. Next is B09, the
+integrated 1080p opening and UI rebuild, with Alienopedia at the end.
+The roadmap also records early researchable wildlife-repellent towers and
+the open mid-game question about repeated district types.
+
 B06 is on GitHub at f8dbb38. B07 is the local F5 ecology review build.
 See docs/Batch_0911_B07_Review.md for trial rules and tests. B08 covers
 civilian survival and first military operations.

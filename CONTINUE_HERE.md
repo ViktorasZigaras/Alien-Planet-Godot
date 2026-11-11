@@ -1,5 +1,11 @@
 # Current local handoff — 11 November 2026
 
+F5 opens B08. The bottom unit panel supports movement, retreat, attack
+preview, firing, equipping and authorizing expeditions. Read
+docs/Batch_0911_B08_Review.md for the provisional tactical contract.
+B09 brings the intended opening together and rebuilds the UI, with
+Alienopedia at the end.
+
 F5 opens B07. The management panel shows waste, health, terrain work and
 repellent. Assign Waste service to treat stored waste or train and staff a
 Medic for health. Deploy a builder, bring them to the selected hex, and

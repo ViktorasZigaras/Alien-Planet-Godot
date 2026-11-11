@@ -3,6 +3,12 @@ const S = preload("res://scripts/construction_session.gd")
 const E = S.E
 const P = S.P
 const G = preload("res://scripts/progression_rules.gd")
+static func specialties(s: Dictionary) -> Array:
+	var result = ["Biologist","Scientist"]
+	if s.has("ecology"): result.append("Medic")
+	if s.has("tactics"): result.append("Soldier")
+	return result
+
 static func initial() -> Dictionary:
 	var s = S.initial(); G.attach(s)
 	return s
@@ -16,7 +22,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 			if P.available(s,"food")<cmd.amount: return "Insufficient unreserved Food."
 			return ""
 		"train":
-			if not s.cohorts.has(cmd.get("person","")) or cmd.get("qualification","") not in (["Biologist","Scientist","Medic"] if s.has("ecology") else ["Biologist","Scientist"]): return "Choose a person and supported specialty."
+			if not s.cohorts.has(cmd.get("person","")) or cmd.get("qualification","") not in specialties(s): return "Choose a person and supported specialty."
 			var c = s.cohorts[cmd.person]
 			if c.state.kind != "resident" or s.progression.training.has(c.id): return "Return to town or finish existing training."
 			if c.qualification == cmd.qualification: return "Already qualified."

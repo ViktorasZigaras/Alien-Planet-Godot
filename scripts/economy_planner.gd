@@ -51,6 +51,7 @@ static func score(s: Dictionary, trial: Dictionary, missing: int) -> float:
 		value -= 10.0*maxi(0,missing-int(ledger.closing.minerals))
 	else: value -= float(ledger.gross.industry+ledger.gross.minerals)
 	if ledger.net.food<0: value += 5.0*ledger.net.food
+	if s.has("tactics") and s.resources.energy <= 0 and ledger.closing.energy > 0: value += 200.0
 	if ledger.has("ecology"):
 		value -= 12.0*ledger.ecology.spilled
 		value += 2.0*ledger.ecology.treated

@@ -1,5 +1,11 @@
 # Current implementation status — 11 November 2026
 
+B07 uploaded as 59d45fb. B08 adds legal retreat, a station garrison,
+health and supply effects, rifle/flamer combat, and a small observed-target
+expedition. User approved these two batches ahead of the B09 UI rebuild.
+See Batch_0911_B08_Review.md and the roadmap for Alienopedia, repellent
+towers and the open repeated-district limit question.
+
 B06 was uploaded as f8dbb38. B07 is the local ecology review build. The
 same settlement now tracks pollution containment, spills and health.
 Builders clear terrain and clean spills. Resource-driven wildlife roams,
