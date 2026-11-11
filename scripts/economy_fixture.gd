@@ -4,6 +4,7 @@ const Base = preload("res://scripts/shell_fixture.gd")
 const R = preload("res://scripts/game_rules.gd")
 const Construction = preload("res://scripts/construction_rules.gd")
 const Progress = preload("res://scripts/progression_rules.gd")
+const Exploration = preload("res://scripts/exploration_rules.gd")
 const ID = "b02-economy-v1"
 const LOCAL = ["food", "minerals", "industry"]
 
@@ -52,6 +53,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
 			var c = s.cohorts[cmd.person]
+			if s.has("knowledge") and s.knowledge.work != "" and job == "tile:"+s.cohorts.explorer.state.tileId: return "The Explorer is working this site."
 			if s.has("progression"):
 				if s.progression.training.has(c.id) and job != "training": return "Finish enrolled training before changing this person's job."
 				if job == "training" and not s.progression.training.has(c.id): return "Enroll in training first."
@@ -67,6 +69,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 			return ""
 	if s.has("construction"):
 		if s.has("progression") and cmd.get("type") == "enqueue" and cmd.get("recipe") == "farm_upgrade" and "cultivation" not in s.progression.techs: return "Research Cultivation to unlock Farm upgrades."
+		if s.has("knowledge") and cmd.get("type","") == "enqueue" and not s.knowledge.visible.has(cmd.get("tile","")): return "Observe the site before ordering construction."
 		if cmd.get("type","") in ["enqueue","hold","deployBuilder","returnBuilder"]: return Construction.reason(s,cmd)
 		if cmd.get("type","") in ["move","queueMove","cancelMove"]:
 			if not s.cohorts.has(cmd.get("unitId","")) or s.cohorts[cmd.unitId].state.kind != "mobile": return "Choose a deployed builder."
@@ -129,6 +132,7 @@ static func resolve(state: Dictionary, remedies: bool = true) -> Dictionary:
 			for r in R.tile_yield(s,job.substr(5)): gross[r] += R.tile_yield(s,job.substr(5))[r]
 		elif job != null and job.begins_with("building:") and s.resources.energy>upkeep.energy:
 			gross.food += 3; upkeep.energy += 1
+	Exploration.produce(s,gross)
 	for r in R.RESOURCES: change(s,r,gross[r])
 	# Capital processing uses the shared pile including this turn's raw output.
 	for c in s.cohorts.values():
@@ -201,6 +205,7 @@ static func validate(s) -> String:
 	for id in s.cohorts:
 		var c = s.cohorts[id]
 		var allowed = ["Worker","Biologist","Scientist"] if s.has("progression") else ["Worker"]
+		if s.has("knowledge") and id == "explorer": allowed = ["Explorer"]
 		if not c is Dictionary or not c.get("state") is Dictionary or c.get("id") != id or c.get("home") != "main" or c.get("qualification") not in allowed or c.get("equipment") != [] or not R.whole(c.get("lastUsed"),0,9007199254740991) or not c.get("lastRoute") is Array or not (c.get("facing") is float or c.get("facing") is int): return "Invalid person."
 		if s.has("construction") and c.state.get("kind") == "mobile":
 			if not s.tiles.has(c.state.get("tileId","")) or not (c.state.get("movementRemaining") is float or c.state.get("movementRemaining") is int): return "Invalid builder location."

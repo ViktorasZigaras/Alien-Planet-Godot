@@ -61,6 +61,17 @@ static func step_cost(s: Dictionary,a: String,b: String) -> float:
 	if s.improvements.get(a,{}).get("road",false) and s.improvements.get(b,{}).get("road",false): cost = 1.0/3.0
 	return cost + (1.0 if river_between(s,a,b) else 0.0)
 static func reach(_s: Dictionary,_kind: String) -> int: return 1000000 # Supply ranges disabled.
+static func observed_route_cost(s: Dictionary, from: String, to: String) -> float:
+	if not s.has("knowledge"): return step_cost(s,from,to)
+	if s.tiles[to].baseTerrain == "water": return INF
+	if s.knowledge.visible.has(to) and s.tiles[to].get("hostiles",0)>0: return INF
+	var destination = s.knowledge.memory.get(to,{})
+	var origin = s.knowledge.memory.get(from,{})
+	var forest = destination.get("tile",{}).get("feature") == "forest"
+	var cost = 1.0 + int(s.tiles[to].relief == "hills") + int(forest)
+	if origin.get("improvements",{}).get("road",false) and destination.get("improvements",{}).get("road",false): cost = 1.0/3.0
+	return cost + int(river_between(s,from,to))
+
 static func routes(s: Dictionary,start: String,class_id: String = "") -> Dictionary:
 	var costs = {start:0.0}
 	var previous = {}
@@ -71,7 +82,7 @@ static func routes(s: Dictionary,start: String,class_id: String = "") -> Diction
 			if costs[candidate] < costs[current]: current = candidate
 		open.erase(current)
 		for key in neighbours(s,current):
-			var cost = costs[current]+step_cost(s,current,key)
+			var cost = costs[current]+observed_route_cost(s,current,key)
 			if cost < costs.get(key,INF):
 				costs[key] = cost
 				previous[key] = current
@@ -121,8 +132,11 @@ static func tile_yield(s: Dictionary,key: String, penalties: bool = true) -> Dic
 		if key in edge.split("|"):
 			out.food = out.get("food",0)+1
 			break
-	for resource in content().bonuses.get(t.get("bonus",""),{}).get("yields",{}):
-		out[resource] = out.get(resource,0)+content().bonuses[t.bonus].yields[resource]
+	var bonus = t.get("bonus","")
+	if s.has("knowledge"):
+		if not s.knowledge.identified.has(key) or (bonus == "alien_specimens" and not s.knowledge.investigated.has(key)): bonus = ""
+	for resource in content().bonuses.get(bonus,{}).get("yields",{}):
+		out[resource] = out.get(resource,0)+content().bonuses[bonus].yields[resource]
 	for imp in s.improvements.get(key,{}):
 		if s.improvements[key][imp]:
 			for resource in content().improvements[imp].yield: out[resource] = out.get(resource,0)+content().improvements[imp].yield[resource]

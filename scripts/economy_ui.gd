@@ -5,6 +5,9 @@ const World = preload("res://scripts/world_map.gd")
 const Planner = preload("res://scripts/economy_planner.gd")
 const Projects = preload("res://scripts/construction_session.gd")
 const Progression = preload("res://scripts/progression_session.gd")
+const Exploration = preload("res://scripts/exploration_session.gd")
+@export var exploration_mode = false
+var explorer_travel = true
 @export var planning_mode = false
 @export var construction_mode = false
 @export var progression_mode = false
@@ -23,16 +26,19 @@ var world
 var planning_box: VBoxContainer
 
 func execute(cmd: Dictionary) -> Dictionary:
+	if exploration_mode: return Exploration.command(state,cmd)
 	if progression_mode: return Progression.command(state,cmd)
 	if construction_mode: return Projects.command(state,cmd)
 	return Planner.command(state,cmd) if planning_mode else E.command(state,cmd)
 
 func save_path() -> String:
+	if exploration_mode: return "user://alien_planet_b06.json"
 	if progression_mode: return "user://alien_planet_b05.json"
 	if construction_mode: return "user://alien_planet_b04.json"
 	return "user://alien_planet_b03.json" if planning_mode else SAVE
 
 func save_format() -> String:
+	if exploration_mode: return "alien-planet-b06-v1"
 	if progression_mode: return "alien-planet-b05-v1"
 	return "alien-planet-b04-v1" if construction_mode else ("alien-planet-b03-v1" if planning_mode else "alien-planet-b02-v1")
 
@@ -40,11 +46,13 @@ func _ready() -> void:
 	if planning_mode: state = Planner.attach(state)
 	if construction_mode: state = Projects.initial()
 	if progression_mode: state = Progression.initial()
+	if exploration_mode: state = Exploration.initial()
 	box = VBoxContainer.new(); box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.add_theme_constant_override("separation",12); add_child(box)
 	var title = Label.new(); title.text = "ALIEN PLANET · B03 SHARED PLANNING" if planning_mode else "ALIEN PLANET · B02 ECONOMY TRIAL"; title.add_theme_font_size_override("font_size",26); box.add_child(title)
 	if construction_mode: title.text = "ALIEN PLANET · B04 CONSTRUCTION"
 	if progression_mode: title.text = "ALIEN PLANET · B05 GROWTH & LEARNING"
+	if exploration_mode: title.text = "ALIEN PLANET · B06 EXPLORATION"
 	var note = Label.new(); note.text = "Two ordinary civilians · seed-731 map · work resolves at End Turn · authorized planning optional; growth/projects/fauna inactive" if planning_mode else "Two ordinary civilians · same seed-731 map · planned work resolves at End Turn · AI/growth/projects/fauna inactive"; box.add_child(note)
 	if construction_mode: note.text = "Two civilians · one reusable kit · skip held/blocked projects · unused effort carries forward · growth/fauna inactive"
 	if progression_mode: note.text = "Growth/support/training/research trial · 10 Food per cohort · 2-turn training costs 2 Industry · fauna inactive"
@@ -67,7 +75,7 @@ func _ready() -> void:
 	world.size_flags_vertical = Control.SIZE_EXPAND_FILL; box.add_child(world)
 	if construction_mode:
 		world.tile_selected.connect(func(tile): construction_tile = tile; refresh())
-		world.move_requested.connect(func(tile,_append): construction_tile = tile; send({"type":"queueMove","unitId":builder_id,"target":tile,"append":_append}))
+		world.move_requested.connect(func(tile,_append): construction_tile = tile; send({"type":"queueMove","unitId":"explorer" if exploration_mode and explorer_travel else builder_id,"target":tile,"append":_append}))
 	refresh()
 	world.focus_tile("3,3")
 
@@ -95,9 +103,12 @@ func refresh() -> void:
 			state = result.state; message.text = result.message; refresh())
 	message.text = "Food deficit: %d · Energy deficit: %d. Forecast includes emergency Food reassignment when needed." % [state.shortages.food,state.shortages.energy]
 	refresh_planning()
+	if exploration_mode: refresh_exploration()
 	if progression_mode: refresh_progression()
 	if construction_mode: refresh_construction(forecast_state.state)
-	world.update_view(Session.projection(state),"2,3","","none")
+	var projection = Session.projection(state)
+	if exploration_mode: projection = Exploration.K.view(state,projection)
+	world.update_view(projection,construction_tile if exploration_mode else "2,3","explorer" if exploration_mode and explorer_travel else "","none")
 
 func refresh_planning() -> void:
 	for child in planning_box.get_children(): planning_box.remove_child(child); child.queue_free()
@@ -121,6 +132,34 @@ func refresh_planning() -> void:
 
 func send(cmd: Dictionary) -> void:
 	var result = execute(cmd); state = result.state; refresh(); message.text = result.message
+
+func refresh_exploration() -> void:
+	var row = HBoxContainer.new()
+	planning_box.add_child(row)
+	var toggle = CheckButton.new()
+	toggle.text = "Right-click moves Explorer"
+	toggle.button_pressed = explorer_travel
+	row.add_child(toggle)
+	toggle.toggled.connect(func(on): explorer_travel = on; refresh())
+	var key = state.cohorts.explorer.state.tileId
+	for order in ["identify","investigate","fieldwork","stopFieldwork"]:
+		var button = Button.new()
+		button.text = "Stop fieldwork" if order == "stopFieldwork" else order.capitalize()
+		row.add_child(button)
+		button.pressed.connect(func(): send({"type":order}))
+	var label = Label.new()
+	var memory = state.knowledge.memory.get(construction_tile,{})
+	var site = memory.get("tile",{}).get("bonus","")
+	var visibility = "Visible" if state.knowledge.visible.has(construction_tile) else ("Remembered since turn %d" % memory.turn if not memory.is_empty() else "Unobserved")
+	var status = ("Unidentified signal" if memory.get("signal",false) else "No known signal") if site == "" else E.R.content().bonuses[site].name
+	if site != "" and state.knowledge.investigated.has(construction_tile): status += " · investigated"
+	label.text = "%s · %s · %s · Explorer at %s" % [construction_tile,visibility,status,key]
+	planning_box.add_child(label)
+	var advice = Label.new()
+	var block = Exploration.K.work_reason(state,"investigate")
+	if block == "" and E.resolve(state,false).ledger.closing.food < 0: block = "Stabilize Food before committing to fieldwork."
+	advice.text = "Investigation available for +2 Science" if block == "" else block
+	planning_box.add_child(advice)
 
 func refresh_progression() -> void:
 	var row = HBoxContainer.new(); planning_box.add_child(row)
@@ -194,7 +233,7 @@ func refresh_construction(forecast: Dictionary) -> void:
 func action(text: String) -> void:
 	match text:
 		"End turn": state = execute({"type":"endTurn"}).state
-		"Restart": state = Progression.initial() if progression_mode else (Projects.initial() if construction_mode else (Planner.attach(E.initial()) if planning_mode else E.initial()))
+		"Restart": state = Exploration.initial() if exploration_mode else Progression.initial() if progression_mode else (Projects.initial() if construction_mode else (Planner.attach(E.initial()) if planning_mode else E.initial()))
 		"Save":
 			var file = FileAccess.open(save_path(),FileAccess.WRITE)
 			if file == null: message.text = "Save failed."; return
@@ -203,7 +242,7 @@ func action(text: String) -> void:
 			if not FileAccess.file_exists(save_path()): message.text = "No save yet."; return
 			var data = JSON.parse_string(FileAccess.get_file_as_string(save_path()))
 			if not data is Dictionary or data.get("format") != save_format(): message.text = "Invalid save for this trial."; return
-			var error = Progression.validate(data.get("game")) if progression_mode else (Projects.validate(data.get("game")) if construction_mode else (Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game"))))
+			var error = Exploration.validate(data.get("game")) if exploration_mode else Progression.validate(data.get("game")) if progression_mode else (Projects.validate(data.get("game")) if construction_mode else (Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game"))))
 			if error != "": message.text = error; return
 			state = Planner.plan(data.game) if planning_mode else data.game
 	refresh()

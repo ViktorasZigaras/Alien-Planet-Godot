@@ -1,6 +1,6 @@
-# Current local review build: Alien Planet 0.911 B05
+# Current local review build · Alien Planet 0.911 B06
 
-Open `project.godot` in Godot 4.5.1 Standard and press F5. Read [CONTINUE_HERE.md](CONTINUE_HERE.md) and the [B05 review](docs/Batch_0911_B05_Review.md). The local default is the growth/support/training/research trial; earlier batch scenes and historical `main.tscn` remain separate. B04 was uploaded; B05 is local for play review.
+Open `project.godot` in Godot 4.5.1 Standard and press F5. B06 opens the exploration trial. See [B06 review](docs/Batch_0911_B06_Review.md). B05 is on GitHub at `c2ac076`. Earlier batch scenes and historical `main.tscn` are available in the project.
 
 ---
 

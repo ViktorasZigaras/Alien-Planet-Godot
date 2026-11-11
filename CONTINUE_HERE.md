@@ -1,5 +1,10 @@
 # Current local handoff — 11 November 2026
 
+F5 opens B06 locally. The Explorer starts at the Landing Station. Right-click
+a hex to travel, Identify on arrival, and advance to a stationary turn before
+Investigate or Fieldwork. See docs/Batch_0911_B06_Review.md. B05 is uploaded
+as c2ac076. Next B07 covers ecology, obstructions and settlement pressure.
+
 Latest local F5 scene is B05 (`b05.tscn`). See `docs/Batch_0911_B05_Review.md`
 for the approved trial numbers, controls, evidence and limits. Open the management
 panel for growth, training and research. Train a Scientist, Study, Generate one

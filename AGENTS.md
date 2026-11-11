@@ -1,5 +1,10 @@
 # Current handoff — 11 November 2026
 
+B05 is on GitHub at c2ac076. B06 is the local F5 review build. Open the
+exploration controls, right-click to travel, and investigate an identified
+site on a stationary turn. See docs/Batch_0911_B06_Review.md. Next B07 covers
+foundational ecology, obstructions and settlement pressure.
+
 For future batches, choose reasonable provisional rules or values when the design
 leaves them open. State the choice in the progress update and batch review, then
 continue without waiting for a reply. Keep those choices easy to revise. Ask only

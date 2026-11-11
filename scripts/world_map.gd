@@ -212,7 +212,7 @@ func build_terrain() -> void:
 func update_structures() -> void:
 	var towns = state.settlements.values().map(func(t): return [t.id,t.tileId])
 	var sites = state.neutralSites.keys()
-	var signature = str(hash([towns,state.districts,state.buildings,state.improvements,sites,state.get("claimOwners",{}),state.tiles.values().map(func(t):return [t.id,t.pollution,t.obstacle,t.vegetation,t.biomass]),state.get("xenos",{}).get("mass",{}),state.get("xenos",{}).get("nests",{}).values().map(func(n):return [n.id,n.tile,n.get("burned",false)])]))
+	var signature = str(hash([towns,state.districts,state.buildings,state.improvements,sites,state.get("claimOwners",{}),state.tiles.values().map(func(t):return [t.id,t.pollution,t.obstacle,t.vegetation,t.biomass,t.bonus]),state.get("xenos",{}).get("mass",{}),state.get("xenos",{}).get("nests",{}).values().map(func(n):return [n.id,n.tile,n.get("burned",false)])]))
 	if signature == structure_signature: return
 	structure_signature = signature
 	clear(structure_root)
@@ -466,6 +466,19 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if fx != null: move_child(fx,get_child_count()-1)
 	if camera == null or state.is_empty(): return
+	if state.has("knowledge"):
+		for tile in state.tiles.values():
+			if state.knowledge.visible.has(tile.id): continue
+			var points = PackedVector2Array()
+			for i in range(6):
+				var a = deg_to_rad(30+i*60)
+				points.append(screen(pos(tile)+Vector3(cos(a)*0.95,0.08,sin(a)*0.95)))
+			var opacity = 0.18 if state.knowledge.memory.has(tile.id) else 0.35
+			draw_colored_polygon(points,Color(0.08,0.10,0.16,opacity))
+		for key in state.knowledge.memory:
+			var record = state.knowledge.memory[key]
+			if record.get("signal",false) and not state.knowledge.identified.has(key):
+				draw_string(font,screen(surface(key,Vector3(0,0.5,0))),"?",HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color("f5d58a"))
 	for key in [selected_tile,hovered]:
 		if not state.tiles.has(key): continue
 		var points = PackedVector2Array()
