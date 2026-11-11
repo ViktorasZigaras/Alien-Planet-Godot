@@ -1,5 +1,9 @@
 # Current handoff — 11 November 2026
 
+B06 is on GitHub at f8dbb38. B07 is the local F5 ecology review build.
+See docs/Batch_0911_B07_Review.md for trial rules and tests. B08 covers
+civilian survival and first military operations.
+
 B05 is on GitHub at c2ac076. B06 is the local F5 review build. Open the
 exploration controls, right-click to travel, and investigate an identified
 site on a stationary turn. See docs/Batch_0911_B06_Review.md. Next B07 covers

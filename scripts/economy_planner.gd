@@ -35,6 +35,7 @@ static func candidates(s: Dictionary) -> Array:
 	var ids = ["idle","manufacture"]
 	if s.has("construction"): ids.append_array(["construct","mixed","builder"])
 	if s.has("progression"): ids.append_array(["study","generate","training"])
+	if s.has("ecology"): ids.append_array(["waste","medical"])
 	for list in [food.slice(0,3),minerals.slice(0,3)]:
 		for job in list:
 			if job.id not in ids: ids.append(job.id)
@@ -50,6 +51,9 @@ static func score(s: Dictionary, trial: Dictionary, missing: int) -> float:
 		value -= 10.0*maxi(0,missing-int(ledger.closing.minerals))
 	else: value -= float(ledger.gross.industry+ledger.gross.minerals)
 	if ledger.net.food<0: value += 5.0*ledger.net.food
+	if ledger.has("ecology"):
+		value -= 12.0*ledger.ecology.spilled
+		value += 2.0*ledger.ecology.treated
 	for id in trial.cohorts:
 		if trial.cohorts[id].state.job == s.cohorts[id].state.job: value += 0.1
 	return value

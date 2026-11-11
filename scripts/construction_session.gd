@@ -27,7 +27,8 @@ static func validate(s) -> String:
 	var baseline = E.initial()
 	var towns = s.get("settlements",{}).duplicate(true)
 	if s.has("progression") and towns.has("main"): towns.main.growth = 0
-	if not E.same(s.tiles,baseline.tiles) or not E.same(s.get("tileAccess"),baseline.tileAccess) or not E.same(towns,baseline.settlements): return "Changed construction fixture geography."
+	var geography_ok = E.TerrainEcology.same_geography(s.tiles,baseline.tiles) if s.has("ecology") else E.same(s.tiles,baseline.tiles)
+	if not geography_ok or not E.same(s.get("tileAccess"),baseline.tileAccess) or not E.same(towns,baseline.settlements): return "Changed construction fixture geography."
 	var ids = []; var goals = []; var pending = []; var expected = s.duplicate(true)
 	expected.improvements = {}; expected.districts = {}; expected.buildings = {}; expected.construction.farmTiers = {}
 	for project in c.queue:

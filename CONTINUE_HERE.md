@@ -1,5 +1,12 @@
 # Current local handoff — 11 November 2026
 
+F5 opens B07. The management panel shows waste, health, terrain work and
+repellent. Assign Waste service to treat stored waste or train and staff a
+Medic for health. Deploy a builder, bring them to the selected hex, and
+order Clear terrain or Clean spill. See docs/Batch_0911_B07_Review.md.
+B06 is uploaded as f8dbb38. B08 covers civilian survival and first
+military operations.
+
 F5 opens B06 locally. The Explorer starts at the Landing Station. Right-click
 a hex to travel, Identify on arrival, and advance to a stationary turn before
 Investigate or Fieldwork. See docs/Batch_0911_B06_Review.md. B05 is uploaded

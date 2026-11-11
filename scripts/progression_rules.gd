@@ -72,7 +72,7 @@ static func finish_turn(s: Dictionary, ledger: Dictionary) -> void:
 			s.cohorts[id].state.job = null
 			s.progression.training.erase(id)
 			s.progression.events.append({"turn":s.turn,"event":"trained","person":id})
-	var room = working(s)<support(s)
+	var room = working(s)<support(s) and s.get("ecology",{}).get("health",100)>=70
 	var surplus = maxi(0,int(ledger.gross.food)-int(ledger.upkeep.food)-int(ledger.spending.food))
 	var transfer = 1 if s.progression.growthEnabled and room and surplus>0 and s.resources.food>0 else 0
 	s.storage.main.food -= transfer; s.resources.food -= transfer; s.settlements.main.growth += transfer

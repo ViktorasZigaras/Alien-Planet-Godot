@@ -6,6 +6,8 @@ const Planner = preload("res://scripts/economy_planner.gd")
 const Projects = preload("res://scripts/construction_session.gd")
 const Progression = preload("res://scripts/progression_session.gd")
 const Exploration = preload("res://scripts/exploration_session.gd")
+const Ecology = preload("res://scripts/ecology_session.gd")
+@export var ecology_mode = false
 @export var exploration_mode = false
 var explorer_travel = true
 @export var planning_mode = false
@@ -26,18 +28,21 @@ var world
 var planning_box: VBoxContainer
 
 func execute(cmd: Dictionary) -> Dictionary:
+	if ecology_mode: return Ecology.command(state,cmd)
 	if exploration_mode: return Exploration.command(state,cmd)
 	if progression_mode: return Progression.command(state,cmd)
 	if construction_mode: return Projects.command(state,cmd)
 	return Planner.command(state,cmd) if planning_mode else E.command(state,cmd)
 
 func save_path() -> String:
+	if ecology_mode: return "user://alien_planet_b07.json"
 	if exploration_mode: return "user://alien_planet_b06.json"
 	if progression_mode: return "user://alien_planet_b05.json"
 	if construction_mode: return "user://alien_planet_b04.json"
 	return "user://alien_planet_b03.json" if planning_mode else SAVE
 
 func save_format() -> String:
+	if ecology_mode: return "alien-planet-b07-v1"
 	if exploration_mode: return "alien-planet-b06-v1"
 	if progression_mode: return "alien-planet-b05-v1"
 	return "alien-planet-b04-v1" if construction_mode else ("alien-planet-b03-v1" if planning_mode else "alien-planet-b02-v1")
@@ -47,15 +52,18 @@ func _ready() -> void:
 	if construction_mode: state = Projects.initial()
 	if progression_mode: state = Progression.initial()
 	if exploration_mode: state = Exploration.initial()
+	if ecology_mode: state = Ecology.initial()
 	box = VBoxContainer.new(); box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.add_theme_constant_override("separation",12); add_child(box)
 	var title = Label.new(); title.text = "ALIEN PLANET · B03 SHARED PLANNING" if planning_mode else "ALIEN PLANET · B02 ECONOMY TRIAL"; title.add_theme_font_size_override("font_size",26); box.add_child(title)
 	if construction_mode: title.text = "ALIEN PLANET · B04 CONSTRUCTION"
 	if progression_mode: title.text = "ALIEN PLANET · B05 GROWTH & LEARNING"
 	if exploration_mode: title.text = "ALIEN PLANET · B06 EXPLORATION"
+	if ecology_mode: title.text = "ALIEN PLANET · B07 ECOLOGY"
 	var note = Label.new(); note.text = "Two ordinary civilians · seed-731 map · work resolves at End Turn · authorized planning optional; growth/projects/fauna inactive" if planning_mode else "Two ordinary civilians · same seed-731 map · planned work resolves at End Turn · AI/growth/projects/fauna inactive"; box.add_child(note)
 	if construction_mode: note.text = "Two civilians · one reusable kit · skip held/blocked projects · unused effort carries forward · growth/fauna inactive"
-	if progression_mode: note.text = "Growth/support/training/research trial · 10 Food per cohort · 2-turn training costs 2 Industry · fauna inactive"
+	if ecology_mode: note.text = "Ecology trial · roaming wildlife · waste treatment, terrain work and settlement health"
+	elif progression_mode: note.text = "Growth/support/training/research trial · 10 Food per cohort · 2-turn training costs 2 Industry · fauna inactive"
 	summary = Label.new(); box.add_child(summary)
 	choices = VBoxContainer.new()
 	if progression_mode:
@@ -103,6 +111,7 @@ func refresh() -> void:
 			state = result.state; message.text = result.message; refresh())
 	message.text = "Food deficit: %d · Energy deficit: %d. Forecast includes emergency Food reassignment when needed." % [state.shortages.food,state.shortages.energy]
 	refresh_planning()
+	if ecology_mode: refresh_ecology()
 	if exploration_mode: refresh_exploration()
 	if progression_mode: refresh_progression()
 	if construction_mode: refresh_construction(forecast_state.state)
@@ -132,6 +141,26 @@ func refresh_planning() -> void:
 
 func send(cmd: Dictionary) -> void:
 	var result = execute(cmd); state = result.state; refresh(); message.text = result.message
+
+func refresh_ecology() -> void:
+	var row = HBoxContainer.new()
+	planning_box.add_child(row)
+	for order in [["Clear terrain","clearTerrain"],["Clean spill","cleanSpill"],["Cancel terrain work","cancelTerrain"],["Repellent · 2 Energy","repellent"]]:
+		var button = Button.new()
+		button.text = order[0]
+		row.add_child(button)
+		button.pressed.connect(func(): send({"type":order[1],"person":builder_id,"tile":construction_tile}))
+	var label = Label.new()
+	var environment = state.ecology
+	var last = environment.last
+	label.text = "Health %d/100 · tank %d/4 · backlog %d · last waste %d (%d Industry) · treated %d · spilled %d" % [environment.health,environment.tank,environment.backlog,last.get("generated",0),last.get("industrial",0),last.get("treated",0),last.get("spilled",0)]
+	planning_box.add_child(label)
+	var observation = state.knowledge.memory.get(construction_tile,{}).get("tile",{})
+	var detail = Label.new()
+	var terrain = E.R.Layers.description(observation) if not observation.is_empty() else "Unobserved terrain"
+	var work = environment.terrainWork.get(builder_id,{}).get("remaining",0)
+	detail.text = "%s · %s · builder %s · work %d turns · repellent %d turns" % [construction_tile,terrain,builder_id,work,environment.repellents.get(construction_tile,0)]
+	planning_box.add_child(detail)
 
 func refresh_exploration() -> void:
 	var row = HBoxContainer.new()
@@ -176,7 +205,7 @@ func refresh_progression() -> void:
 		if id == student_id: person.select(person.item_count-1)
 	person.item_selected.connect(func(i):student_id = state.cohorts.keys()[i]; refresh())
 	var courses = OptionButton.new(); study.add_child(courses)
-	for name in ["Biologist","Scientist"]:
+	for name in (["Biologist","Scientist","Medic"] if ecology_mode else ["Biologist","Scientist"]):
 		courses.add_item(name)
 		if name == specialty: courses.select(courses.item_count-1)
 	courses.item_selected.connect(func(i):specialty = courses.get_item_text(i); refresh())
@@ -233,7 +262,7 @@ func refresh_construction(forecast: Dictionary) -> void:
 func action(text: String) -> void:
 	match text:
 		"End turn": state = execute({"type":"endTurn"}).state
-		"Restart": state = Exploration.initial() if exploration_mode else Progression.initial() if progression_mode else (Projects.initial() if construction_mode else (Planner.attach(E.initial()) if planning_mode else E.initial()))
+		"Restart": state = Ecology.initial() if ecology_mode else Exploration.initial() if exploration_mode else Progression.initial() if progression_mode else (Projects.initial() if construction_mode else (Planner.attach(E.initial()) if planning_mode else E.initial()))
 		"Save":
 			var file = FileAccess.open(save_path(),FileAccess.WRITE)
 			if file == null: message.text = "Save failed."; return
@@ -242,7 +271,7 @@ func action(text: String) -> void:
 			if not FileAccess.file_exists(save_path()): message.text = "No save yet."; return
 			var data = JSON.parse_string(FileAccess.get_file_as_string(save_path()))
 			if not data is Dictionary or data.get("format") != save_format(): message.text = "Invalid save for this trial."; return
-			var error = Exploration.validate(data.get("game")) if exploration_mode else Progression.validate(data.get("game")) if progression_mode else (Projects.validate(data.get("game")) if construction_mode else (Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game"))))
+			var error = Ecology.validate(data.get("game")) if ecology_mode else Exploration.validate(data.get("game")) if exploration_mode else Progression.validate(data.get("game")) if progression_mode else (Projects.validate(data.get("game")) if construction_mode else (Planner.validate(data.get("game")) if planning_mode else E.validate(data.get("game"))))
 			if error != "": message.text = error; return
 			state = Planner.plan(data.game) if planning_mode else data.game
 	refresh()

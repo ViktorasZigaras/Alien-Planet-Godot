@@ -15,7 +15,7 @@ static func observe(s: Dictionary) -> void:
 	for key in visible:
 		var tile = s.tiles[key].duplicate(true)
 		tile.hostiles = 0
-		tile.xenomass = false
+		tile.xenomass = s.tiles[key].xenomass if s.has("ecology") else false
 		if not s.knowledge.identified.has(key): tile.bonus = ""
 		var district = R.district_at(s,key).duplicate(true)
 		var buildings = {}

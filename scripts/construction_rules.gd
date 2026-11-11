@@ -20,6 +20,7 @@ static func available(s: Dictionary, owner: String = "") -> int:
 
 static func target_reason(s: Dictionary, recipe: String, tile: String) -> String:
 	if not RECIPES.has(recipe) or not s.tiles.has(tile) or s.tiles[tile].baseTerrain == "water" or not R.site_at(s,tile).is_empty(): return "Choose a land hex outside the settlement center."
+	if s.has("ecology") and recipe in ["farm","district"] and R.Layers.blocked(s.tiles[tile]): return "Clear the terrain before building here."
 	var has_farm = s.improvements.get(tile,{}).get("farm",false)
 	var district = R.district_at(s,tile)
 	match recipe:
@@ -99,7 +100,7 @@ static func resolve(s: Dictionary, ledger: Dictionary) -> void:
 	for c in s.cohorts.values():
 		var job = c.state.get("job")
 		var points = 2 if job in ["construct","builder"] else (1 if job == "mixed" else 0)
-		if c.id in s.construction.travelled: points = 0
+		if c.id in s.construction.travelled or s.get("ecology",{}).get("terrainWork",{}).has(c.id): points = 0
 		if job == "builder" and c.id not in s.construction.holders: points = 0
 		labor[c.id] = points; total += points
 	ledger.work = 0; ledger.unused_effort = total

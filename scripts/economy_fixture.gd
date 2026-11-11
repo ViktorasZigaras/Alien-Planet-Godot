@@ -5,6 +5,7 @@ const R = preload("res://scripts/game_rules.gd")
 const Construction = preload("res://scripts/construction_rules.gd")
 const Progress = preload("res://scripts/progression_rules.gd")
 const Exploration = preload("res://scripts/exploration_rules.gd")
+const TerrainEcology = preload("res://scripts/ecology_rules.gd")
 const ID = "b02-economy-v1"
 const LOCAL = ["food", "minerals", "industry"]
 
@@ -41,6 +42,8 @@ static func jobs(s: Dictionary) -> Array:
 			if b.type == "greenhouse": out.append({"id":"building:"+b.id+"#0","label":"Greenhouse · 3 Food · consumes 1 Energy","yield":{"food":3}})
 	if s.has("progression"):
 		out.append_array([{"id":"study","label":"Study · 1 Science · Scientist +2","yield":{"science":1}},{"id":"generate","label":"Generate · 2 Energy (4 after research)","yield":{"energy":2}},{"id":"training","label":"Continue enrolled training","yield":{}}])
+	if s.has("ecology"):
+		out.append_array([{"id":"waste","label":"Waste service · treat up to 3 contained waste","yield":{}},{"id":"medical","label":"Medical care · staffed Medic restores health","yield":{}}])
 	for key in s.tileAccess.main:
 		var amount = R.tile_yield(s,key)
 		if not amount.is_empty(): out.append({"id":"tile:"+key,"label":"Hex %s · %s · 2 Food" % [key,R.yield_text(amount)],"yield":amount})
@@ -53,6 +56,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
 			var c = s.cohorts[cmd.person]
+			if job == "medical" and c.qualification != "Medic": return "Medical care requires a trained Medic."
 			if s.has("knowledge") and s.knowledge.work != "" and job == "tile:"+s.cohorts.explorer.state.tileId: return "The Explorer is working this site."
 			if s.has("progression"):
 				if s.progression.training.has(c.id) and job != "training": return "Finish enrolled training before changing this person's job."
@@ -146,6 +150,7 @@ static func resolve(state: Dictionary, remedies: bool = true) -> Dictionary:
 	s.obligations = {}
 	var ledger = {"opening":opening,"gross":gross,"inputs":inputs,"upkeep":upkeep,"spending":spent,"net":net,"closing":{},"activity":activity}
 	Construction.resolve(s,ledger)
+	TerrainEcology.finish(s,ledger)
 	Progress.finish_turn(s,ledger)
 	for r in R.RESOURCES:
 		net[r] = s.resources[r]-opening[r]
@@ -194,7 +199,8 @@ static func validate(s) -> String:
 		if not s.has(key) or typeof(s[key]) != typeof(canonical[key]) and not (s[key] is float and canonical[key] is int): return "Missing/invalid field: "+key
 	var towns = s.settlements.duplicate(true)
 	if s.has("progression") and towns.has("main"): towns.main.growth = 0
-	if not same(s.tiles,canonical.tiles) or not same(s.tileAccess,canonical.tileAccess) or not same(towns,canonical.settlements): return "Changed fixture geography."
+	var geography_ok = TerrainEcology.same_geography(s.tiles,canonical.tiles) if s.has("ecology") else same(s.tiles,canonical.tiles)
+	if not geography_ok or not same(s.tileAccess,canonical.tileAccess) or not same(towns,canonical.settlements): return "Changed fixture geography."
 	if not R.whole(s.turn,1,9007199254740991) or (not s.has("progression") and s.cohorts.keys() != canonical.cohorts.keys()): return "Invalid turn or people."
 	if not s.cohorts.has("pop_a") or not s.cohorts.has("pop_b"): return "Missing original people."
 	# Shape-check every person before querying occupancy across all people.
@@ -205,6 +211,7 @@ static func validate(s) -> String:
 	for id in s.cohorts:
 		var c = s.cohorts[id]
 		var allowed = ["Worker","Biologist","Scientist"] if s.has("progression") else ["Worker"]
+		if s.has("ecology"): allowed.append("Medic")
 		if s.has("knowledge") and id == "explorer": allowed = ["Explorer"]
 		if not c is Dictionary or not c.get("state") is Dictionary or c.get("id") != id or c.get("home") != "main" or c.get("qualification") not in allowed or c.get("equipment") != [] or not R.whole(c.get("lastUsed"),0,9007199254740991) or not c.get("lastRoute") is Array or not (c.get("facing") is float or c.get("facing") is int): return "Invalid person."
 		if s.has("construction") and c.state.get("kind") == "mobile":

@@ -10,12 +10,13 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 	match cmd.get("type",""):
 		"growthPolicy": return "" if cmd.get("enabled") is bool else "Choose growth on/off."
 		"boostGrowth":
+			if s.get("ecology",{}).get("health",100)<70: return "Settlement health is too low for growth."
 			if not s.progression.growthEnabled or G.working(s)>=G.support(s): return "Growth needs permission and spare working support."
 			if not E.R.whole(cmd.get("amount"),1,10): return "Transfer 1–10 Food."
 			if P.available(s,"food")<cmd.amount: return "Insufficient unreserved Food."
 			return ""
 		"train":
-			if not s.cohorts.has(cmd.get("person","")) or cmd.get("qualification","") not in ["Biologist","Scientist"]: return "Choose a person and supported specialty."
+			if not s.cohorts.has(cmd.get("person","")) or cmd.get("qualification","") not in (["Biologist","Scientist","Medic"] if s.has("ecology") else ["Biologist","Scientist"]): return "Choose a person and supported specialty."
 			var c = s.cohorts[cmd.person]
 			if c.state.kind != "resident" or s.progression.training.has(c.id): return "Return to town or finish existing training."
 			if c.qualification == cmd.qualification: return "Already qualified."
@@ -57,7 +58,7 @@ static func validate(s) -> String:
 	if not s.get("cohorts") is Dictionary: return "Missing people."
 	for id in p.training:
 		var course = p.training[id]
-		if not s.cohorts.has(id) or not course is Dictionary or course.get("qualification") not in ["Biologist","Scientist"] or not E.R.whole(course.get("remaining"),1,2): return "Invalid training."
+		if not s.cohorts.has(id) or not course is Dictionary or course.get("qualification") not in (["Biologist","Scientist","Medic"] if s.has("ecology") else ["Biologist","Scientist"]) or not E.R.whole(course.get("remaining"),1,2): return "Invalid training."
 	var seen = []
 	for tech in p.techs:
 		if tech not in G.TECHS or tech in seen: return "Invalid research."

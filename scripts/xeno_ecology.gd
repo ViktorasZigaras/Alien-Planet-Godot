@@ -11,8 +11,8 @@ const DATA = {
 const FUTURE_MASS_COMBAT_BONUS = 1 # Reserved; not applied until combat design is extended.
 const WORKER_CAP = 3
 const PREDATOR_CAP = 6
-static func initial(s: Dictionary) -> Dictionary:
-	var tile = NEST_TILE
+static func initial(s: Dictionary, preferred_tile: String = NEST_TILE) -> Dictionary:
+	var tile = preferred_tile
 	if not s.tiles.has(tile) or s.tiles[tile].baseTerrain != "fungal":
 		var options = s.tiles.values()
 		options.sort_custom(func(a,b):return a.id < b.id)
@@ -197,6 +197,12 @@ static func predator_turn(s: Dictionary,players: Dictionary,u: Dictionary) -> vo
 		var options = R.neighbours(s,u.tile).filter(func(k): return s.tiles[k].baseTerrain != "water" and R.distance(s.tiles[nest.tile],s.tiles[k]) <= 5)
 		options.sort()
 		options.append(u.tile) # Sometimes linger, rather than always marching.
+		if s.has("ecology"):
+			var clear_options = options.filter(func(k): return not s.ecology.repellents.has(k) and R.site_at(s,k).is_empty())
+			if not clear_options.is_empty(): options = clear_options
+			elif s.ecology.repellents.has(u.tile):
+				u.activity = "repelled"
+				return
 		walk(s,u,options[random_index(x,options.size())])
 		u.activity = "roaming"
 	event(x,"predator_order",{"unit":u.id,"tile":u.tile,"target":u.target,"activity":u.activity})

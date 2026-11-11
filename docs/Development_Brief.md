@@ -1,5 +1,12 @@
 # Current implementation status — 11 November 2026
 
+B06 was uploaded as f8dbb38. B07 is the local ecology review build. The
+same settlement now tracks pollution containment, spills and health.
+Builders clear terrain and clean spills. Resource-driven wildlife roams,
+and repellent can deter predators from a selected hex. See
+Batch_0911_B07_Review.md. B08 covers civilian survival and first military
+operations.
+
 B04 was uploaded as `449b258`. B05 now runs locally by default: local/reserve
 Food accounting, shared one-cohort growth cap, staffed support with loss
 reassignment, paid training and actual preceding-turn research prerequisites.
