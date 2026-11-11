@@ -3,6 +3,7 @@ extends RefCounted
 const Base = preload("res://scripts/shell_fixture.gd")
 const R = preload("res://scripts/game_rules.gd")
 const Construction = preload("res://scripts/construction_rules.gd")
+const Progress = preload("res://scripts/progression_rules.gd")
 const ID = "b02-economy-v1"
 const LOCAL = ["food", "minerals", "industry"]
 
@@ -37,6 +38,8 @@ static func jobs(s: Dictionary) -> Array:
 		out.append_array([{"id":"construct","label":"Construction · 2 effort · 2 Food","yield":{}},{"id":"mixed","label":"Split · 1 manufacturing + 1 construction effort · 2 Food","yield":{"industry":1}},{"id":"builder","label":"On-site builder · 2 effort · 1 Food","yield":{}}])
 		for b in s.buildings.values():
 			if b.type == "greenhouse": out.append({"id":"building:"+b.id+"#0","label":"Greenhouse · 3 Food · consumes 1 Energy","yield":{"food":3}})
+	if s.has("progression"):
+		out.append_array([{"id":"study","label":"Study · 1 Science · Scientist +2","yield":{"science":1}},{"id":"generate","label":"Generate · 2 Energy (4 after research)","yield":{"energy":2}},{"id":"training","label":"Continue enrolled training","yield":{}}])
 	for key in s.tileAccess.main:
 		var amount = R.tile_yield(s,key)
 		if not amount.is_empty(): out.append({"id":"tile:"+key,"label":"Hex %s · %s · 2 Food" % [key,R.yield_text(amount)],"yield":amount})
@@ -49,6 +52,10 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
 			var c = s.cohorts[cmd.person]
+			if s.has("progression"):
+				if s.progression.training.has(c.id) and job != "training": return "Finish enrolled training before changing this person's job."
+				if job == "training" and not s.progression.training.has(c.id): return "Enroll in training first."
+				if job != "idle" and c.state.kind == "resident" and c.state.job == null and Progress.working(s)>=Progress.support(s,c.id,job): return "No spare working-population support."
 			if c.state.kind == "mobile" and job not in ["idle","builder"]: return "Return the builder to the settlement before assigning settlement work."
 			if job == "builder" and (c.state.kind != "mobile" or cmd.person not in s.get("construction",{}).get("holders",[])): return "Equip the reusable kit and travel to the site first."
 			var reserved = s.get("commitments",{}).get("people",{}).get(cmd.person,{})
@@ -59,6 +66,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 					if occupant.id != cmd.person and occupant.state.job == job: return "That hex already has a worker."
 			return ""
 	if s.has("construction"):
+		if s.has("progression") and cmd.get("type") == "enqueue" and cmd.get("recipe") == "farm_upgrade" and "cultivation" not in s.progression.techs: return "Research Cultivation to unlock Farm upgrades."
 		if cmd.get("type","") in ["enqueue","hold","deployBuilder","returnBuilder"]: return Construction.reason(s,cmd)
 		if cmd.get("type","") in ["move","queueMove","cancelMove"]:
 			if not s.cohorts.has(cmd.get("unitId","")) or s.cohorts[cmd.unitId].state.kind != "mobile": return "Choose a deployed builder."
@@ -72,8 +80,14 @@ static func change(s: Dictionary, resource: String, amount: int) -> void:
 
 static func resolve(state: Dictionary, remedies: bool = true) -> Dictionary:
 	var s = state.duplicate(true)
+	if s.has("progression"):
+		var ids = s.cohorts.keys(); ids.sort()
+		var ordered = {}
+		for id in ids: ordered[id] = s.cohorts[id]
+		s.cohorts = ordered
+	Progress.prepare(s)
 	var opening = s.resources.duplicate(true)
-	var gross = {}; var inputs = {}; var upkeep = {}; var spent = {}; var net = {}
+	var gross = {}; var inputs = {}; var upkeep = {}; var spent = {}; var net = {}; var activity = {}
 	for r in R.RESOURCES:
 		gross[r] = 0; inputs[r] = 0; upkeep[r] = 0; spent[r] = 0
 	# Pending jobs have performed no work and incur no charge. Prior explicit
@@ -104,7 +118,14 @@ static func resolve(state: Dictionary, remedies: bool = true) -> Dictionary:
 		var job = c.state.job
 		if c.id in s.get("construction",{}).get("travelled",[]): upkeep.food += 1; continue
 		upkeep.food += 1 if job == null or c.state.kind == "mobile" else 2
-		if job != null and job.begins_with("tile:"):
+		if s.has("progression"):
+			var produced = Progress.output(s,c)
+			if job is String and job.begins_with("building:"):
+				if s.resources.energy<=upkeep.energy: produced = {}
+				else: upkeep.energy += 1
+			for resource in produced: gross[resource] += produced[resource]
+			activity[c.id] = {"qualification":c.qualification,"output":produced}
+		elif job != null and job.begins_with("tile:"):
 			for r in R.tile_yield(s,job.substr(5)): gross[r] += R.tile_yield(s,job.substr(5))[r]
 		elif job != null and job.begins_with("building:") and s.resources.energy>upkeep.energy:
 			gross.food += 3; upkeep.energy += 1
@@ -119,8 +140,9 @@ static func resolve(state: Dictionary, remedies: bool = true) -> Dictionary:
 	for r in R.RESOURCES:
 		change(s,r,-upkeep[r]-spent[r])
 	s.obligations = {}
-	var ledger = {"opening":opening,"gross":gross,"inputs":inputs,"upkeep":upkeep,"spending":spent,"net":net,"closing":{}}
+	var ledger = {"opening":opening,"gross":gross,"inputs":inputs,"upkeep":upkeep,"spending":spent,"net":net,"closing":{},"activity":activity}
 	Construction.resolve(s,ledger)
+	Progress.finish_turn(s,ledger)
 	for r in R.RESOURCES:
 		net[r] = s.resources[r]-opening[r]
 	s.shortages.food = maxi(0,-s.resources.food)
@@ -166,16 +188,20 @@ static func validate(s) -> String:
 	var canonical = initial()
 	for key in canonical:
 		if not s.has(key) or typeof(s[key]) != typeof(canonical[key]) and not (s[key] is float and canonical[key] is int): return "Missing/invalid field: "+key
-	if not same(s.tiles,canonical.tiles) or not same(s.tileAccess,canonical.tileAccess) or not same(s.settlements,canonical.settlements): return "Changed fixture geography."
-	if not R.whole(s.turn,1,9007199254740991) or s.cohorts.keys() != canonical.cohorts.keys(): return "Invalid turn or people."
+	var towns = s.settlements.duplicate(true)
+	if s.has("progression") and towns.has("main"): towns.main.growth = 0
+	if not same(s.tiles,canonical.tiles) or not same(s.tileAccess,canonical.tileAccess) or not same(towns,canonical.settlements): return "Changed fixture geography."
+	if not R.whole(s.turn,1,9007199254740991) or (not s.has("progression") and s.cohorts.keys() != canonical.cohorts.keys()): return "Invalid turn or people."
+	if not s.cohorts.has("pop_a") or not s.cohorts.has("pop_b"): return "Missing original people."
 	# Shape-check every person before querying occupancy across all people.
-	for id in canonical.cohorts:
+	for id in s.cohorts:
 		var c = s.cohorts[id]
 		if not c is Dictionary or not c.get("state") is Dictionary: return "Invalid person."
 		if not c.state.has("job") or (c.state.job != null and not c.state.job is String): return "Invalid job."
-	for id in canonical.cohorts:
+	for id in s.cohorts:
 		var c = s.cohorts[id]
-		if not c is Dictionary or not c.get("state") is Dictionary or c.get("id") != id or c.get("home") != "main" or c.get("qualification") != "Worker" or c.get("equipment") != [] or not R.whole(c.get("lastUsed"),0,9007199254740991) or not c.get("lastRoute") is Array or not (c.get("facing") is float or c.get("facing") is int): return "Invalid person."
+		var allowed = ["Worker","Biologist","Scientist"] if s.has("progression") else ["Worker"]
+		if not c is Dictionary or not c.get("state") is Dictionary or c.get("id") != id or c.get("home") != "main" or c.get("qualification") not in allowed or c.get("equipment") != [] or not R.whole(c.get("lastUsed"),0,9007199254740991) or not c.get("lastRoute") is Array or not (c.get("facing") is float or c.get("facing") is int): return "Invalid person."
 		if s.has("construction") and c.state.get("kind") == "mobile":
 			if not s.tiles.has(c.state.get("tileId","")) or not (c.state.get("movementRemaining") is float or c.state.get("movementRemaining") is int): return "Invalid builder location."
 		elif c.state.get("kind") != "resident" or c.state.get("settlementId") != "main" or not c.state.has("job"): return "Invalid job state."

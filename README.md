@@ -1,6 +1,6 @@
-# Current review build: Alien Planet 0.911 B01
+# Current local review build: Alien Planet 0.911 B05
 
-Open `project.godot` in Godot 4.5.1 Standard and press F5. Read [CONTINUE_HERE.md](CONTINUE_HERE.md) for play-review controls and scope, and [B01 review](docs/Batch_0911_B01_Review.md) for fresh evidence. Default is a one-town/one-Worker development fixture, with economy/AI inactive. `main.tscn` retains the historical game. No repository push until final user signoff.
+Open `project.godot` in Godot 4.5.1 Standard and press F5. Read [CONTINUE_HERE.md](CONTINUE_HERE.md) and the [B05 review](docs/Batch_0911_B05_Review.md). The local default is the growth/support/training/research trial; earlier batch scenes and historical `main.tscn` remain separate. B04 was uploaded; B05 is local for play review.
 
 ---
 

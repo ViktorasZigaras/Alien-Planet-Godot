@@ -1,5 +1,12 @@
 # Current local handoff — 11 November 2026
 
+Latest local F5 scene is B05 (`b05.tscn`). See `docs/Batch_0911_B05_Review.md`
+for the approved trial numbers, controls, evidence and limits. Open the management
+panel for growth, training and research. Train a Scientist, Study, Generate one
+turn, then purchase Power Systems to double generator output. B04 is on GitHub
+at `449b258`; B05 remains local. Earlier scenes/default descriptions below are
+historical. Next B06: knowledge, anomalies and safe exploration.
+
 F5 now opens B04 construction in the permanent `Alien-Planet` checkout. See
 `docs/Batch_0911_B04_Review.md`. Queue a Farm on a flat land hex; enable automatic
 authorized work, or manually gather/manufacture/construct. User selected skipping

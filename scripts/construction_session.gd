@@ -25,7 +25,9 @@ static func validate(s) -> String:
 	if not c.get("queue") is Array or not c.get("holders") is Array or not c.get("travelled") is Array or not c.get("farmTiers") is Dictionary or c.get("kits") != 1 or not E.R.whole(c.get("next"),1,9007199254740991): return "Invalid construction state."
 	if not s.get("tiles") is Dictionary or not s.get("cohorts") is Dictionary: return "Missing geography/people."
 	var baseline = E.initial()
-	if not E.same(s.tiles,baseline.tiles) or not E.same(s.get("tileAccess"),baseline.tileAccess) or not E.same(s.get("settlements"),baseline.settlements): return "Changed construction fixture geography."
+	var towns = s.get("settlements",{}).duplicate(true)
+	if s.has("progression") and towns.has("main"): towns.main.growth = 0
+	if not E.same(s.tiles,baseline.tiles) or not E.same(s.get("tileAccess"),baseline.tileAccess) or not E.same(towns,baseline.settlements): return "Changed construction fixture geography."
 	var ids = []; var goals = []; var pending = []; var expected = s.duplicate(true)
 	expected.improvements = {}; expected.districts = {}; expected.buildings = {}; expected.construction.farmTiers = {}
 	for project in c.queue:

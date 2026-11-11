@@ -34,12 +34,44 @@ static func candidates(s: Dictionary) -> Array:
 	minerals.sort_custom(func(a,b): return a.yield.get("minerals",0)>b.yield.get("minerals",0) if a.yield.get("minerals",0)!=b.yield.get("minerals",0) else a.id<b.id)
 	var ids = ["idle","manufacture"]
 	if s.has("construction"): ids.append_array(["construct","mixed","builder"])
+	if s.has("progression"): ids.append_array(["study","generate","training"])
 	for list in [food.slice(0,3),minerals.slice(0,3)]:
 		for job in list:
 			if job.id not in ids: ids.append(job.id)
 	for c in s.cohorts.values():
 		if c.state.job != null and c.state.job not in ids: ids.append(c.state.job)
 	return ids
+
+static func score(s: Dictionary, trial: Dictionary, missing: int) -> float:
+	var ledger = E.resolve(trial,false).ledger
+	var value = -10000.0*maxi(0,-int(ledger.closing.food))+120.0*ledger.get("work",0)
+	if missing>0:
+		value += 100.0*mini(missing,int(ledger.gross.industry))
+		value -= 10.0*maxi(0,missing-int(ledger.closing.minerals))
+	else: value -= float(ledger.gross.industry+ledger.gross.minerals)
+	if ledger.net.food<0: value += 5.0*ledger.net.food
+	for id in trial.cohorts:
+		if trial.cohorts[id].state.job == s.cohorts[id].state.job: value += 0.1
+	return value
+
+static func joint_allocations(s: Dictionary, options: Array, missing: int) -> Dictionary:
+	var seed = s.duplicate(true); seed.commitments.people = {}
+	for c in seed.cohorts.values(): c.state.job = null
+	var beam = [{"state":seed,"score":0.0}]; var rejected = 0; var evaluated = 0
+	var ids = s.cohorts.keys(); ids.sort()
+	for id in ids:
+		var expanded = []
+		for partial in beam:
+			for job in options:
+				var result = E.command(partial.state,{"type":"assign","person":id,"job":job})
+				if not result.ok: rejected += 1; continue
+				evaluated += 1
+				var value = score(s,result.state,missing)
+				expanded.append({"state":result.state,"score":value})
+		expanded.sort_custom(func(a,b):return a.score>b.score)
+		# Preserve the exhaustive original two-person case; bound growth cases.
+		beam = expanded.slice(0,16) if s.cohorts.size()>2 else expanded
+	return {"beam":beam,"rejected":rejected,"evaluated":evaluated}
 
 static func plan(state: Dictionary) -> Dictionary:
 	var s = attach(state)
@@ -52,37 +84,10 @@ static func plan(state: Dictionary) -> Dictionary:
 	var options = candidates(s)
 	var best = {}; var best_score = -INF; var examined = 0; var rejected = 0
 	var baseline = E.resolve(s,false).ledger
-	# Exhaustive, bounded pair allocation fits this disclosed two-person fixture.
-	# It forecasts ordinary legal commands rather than executing a scripted route.
-	for first in options:
-		for second in options:
-			var trial = s.duplicate(true); trial.commitments.people = {}
-			# Clear pending work before simultaneous reallocation, allowing swaps.
-			for c in trial.cohorts.values(): c.state.job = null
-			var legal = true
-			for pair in [["pop_a",first],["pop_b",second]]:
-				var result = E.command(trial,{"type":"assign","person":pair[0],"job":pair[1]})
-				if not result.ok: legal = false; break
-				trial = result.state
-			if not legal: rejected += 1; continue
-			examined += 1
-			var ledger = E.resolve(trial,false).ledger
-			# Food safety dominates capital ambitions. No desired universal stock
-			# reserve: only cover this turn and the explicit outstanding purpose.
-			var shortage = maxi(0,-int(ledger.closing.food))
-			var score = -10000.0*shortage
-			score += 120.0*ledger.get("work",0)
-			if missing > 0:
-				score += 100.0*mini(missing,int(ledger.gross.industry))
-				var raw_need = maxi(0,missing-int(ledger.closing.minerals))
-				score -= 10.0*raw_need
-			else:
-				# Keep the colony alive while avoiding purposeless capital hoards.
-				score -= float(ledger.gross.industry+ledger.gross.minerals)
-			if ledger.net.food < 0: score += 5.0*ledger.net.food
-			for id in trial.cohorts:
-				if trial.cohorts[id].state.job == s.cohorts[id].state.job: score += 0.1
-			if score > best_score: best_score = score; best = trial
+	var choices = joint_allocations(s,options,missing)
+	rejected = choices.rejected; examined = choices.evaluated
+	for choice in choices.beam:
+		if choice.score>best_score: best_score = choice.score; best = choice.state
 	if best.is_empty():
 		s.planning.review = {"blocked":"No legal joint allocation","candidates":examined,"rejected":rejected}
 		return s

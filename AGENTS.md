@@ -1,5 +1,18 @@
 # Current handoff — 11 November 2026
 
+For future batches, choose reasonable provisional rules or values when the design
+leaves them open. State the choice in the progress update and batch review, then
+continue without waiting for a reply. Keep those choices easy to revise. Ask only
+when a material decision cannot reasonably be inferred or requires approval.
+
+B04 uploaded as `449b258` on explicit instruction. Latest local F5 is B05
+(`b05.tscn`): approved provisional growth/support/training numbers, actual
+previous-turn operational research, same stock/work interfaces and bounded
+larger-population planning. See `docs/Batch_0911_B05_Review.md`. All eight local
+suites passed, B05 80 checks. Preserve new evidence under `reports/b05`. B05
+awaits play review; next B06 concerns knowledge/anomalies/exploration. Do not
+adopt unselected support exceptions or Engineer rates. Earlier notes are historical.
+
 B04 construction is now the default F5 scene (`b04.tscn`). Read
 `docs/Batch_0911_B04_Review.md` before further changes. User explicitly chose skip
 blocked/held entries and carry effort forward. Preserve separate B01–B03 scenes.

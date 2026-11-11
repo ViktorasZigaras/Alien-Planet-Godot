@@ -1,5 +1,12 @@
 # Current implementation status — 11 November 2026
 
+B04 was uploaded as `449b258`. B05 now runs locally by default: local/reserve
+Food accounting, shared one-cohort growth cap, staffed support with loss
+reassignment, paid training and actual preceding-turn research prerequisites.
+Ordinary start reached operating Power Systems by turn 8. All eight suites
+passed (B05 80 checks). See `Batch_0911_B05_Review.md`. B05 is pending play
+review; next B06 is knowledge, anomalies and safe exploration.
+
 B04 local construction implementation is now the F5 default. Ordered queue skips
 blocked/held entries and carries effort forward by explicit user choice. Materials
 and labor are paid separately; settlement-only, on-site builder and combined work
