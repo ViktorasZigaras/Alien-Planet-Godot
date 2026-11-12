@@ -1,6 +1,6 @@
-# Current build · Alien Planet 0.911 B08
+# Current local review build · Alien Planet 0.911 B09
 
-Open `project.godot` in Godot 4.5.1 Standard and press F5. B08 opens the survival and combat trial. See [B08 review](docs/Batch_0911_B08_Review.md). B07 is on GitHub at `59d45fb`. Earlier batch scenes and historical `main.tscn` are available in the project.
+Open `project.godot` in Godot 4.5.1 Standard and press F5. B09 opens the integrated opening and rebuilt 1080p interface. See [B09 review](docs/Batch_0911_B09_Review.md). B08 is on GitHub at `2b0c5ba`. Earlier batch scenes and historical `main.tscn` are available in the project.
 
 ---
 

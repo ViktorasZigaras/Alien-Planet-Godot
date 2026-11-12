@@ -1,7 +1,18 @@
 class_name PlanetWorldMap
 extends Control
 signal tile_selected(key: String)
+signal tile_activated(key: String)
+var double_selection = false
 signal move_requested(key: String,append: bool)
+signal move_preview(key: String)
+var defer_right_click = false
+var right_preview_active = false
+var preview_route: Array = []
+var highlight_pollution = false
+const SurveyGround = preload("res://assets/shaders/survey_ground.gdshader")
+const FieldAssets = preload("res://scripts/field_assets.gd")
+var opening_presentation = false
+var show_work_labels = false
 signal hover_changed(key: String)
 const X = preload("res://scripts/xeno_ecology.gd")
 const XModels = preload("res://scripts/xeno_models.gd")
@@ -88,15 +99,21 @@ func _ready() -> void:
 	env.environment.background_color = Color("15232c")
 	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color = Color("b9ced4")
-	env.environment.ambient_light_energy = 0.55
+	env.environment.ambient_light_energy = 0.47 if opening_presentation else 0.55
 	world.add_child(env)
 	var light = DirectionalLight3D.new()
 	light.name = "Sun"
 	light.rotation_degrees = Vector3(-48,-30,0)
 	light.light_color = Color("ffe5bf")
-	light.light_energy = 0.86
-	light.shadow_enabled = false
+	light.light_energy = 0.78 if opening_presentation else 0.86
+	light.shadow_enabled = opening_presentation
 	world.add_child(light)
+	if opening_presentation:
+		var sea = PlaneMesh.new()
+		sea.size = Vector2(110,110)
+		var backdrop = A.P.mesh(world,sea,Vector3(7,-0.14,5),Color("#1a3240"))
+		backdrop.material_override = A.moving(Color("#1a3240"),true)
+		backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	world.add_child(camera)
@@ -136,7 +153,7 @@ func update_view(s: Dictionary,tile: String,unit: String,support: String) -> voi
 	overlay = support
 	# Supply ranges are disabled; do not run whole-map routes for an unused overlay.
 	supply = {}
-	var signature = str(hash([s.tiles.values().map(func(t):return [t.id,t.baseTerrain,t.biome,t.feature,t.relief,t.vegetation]),s.rivers,s.get("xenos",{}).get("nests",{}).values().map(func(n):return n.tile)]))
+	var signature = str(hash([s.get("survey",{}),s.tiles.values().map(func(t):return [t.id,t.baseTerrain,t.biome,t.feature,t.relief,t.vegetation]),s.rivers,s.get("xenos",{}).get("nests",{}).values().map(func(n):return n.tile)]))
 	if signature != terrain_signature and not building:
 		terrain_signature = signature
 		build_terrain.call_deferred()
@@ -150,6 +167,17 @@ func select_view(tile: String,unit: String) -> void:
 	if changed and built: update_actors()
 	queue_redraw()
 
+func survey_surface() -> ShaderMaterial:
+	var palette = Image.create_empty(state.map.width,state.map.height,false,Image.FORMAT_RGBA8)
+	for tile in state.tiles.values():
+		if tile.baseTerrain != "water":
+			palette.set_pixel(tile.q,tile.r,Color(A.TERRAIN[tile.baseTerrain]))
+	var material = ShaderMaterial.new()
+	material.shader = SurveyGround
+	material.set_shader_parameter("palette",ImageTexture.create_from_image(palette))
+	material.set_shader_parameter("paint",load("res://assets/world/frontier_ground.png"))
+	return material
+
 func build_terrain() -> void:
 	if building: return
 	building = true
@@ -158,12 +186,18 @@ func build_terrain() -> void:
 	clear(terrain_root)
 	var batch = Batch.new()
 	var templates = {}
+	var survey_material = survey_surface() if state.has("survey") else null
 	var index = 0
 	for t in state.tiles.values():
 		var appearance = t.duplicate()
 		if state.get("xenos",{}).get("nests",{}).values().any(func(n):return n.tile == t.id): appearance.feature = null
 		var key = str([appearance.baseTerrain,appearance.biome,appearance.feature,appearance.relief,appearance.vegetation])
-		if not templates.has(key): templates[key] = A.terrain(appearance)
+		if not templates.has(key):
+			templates[key] = A.terrain(appearance)
+			if survey_material != null:
+				var ground: MeshInstance3D = templates[key].get_child(0)
+				ground.mesh = A.land_mesh(t.relief == "hills",false,true)
+				if t.baseTerrain != "water": ground.material_override = survey_material
 		var transform = Transform3D(Basis.IDENTITY,pos(t))
 		batch.collect(templates[key],transform)
 		index += 1
@@ -181,7 +215,11 @@ func build_terrain() -> void:
 		var model = Node3D.new()
 		model.position = (a+b)/2+Vector3(0,0.016,0)
 		model.rotation.y = atan2((b-a).x,(b-a).z)
-		A.P.box(model,Vector3.ZERO,Vector3(1.0,0.025,0.055),Color("70bed0"))
+		if survey_material != null:
+			A.P.box(model,Vector3(0,0,0),Vector3(1.02,0.018,0.14),Color("#716c55"))
+			A.P.box(model,Vector3(0,0.013,0),Vector3(1.035,0.014,0.085),Color("#548b8d"))
+		else:
+			A.P.box(model,Vector3.ZERO,Vector3(1.0,0.025,0.055),Color("70bed0"))
 		river_batch.collect(model)
 		model.free()
 	for t in state.tiles.values():
@@ -193,8 +231,14 @@ func build_terrain() -> void:
 			var shore = Node3D.new()
 			shore.position = (a+b)/2-(b-a).normalized()*0.025+Vector3(0,0.018,0)
 			shore.rotation.y = atan2((b-a).x,(b-a).z)
-			A.P.box(shore,Vector3.ZERO,Vector3(0.96,0.012,0.065),Color("6b827b"))
-			A.P.box(shore,Vector3(0,0.008,-0.01),Vector3(0.94,0.008,0.018),Color("b2c4af"))
+			if survey_material != null:
+				A.P.box(shore,Vector3(0,0,-0.075),Vector3(1.015,0.012,0.17),Color("#4c8486"))
+				A.P.box(shore,Vector3(0,0.006,0.035),Vector3(1.005,0.009,0.075),Color("#a0926e"))
+				var offset = 0.13 if posmod(hash(t.id+next),2) == 0 else -0.13
+				A.P.box(shore,Vector3(offset,0.011,-0.045),Vector3(0.63,0.005,0.028),Color("#aac2ae"))
+			else:
+				A.P.box(shore,Vector3.ZERO,Vector3(0.96,0.012,0.065),Color("6b827b"))
+				A.P.box(shore,Vector3(0,0.008,-0.01),Vector3(0.94,0.008,0.018),Color("b2c4af"))
 			river_batch.collect(shore)
 			shore.free()
 	river_batch.emit(terrain_root)
@@ -212,7 +256,8 @@ func build_terrain() -> void:
 func update_structures() -> void:
 	var towns = state.settlements.values().map(func(t): return [t.id,t.tileId])
 	var sites = state.neutralSites.keys()
-	var signature = str(hash([towns,state.districts,state.buildings,state.improvements,sites,state.get("claimOwners",{}),state.tiles.values().map(func(t):return [t.id,t.pollution,t.obstacle,t.vegetation,t.biomass,t.bonus]),state.get("xenos",{}).get("mass",{}),state.get("xenos",{}).get("nests",{}).values().map(func(n):return [n.id,n.tile,n.get("burned",false)])]))
+	var known = state.get("knowledge",{}).get("memory",{}) if opening_presentation else {}
+	var signature = str(hash([known.keys(),towns,state.districts,state.buildings,state.improvements,sites,state.get("claimOwners",{}),state.tiles.values().map(func(t):return [t.id,t.pollution,t.obstacle,t.vegetation,t.biomass,t.bonus]),state.get("xenos",{}).get("mass",{}),state.get("xenos",{}).get("nests",{}).values().map(func(n):return [n.id,n.tile,n.get("burned",false)])]))
 	if signature == structure_signature: return
 	structure_signature = signature
 	clear(structure_root)
@@ -225,7 +270,7 @@ func update_structures() -> void:
 			batch.collect(resource)
 			resource.free()
 	for town in state.settlements.values():
-		var model = A.settlement(town.id == "main")
+		var model = A.improvement("field_camp") if town.id.begins_with("outpost_") else A.settlement(town.id == "main")
 		model.position = surface(town.tileId)
 		var colour = Claims.COLORS[state.get("settlementOwners",{}).get(town.id,"blue")]
 		A.P.cylinder(model,Vector3(-0.43,0.35,0.02),0.014,0.70,Color("c4bda3"),6)
@@ -260,7 +305,7 @@ func update_structures() -> void:
 						piece.look_at_from_position(piece.position,finish)
 					batch.collect(road)
 					road.free()
-			var model = A.improvement(kind)
+			var model = FieldAssets.farm() if opening_presentation and kind == "farm" else A.improvement(kind)
 			model.position = surface(tile)
 			batch.collect(model)
 			model.free()
@@ -271,6 +316,12 @@ func update_structures() -> void:
 		batch.collect(model)
 		model.free()
 	for t in state.tiles.values():
+		if known.has(t.id):
+			var style = FieldAssets.ground_style(t)
+			if style != "":
+				var dressing = FieldAssets.ground(style,t,pos(t))
+				batch.collect(dressing)
+				dressing.free()
 		var layers = []
 		if t.pollution > 0: layers.append("pollution"+str(int(t.pollution)))
 		if t.obstacle != "": layers.append(t.obstacle)
@@ -381,7 +432,7 @@ func focus_tile(key: String) -> void:
 func update_camera() -> void:
 	if camera == null or state.is_empty(): return
 	camera.size = fixed_camera_size if fixed_scale else 47.0/zoom
-	camera.position = target+Vector3(sin(yaw)*23,26,cos(yaw)*23)
+	camera.position = target+Vector3(sin(yaw)*23,21 if opening_presentation else 26,cos(yaw)*23)
 	camera.look_at(target)
 	queue_redraw()
 func pick(point: Vector2) -> String:
@@ -404,14 +455,23 @@ func pick(point: Vector2) -> String:
 				var distance = origin.distance_squared_to(hit+centre)
 				if distance < nearest: nearest = distance; best = t.id
 	return best
+func cancel_move_preview() -> void:
+	right_preview_active = false
+	move_preview.emit("")
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed: left_down = true; drag_distance = 0
+			if event.pressed:
+				left_down = true
+				drag_distance = 0
+				double_selection = event.double_click
 			else:
 				if left_down and drag_distance < 5:
 					var key = pick(event.position)
-					if key != "": tile_selected.emit(key)
+					if key != "":
+						tile_selected.emit(key)
+						if double_selection: tile_activated.emit(key)
 				left_down = false
 			accept_event()
 		elif event.button_index == MOUSE_BUTTON_MIDDLE: dragging = event.pressed; accept_event()
@@ -419,9 +479,17 @@ func _gui_input(event: InputEvent) -> void:
 			if not fixed_scale: zoom = clampf(zoom*(1.12 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1/1.12),0.65,7.0)
 			update_camera()
 			accept_event()
-		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			var key = pick(event.position)
-			if key != "": move_requested.emit(key,event.shift_pressed)
+			if defer_right_click:
+				if event.pressed:
+					right_preview_active = key != ""
+					move_preview.emit(key)
+				elif right_preview_active:
+					cancel_move_preview()
+					if key != "": move_requested.emit(key,event.shift_pressed)
+			elif event.pressed and key != "":
+				move_requested.emit(key,event.shift_pressed)
 			accept_event()
 	elif event is InputEventMouseMotion:
 		if dragging or left_down:
@@ -432,6 +500,7 @@ func _gui_input(event: InputEvent) -> void:
 		else:
 			var key = pick(event.position)
 			if key != hovered: hovered = key; hover_changed.emit(key); queue_redraw()
+			if right_preview_active: move_preview.emit(key)
 func set_animation(value: bool) -> void:
 	animated = value
 	for mat in A.motion_materials.values(): mat.set_shader_parameter("animated",value)
@@ -472,13 +541,21 @@ func _draw() -> void:
 			var points = PackedVector2Array()
 			for i in range(6):
 				var a = deg_to_rad(30+i*60)
-				points.append(screen(pos(tile)+Vector3(cos(a)*0.95,0.08,sin(a)*0.95)))
-			var opacity = 0.18 if state.knowledge.memory.has(tile.id) else 0.35
+				points.append(screen(pos(tile)+Vector3(cos(a)*(1.001 if opening_presentation else 0.95),0.045,sin(a)*(1.001 if opening_presentation else 0.95))))
+			var opacity = 0.18 if state.knowledge.memory.has(tile.id) else 0.31
 			draw_colored_polygon(points,Color(0.08,0.10,0.16,opacity))
 		for key in state.knowledge.memory:
 			var record = state.knowledge.memory[key]
 			if record.get("signal",false) and not state.knowledge.identified.has(key):
 				draw_string(font,screen(surface(key,Vector3(0,0.5,0))),"?",HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color("f5d58a"))
+	if highlight_pollution:
+		for tile in state.tiles.values():
+			if tile.pollution <= 0: continue
+			var points = PackedVector2Array()
+			for i in range(6):
+				var angle = deg_to_rad(30+i*60)
+				points.append(screen(pos(tile)+Vector3(cos(angle)*0.93,0.09,sin(angle)*0.93)))
+			draw_colored_polygon(points,Color(0.85,0.28,0.17,0.14*float(tile.pollution)))
 	for key in [selected_tile,hovered]:
 		if not state.tiles.has(key): continue
 		var points = PackedVector2Array()
@@ -489,16 +566,29 @@ func _draw() -> void:
 	for c in state.cohorts.values():
 		if c.state.kind != "resident" or not c.state.get("job") is String or not c.state.job.begins_with("tile:"): continue
 		var key = c.state.job.substr(5)
+		if opening_presentation and not show_work_labels and not show_yields and key != selected_tile: continue
 		var points = PackedVector2Array()
 		for i in range(7):
 			var angle = deg_to_rad(30+(i%6)*60)
 			points.append(screen(pos(state.tiles[key])+Vector3(cos(angle)*0.84,0.045,sin(angle)*0.84)))
 		var color = Claims.COLORS[state.get("cohortOwners",{}).get(c.id,"blue")]
 		draw_polyline(points,color,1.2,true)
-		draw_string(font,screen(surface(key,Vector3(-0.4,0.95,0))),c.name,HORIZONTAL_ALIGNMENT_LEFT,-1,10,color)
+		if not opening_presentation: draw_string(font,screen(surface(key,Vector3(-0.4,0.95,0))),c.name,HORIZONTAL_ALIGNMENT_LEFT,-1,10,color)
 	if actors.has(selected_unit): draw_arc(screen(actors[selected_unit].position),13,0,TAU,20,Color("f6d48a"),2,true)
-	for site in state.settlements.values():
-		draw_string(font,screen(surface(site.tileId,Vector3(-0.5,1,0))),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Claims.COLORS[state.get("settlementOwners",{}).get(site.id,"blue")])
+
+	if opening_presentation:
+		var occupancy = {}
+		for person in state.cohorts.values():
+			var key = R.person_tile(state,person)
+			occupancy[key] = occupancy.get(key,0)+1
+		for key in occupancy:
+			if occupancy[key] < 2: continue
+			var p = screen(surface(key,Vector3(0.58,0.25,0.37)))
+			draw_circle(p,10,Color("#24353d"))
+			draw_arc(p,10,0,TAU,16,Color("#d1ae69"),1,true)
+			draw_string(font,p+Vector2(-4,5),str(occupancy[key]),HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("#fff0c8"))
+	for i in range(1,preview_route.size()):
+		draw_line(screen(surface(preview_route[i-1],Vector3(0,0.10,0))),screen(surface(preview_route[i],Vector3(0,0.10,0))),Color("#ffda87"),3,true)
 	if state.movementQueues.has(selected_unit):
 		var prev = R.mobile(state,selected_unit).tileId
 		for next in state.movementQueues[selected_unit]:
@@ -515,6 +605,19 @@ func _draw() -> void:
 				draw_texture_rect(Art.resource_icon(key),Rect2(at,Vector2(12,12)),false)
 				draw_string(font,at+Vector2(13,11),str(output[key]),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("fff0cb"))
 				i += 1
+	for site in state.settlements.values():
+		if opening_presentation:
+			var population = state.cohorts.values().filter(func(person):return person.home == site.id).size()
+			var caption = "%s  ·  %d" % [site.name,population]
+			var p = screen(surface(site.tileId,Vector3(0,1.82,-0.12)))
+			var width = font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,15).x+24
+			var plaque = Rect2(p-Vector2(width/2,22),Vector2(width,27))
+			draw_rect(plaque,Color("#17272e"))
+			var faction: String = state.get("settlementOwners",{}).get(site.id,"blue")
+			draw_rect(plaque,Color("#d1ae69") if faction == "blue" else Claims.COLORS[faction],false,1)
+			draw_string(font,plaque.position+Vector2(12,18),caption,HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color("#fff0c8"))
+		else:
+			draw_string(font,screen(surface(site.tileId,Vector3(-0.5,1,0))),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Claims.COLORS[state.get("settlementOwners",{}).get(site.id,"blue")])
 	if show_metrics or building: draw_rect(Rect2(8,size.y-30,minf(size.x-16,570),24),Color(0.02,0.06,0.09,0.85))
 	if show_metrics or building: draw_string(font,Vector2(15,size.y-13),progress if building else metrics,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("c2d8d5"))
 

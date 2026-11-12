@@ -1,5 +1,30 @@
 # Current local handoff — 11 November 2026
 
+F5 opens B11 on seed 731. Use Orders → World survey → New map to change seed
+and dimensions. B11 has its own save. See docs/Batch_0911_B11_Review.md and
+reports/b11. The next presentation pass is the starting figures. B12 is diplomacy.
+
+B10 remains available as a fixed-map comparison. Take the build kit in Colony, move a civilian, then use Frontier
+in the command dock to found an outpost or lay a road. B10 has its own save.
+See docs/Batch_0911_B10_Review.md and reports/b10.
+
+The build retains the icon console. Hover navigation and unit keys for their names and
+any available shortcuts or blockers. Colony has a build tray with model
+thumbnails. Select a hex and a thumbnail, then use the queue icon. The
+selected recipe and queue remain readable in the production display.
+See reports/icon-console for the 1080p captures.
+
+The preceding post-B09 visual pass established the field console. Model Lab opens the Farm kit, where
+Pump and irrigation lines toggles the service hardware. The World asset
+catalogue also has Coast, Hills and Vegetation studies under Field kit.
+See docs/Post_B09_Visual_Pass.md and reports/visual-pass. Next is B10.
+
+Double-click Landing Station or press C for Colony. Use the
+minimap or middle mouse to look around. Hold right mouse to preview an
+order and release to execute, or press Esc to cancel. I cycles idle
+cohorts, Enter advances, and F1 opens Alienopedia. B09 has a separate
+save. See docs/Batch_0911_B09_Review.md and reports/b09.
+
 F5 opens B08. The bottom unit panel supports movement, retreat, attack
 preview, firing, equipping and authorizing expeditions. Read
 docs/Batch_0911_B08_Review.md for the provisional tactical contract.

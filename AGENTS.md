@@ -1,5 +1,18 @@
 # Current handoff — 11 November 2026
 
+B11 is the local F5 seeded world and terrain review. See docs/Batch_0911_B11_Review.md.
+Next presentation pass proposed by the user discussion is civilian, Explorer and rifle soldier silhouettes, poses and portraits. B12 is the next numbered batch and covers diplomacy.
+The local F5 build includes the post-B09 icon console and colony build tray.
+See reports/icon-console for the current 1080p captures and automated results.
+The preceding post-B09 visual pass introduced the shared field console. The field console houses
+command icons and a recessed minimap. Model Lab opens the modular Farm kit.
+See docs/Post_B09_Visual_Pass.md and reports/visual-pass for the current review.
+See docs/Batch_0911_B09_Review.md and reports/b09 for native captures.
+Review the whole playable screen periodically, including clear and busy
+views, navigation, selection, blockers and motion. Use Civilization IV
+for the map-first hierarchy and contextual control organization. Next
+B10 covers expansion, roads and faction presence.
+
 B08 integrates civilian survival and first military operations. The user
 approved B07 and B08 ahead of the B09 interface review. Next is B09, the
 integrated 1080p opening and UI rebuild, with Alienopedia at the end.

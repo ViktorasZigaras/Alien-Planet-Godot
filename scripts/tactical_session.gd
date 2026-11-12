@@ -85,7 +85,7 @@ static func automate(s: Dictionary) -> Dictionary:
 		var tile = R.person_tile(s,person)
 		if person.qualification == "Soldier" and person.state.kind == "mobile":
 			soldiers.append(id)
-		elif tile != home and threat(s,tile):
+		elif tile != home and threat(s,tile) and not s.get("expansion",{}).get("outposts",{}).values().any(func(site): return site.crew == id):
 			var result = retreat(s,id)
 			if result.ok:
 				s = result.state

@@ -3,8 +3,8 @@ config_version=5
 
 [application]
 config/name="Alien Planet — Godot Sandbox"
-config/version="0.911-b01-review"
-run/main_scene="res://b08.tscn"
+config/version="0.911-b09-review"
+run/main_scene="res://b11.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 
 [display]

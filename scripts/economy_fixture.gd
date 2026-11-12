@@ -27,6 +27,12 @@ static func initial() -> Dictionary:
 	sync(s)
 	return s
 
+static func baseline(s: Dictionary) -> Dictionary:
+	var fixed = initial()
+	if s.has("survey"):
+		preload("res://scripts/survey_generator.gd").apply(fixed,s.survey)
+	return fixed
+
 static func sync(s: Dictionary) -> void:
 	for resource in R.RESOURCES:
 		s.resources[resource] = 0
@@ -55,6 +61,8 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 		"assign":
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
+			for camp in s.get("expansion",{}).get("outposts",{}).values():
+				if camp.work != "" and job == "tile:"+camp.work: return "This hex is assigned to a frontier outpost."
 			var c = s.cohorts[cmd.person]
 			if job != "idle" and s.get("tactics",{}).get("down",{}).has(c.id): return "This cohort is recovering."
 			if job == "medical" and c.qualification != "Medic": return "Medical care requires a trained Medic."
@@ -195,7 +203,10 @@ static func command(state: Dictionary, cmd: Dictionary) -> Dictionary:
 
 static func validate(s) -> String:
 	if not s is Dictionary or s.get("scenario") != ID: return "Not a B02 save."
-	var canonical = initial()
+	var generator = preload("res://scripts/survey_generator.gd")
+	if s.has("survey") and not generator.valid(s.survey): return "Invalid survey settings."
+	var canonical = baseline(s)
+	if s.has("survey") and (not same(s.get("map"),canonical.map) or not same(s.get("rivers"),canonical.rivers)): return "Changed seeded map or rivers."
 	for key in canonical:
 		if not s.has(key) or typeof(s[key]) != typeof(canonical[key]) and not (s[key] is float and canonical[key] is int): return "Missing/invalid field: "+key
 	var towns = s.settlements.duplicate(true)

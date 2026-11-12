@@ -18,6 +18,7 @@ var stop_button: Button
 var motion_label: Label
 var yaw = -0.45
 var speed = 1.0
+var start_in_field_kit = false
 var built = false
 var construction_ms = 0.0
 var catalogue_world: Node3D
@@ -27,6 +28,7 @@ var catalogue_selector: OptionButton
 var suit_choice: OptionButton
 var arms_choice: CheckButton
 var tools_choice: CheckButton
+var irrigation_choice: CheckButton
 
 func text(parent: Node, value: String, size: int = 15, color: Color = Color("dce7e6")) -> Label:
 	var label = Label.new()
@@ -168,7 +170,7 @@ func _ready() -> void:
 		terrains.append(tile)
 	var catalogue = page("World asset catalogue")
 	text(catalogue,"All current professions / gear / vehicles / buildings / improvements / resources",18)
-	catalogue_entries = Catalogue.library_entries()
+	catalogue_entries = Catalogue.library_entries(start_in_field_kit)
 	catalogue_selector = OptionButton.new()
 	catalogue_selector.name = "WorldAssetChoice"
 	for entry in catalogue_entries: catalogue_selector.add_item(entry.label)
@@ -188,9 +190,19 @@ func _ready() -> void:
 	suit_choice.item_selected.connect(func(_i): show_asset(catalogue_selector.selected))
 	arms_choice.toggled.connect(func(_on): show_asset(catalogue_selector.selected))
 	tools_choice.toggled.connect(func(_on): show_asset(catalogue_selector.selected))
+	irrigation_choice = CheckButton.new()
+	irrigation_choice.text = "Pump and irrigation lines"
+	irrigation_choice.button_pressed = true
+	settings.add_child(irrigation_choice)
+	irrigation_choice.toggled.connect(func(_on): show_asset(catalogue_selector.selected))
 	catalogue_world = stage(catalogue,470,true)
 	catalogue_selector.item_selected.connect(show_asset)
-	show_asset(0)
+	var first_asset = 0
+	if start_in_field_kit:
+		pages.current_tab = pages.get_tab_count()-1
+		first_asset = catalogue_entries.find_custom(func(entry): return entry.key == "field_farm")
+	catalogue_selector.select(first_asset)
+	show_asset(first_asset)
 	text(layout,"One animated 3D viewport in the asset catalogue. World geometry and pixel sprites share these models. Shadows/MSAA disabled in studies to reduce preview cost.",13,Color("9fbbc2"))
 	pages.tab_changed.connect(func(_index): update_activity.call_deferred())
 	visibility_changed.connect(update_activity)
@@ -341,9 +353,11 @@ func show_asset(index: int) -> void:
 	if is_instance_valid(catalogue_actor): catalogue_actor.free()
 	var entry = catalogue_entries[index].duplicate()
 	var is_person = entry.kind == "person"
-	suit_choice.disabled = not is_person
-	arms_choice.disabled = not is_person
-	tools_choice.disabled = not is_person
+	suit_choice.visible = is_person
+	arms_choice.visible = is_person
+	tools_choice.visible = is_person
+	irrigation_choice.visible = entry.kind == "field_farm"
+	if entry.kind == "field_farm": entry.service = irrigation_choice.button_pressed
 	if is_person:
 		entry.suit = suit_choice.selected
 		entry.arms = 1 if arms_choice.button_pressed else 0

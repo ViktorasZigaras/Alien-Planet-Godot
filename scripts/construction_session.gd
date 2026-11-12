@@ -24,7 +24,8 @@ static func validate(s) -> String:
 	var c = s.construction
 	if not c.get("queue") is Array or not c.get("holders") is Array or not c.get("travelled") is Array or not c.get("farmTiers") is Dictionary or c.get("kits") != 1 or not E.R.whole(c.get("next"),1,9007199254740991): return "Invalid construction state."
 	if not s.get("tiles") is Dictionary or not s.get("cohorts") is Dictionary: return "Missing geography/people."
-	var baseline = E.initial()
+	if s.has("survey") and not preload("res://scripts/survey_generator.gd").valid(s.survey): return "Invalid survey settings."
+	var baseline = E.baseline(s)
 	var towns = s.get("settlements",{}).duplicate(true)
 	if s.has("progression") and towns.has("main"): towns.main.growth = 0
 	var geography_ok = E.TerrainEcology.same_geography(s.tiles,baseline.tiles) if s.has("ecology") else E.same(s.tiles,baseline.tiles)
@@ -47,6 +48,9 @@ static func validate(s) -> String:
 		else:
 			if project.tile in pending: return "Duplicate unfinished site."
 			pending.append(project.tile)
+	for key in s.get("expansion",{}).get("roads",{}):
+		if not expected.improvements.has(key): expected.improvements[key] = {}
+		expected.improvements[key].road = true
 	if not E.same(s.get("buildings"),expected.buildings) or not E.same(s.get("districts"),expected.districts) or not E.same(s.get("improvements"),expected.improvements) or not E.same(c.farmTiers,expected.construction.farmTiers): return "Completed assets disagree with paid projects."
 	var seen = []
 	for id in c.holders:
@@ -55,7 +59,7 @@ static func validate(s) -> String:
 	if seen.size()>1: return "Build kit duplicated."
 	for id in s.cohorts:
 		if not s.cohorts[id] is Dictionary or not s.cohorts[id].get("state") is Dictionary: return "Invalid person."
-		if s.cohorts[id].state.get("kind") == "mobile" and id not in seen and not (s.has("knowledge") and id == "explorer") and not (s.has("tactics") and (s.cohorts[id].qualification == "Soldier" or s.tactics.evacuating.has(id))): return "Mobile builder has no kit."
+		if s.cohorts[id].state.get("kind") == "mobile" and id not in seen and not (s.has("knowledge") and id == "explorer") and not (s.has("tactics") and (s.cohorts[id].qualification == "Soldier" or s.tactics.evacuating.has(id))) and not s.get("expansion",{}).get("fieldCrews",{}).has(id): return "Mobile builder has no kit."
 	for id in c.travelled:
 		if not id is String or not s.cohorts.has(id): return "Invalid travel activity."
 	var error = P.validate(s)

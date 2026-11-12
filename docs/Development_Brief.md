@@ -1,5 +1,14 @@
 # Current implementation status — 11 November 2026
 
+The post-B09 visual pass adds a field console, command pictograms, a modular
+Farm kit in Model Lab and light dressing for observed terrain. See
+Post_B09_Visual_Pass.md. B10 remains expansion, roads and faction presence.
+
+B09 is available locally for the opening and UI review. It integrates the
+four-cohort start, contextual map orders, colony management, research cards
+and Alienopedia. The visual review ran at native 1080p with clear and busy
+scenes. See Batch_0911_B09_Review.md. B08 is on GitHub at 2b0c5ba.
+
 B07 uploaded as 59d45fb. B08 adds legal retreat, a station garrison,
 health and supply effects, rifle/flamer combat, and a small observed-target
 expedition. User approved these two batches ahead of the B09 UI rebuild.

@@ -2,6 +2,7 @@ extends RefCounted
 const XActor = preload("res://scripts/xeno_actor.gd")
 const XModels = preload("res://scripts/xeno_models.gd")
 const A = preload("res://scripts/world_assets.gd")
+const FieldAssets = preload("res://scripts/field_assets.gd")
 const R = preload("res://scripts/game_rules.gd")
 static func entries() -> Array:
 	var list = []
@@ -28,6 +29,8 @@ static func entries() -> Array:
 	return list
 static func create(entry: Dictionary) -> Node3D:
 	match entry.kind:
+		"field_farm": return FieldAssets.farm(entry.service)
+		"field_ground": return FieldAssets.study(entry.type)
 		"flamer": return A.person({"qualification":"Soldier","equipment":["flamer"]})
 		"burned":
 			var nest = XModels.create("nest"); nest.scale.y = 0.4; nest.scale.x = 0.9
@@ -59,5 +62,10 @@ static func person_key(c: Dictionary) -> String:
 	if "flamer" in c.equipment: return "person_flamer"
 	return "person_%s_%d_%d" % [c.qualification,2 if "reinforced_suit" in c.equipment else 1 if "work_suit" in c.equipment else 0,1 if "small_arms" in c.equipment else 0]
 
-static func library_entries() -> Array:
-	return entries().filter(func(e): return e.kind != "person" or (e.suit == 0 and e.arms == 0))
+static func library_entries(include_field_kit: bool = false) -> Array:
+	var list = entries().filter(func(e): return e.kind != "person" or (e.suit == 0 and e.arms == 0))
+	if not include_field_kit: return list
+	list.append({"key":"field_farm","kind":"field_farm","service":true,"label":"Field kit · Farm"})
+	for style in ["coast","hills","vegetation"]:
+		list.append({"key":"field_"+style,"kind":"field_ground","type":style,"label":"Field kit · "+style.capitalize()})
+	return list

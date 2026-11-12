@@ -71,8 +71,8 @@ static func height_at(t: Dictionary, x: float, z: float) -> float:
 	var edge = Vector2(x,z).length()/0.86
 	var shoulder = maxf(0.0,1.0-edge*edge)
 	return 0.68*shoulder*shoulder*(1.0+0.24*sin(x*4.0+z*3.0))
-static func land_mesh(hills: bool, hill_only: bool = false) -> Mesh:
-	var key = "frontier_land_"+str([hills,hill_only])
+static func land_mesh(hills: bool, hill_only: bool = false, joined_edges: bool = false) -> Mesh:
+	var key = "frontier_land_"+str([hills,hill_only,joined_edges])
 	if P.shapes.has(key): return P.shapes[key]
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -90,7 +90,7 @@ static func land_mesh(hills: bool, hill_only: bool = false) -> Mesh:
 				var u = at.x-floorf(at.x)
 				var aa = deg_to_rad(30+corner*60)
 				var bb = aa+PI/3
-				var edge = Vector2(cos(aa),sin(aa)).lerp(Vector2(cos(bb),sin(bb)),u)*0.997*at.y
+				var edge = Vector2(cos(aa),sin(aa)).lerp(Vector2(cos(bb),sin(bb)),u)*(1.0 if joined_edges else 0.997)*at.y
 				if hill_only:
 					var angle = deg_to_rad(30+at.x*60)
 					edge = Vector2(cos(angle),sin(angle))*0.855*at.y
