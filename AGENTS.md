@@ -1,7 +1,7 @@
 # Current handoff — 11 November 2026
 
-B11 is the local F5 seeded world and terrain review. See docs/Batch_0911_B11_Review.md.
-Next presentation pass proposed by the user discussion is civilian, Explorer and rifle soldier silhouettes, poses and portraits. B12 is the next numbered batch and covers diplomacy.
+B13 is the local F5 build. B12 adds Compact passage and ration trade. B13 adds staffed site services and Merchant training. See docs/Batches_0911_B12_B13_Review.md and reports/b12 and reports/b13.
+Next B14 covers the soundscape.
 The local F5 build includes the post-B09 icon console and colony build tray.
 See reports/icon-console for the current 1080p captures and automated results.
 The preceding post-B09 visual pass introduced the shared field console. The field console houses

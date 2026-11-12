@@ -257,10 +257,11 @@ static func bonus(kind: String) -> Node3D:
 			P.softened(root,Vector3(0.21,0.16,0.07),Vector3(0.14,0.32,0.16),Color("a28ca6"))
 			for y in [0.19,0.30,0.41]: P.box(root,Vector3(0,y,0.107),Vector3(0.15,0.025,0.014),Color("d3b5cb"))
 	return root
-static func person(c: Dictionary) -> Node3D:
+static func person(c: Dictionary, frontier: bool = false) -> Node3D:
 	if "rover" in c.equipment: return Rover.new()
 	var rig = Rig.new()
 	rig.role = c.qualification
+	rig.frontier_outfit = frontier
 	rig.work_suit = "work_suit" in c.equipment
 	rig.reinforced = "reinforced_suit" in c.equipment
 	rig.small_arms = "small_arms" in c.equipment

@@ -44,7 +44,7 @@ static func create(entry: Dictionary) -> Node3D:
 		"xeno":
 			if entry.type in ["nest","mass","mass_hills"]: return XModels.create(entry.type)
 			var actor = XActor.new(); actor.kind = entry.type; return actor
-		"person": return A.person({"qualification":entry.role,"equipment":(["work_suit"] if entry.suit == 1 else ["reinforced_suit"] if entry.suit == 2 else [])+(["small_arms"] if entry.arms else [])})
+		"person": return A.person({"qualification":entry.role,"equipment":(["work_suit"] if entry.suit == 1 else ["reinforced_suit"] if entry.suit == 2 else [])+(["small_arms"] if entry.arms else [])},entry.get("frontier",false))
 		"rover": return A.Rover.new()
 		"building": return A.building(entry.type,entry.tier)
 		"district": return A.district(entry.type)

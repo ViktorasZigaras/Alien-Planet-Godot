@@ -1,8 +1,14 @@
 # Current local handoff — 11 November 2026
 
-F5 opens B11 on seed 731. Use Orders → World survey → New map to change seed
+F5 opens B13 on seed 731. Scout east of Landing Station. The Independent Relay
+and Survey Compact appear as you observe them. Use Orders for agreements and
+site services. B12 and B13 have separate save slots. See
+`docs/Batches_0911_B12_B13_Review.md` for the evaluation route.
+
+B11 remains available as the pre-diplomacy seeded map. Use Orders → World survey → New map to change seed
 and dimensions. B11 has its own save. See docs/Batch_0911_B11_Review.md and
-reports/b11. The next presentation pass is the starting figures. B12 is diplomacy.
+reports/b11. The three starting roles now use their new outfits and poses on
+generated maps. See reports/unit-art. B12 is diplomacy.
 
 B10 remains available as a fixed-map comparison. Take the build kit in Colony, move a civilian, then use Frontier
 in the command dock to found an outpost or lay a road. B10 has its own save.

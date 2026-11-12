@@ -344,6 +344,7 @@ func open_model_lab() -> void:
 	if not is_instance_valid(model_lab):
 		model_lab = ModelLab.new()
 		model_lab.start_in_field_kit = true
+		model_lab.frontier_outfits = state.has("survey")
 		add_child(model_lab)
 		model_lab.visibility_changed.connect(func():
 			world.suspended = model_lab.visible
@@ -779,7 +780,7 @@ func update_preview() -> void:
 			var source = E.R.person_tile(state,state.cohorts[selected])
 			var queued = state.movementQueues.get(selected,[])
 			if append and not queued.is_empty(): source = queued.back()
-			var path = E.R.path(state,source,key,"")
+			var path = E.R.path(state,source,key,E.R.mobile(state,selected).get("classId",""))
 			world.preview_route = path.path
 			preview_info.text = "Move to %s · %d steps · estimated %.1f effort" % [key,path.path.size()-1,path.cost]
 		else: preview_info.text = issue
@@ -794,7 +795,7 @@ func refresh_dock() -> void:
 	selected_info.add_child(identity)
 	var portrait = TextureRect.new()
 	var role = "soldier" if person.qualification == "Soldier" else "explorer" if person.qualification == "Explorer" else "civilian"
-	var portrait_path = "res://assets/ui/"+role+".png"
+	var portrait_path = "res://assets/ui/"+("frontier_" if state.has("survey") else "")+role+".png"
 	if ResourceLoader.exists(portrait_path):
 		portrait.texture = load(portrait_path)
 		portrait.custom_minimum_size = Vector2(70,82)

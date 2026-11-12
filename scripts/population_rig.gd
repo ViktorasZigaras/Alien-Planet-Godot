@@ -2,6 +2,7 @@ extends Node3D
 ## Reusable 13-bone rigid-part rig. Every role uses the same hierarchy and gait.
 ## +Y is up; the character faces +Z. Walk is an in-place preview, not navigation.
 const Parts = preload("res://scripts/model_parts.gd")
+const Frontier = preload("res://scripts/frontier_outfit.gd")
 const ROLES = ["Rig", "Worker", "Farmer", "Engineer", "Merchant", "Scientist", "Administrator", "Security", "Specialist"]
 const PALETTES = {
 	"Worker": ["c77a32", "795c42", "e2be83"],
@@ -15,6 +16,8 @@ const PALETTES = {
 }
 const GAME_ROLES = ["Worker","Biologist","Extractor","Engineer","Scientist","Medic","Merchant","Administrator","Soldier","Explorer","Artist"]
 var role = "Rig"
+var frontier_outfit = false
+var activity = ""
 var work_suit = false
 var reinforced = false
 var small_arms = false
@@ -76,6 +79,12 @@ func build() -> void:
 		# Shoulder and hip crossbars make the articulation easy to read.
 		Parts.box(attachments.spine, Vector3(0, 0.25, 0), Vector3(0.64, 0.045, 0.045), Color("7dbcc8"))
 		Parts.box(attachments.pelvis, Vector3(0, -0.06, 0), Vector3(0.32, 0.045, 0.045), Color("7dbcc8"))
+	elif frontier_outfit and role in Frontier.PROFILES:
+		Frontier.build(attachments,role)
+		var base_attachments = begin_tools()
+		Frontier.tools(attachments,role)
+		attachments = base_attachments
+		add_game_equipment(Color("#99875d"))
 	else:
 		build_outfit()
 
@@ -175,7 +184,9 @@ func add_game_equipment(accent: Color) -> void:
 		Parts.box(attachments.forearm_l,Vector3(0,-0.31,0.1),Vector3(0.32,0.04,0.20),Color("b5a47d"))
 		Parts.cylinder(attachments.forearm_r,Vector3(0,-0.35,0.07),0.018,0.43,Color("dcc394"),5)
 	attachments = outfit_attachments
-	if small_arms:
+	if small_arms and frontier_outfit and role == "Soldier":
+		Frontier.rifle(attachments.spine)
+	elif small_arms:
 		Parts.box(attachments.spine,Vector3(0.20,0.03,0.28),Vector3(0.12,0.13,0.52),Color("343e49"))
 	if flamer:
 		Parts.cylinder(attachments.spine,Vector3(-0.16,0.08,-0.38),0.12,0.50,Color("a75e35"),8)
@@ -222,6 +233,11 @@ func add_outfit_details(cloth: Color, accent: Color, light: Color, skin: Color, 
 		Parts.softened(attachments["foot"+suffix],Vector3(0,0.015,0.19),Vector3(0.21,0.07,0.13),dark.lightened(0.12))
 		Parts.softened(attachments["foot"+suffix],Vector3(0,0.06,0.06),Vector3(0.13,0.025,0.12),accent.darkened(0.30))
 
+func set_activity(next: String) -> void:
+	if activity == next: return
+	activity = next
+	if not walking: pose(0.0)
+
 func walk() -> void:
 	walking = true
 
@@ -240,6 +256,9 @@ func rotate_bone(label: String, x: float, z: float = 0.0) -> void:
 
 func pose(time: float) -> void:
 	if skeleton == null: return
+	if frontier_outfit and role in Frontier.PROFILES:
+		rotate_bone("spine",0.12 if not walking and activity == "work" else 0.0)
+		rotate_bone("head",0.13 if not walking and activity in ["work","scan"] else 0.0)
 	var stride = sin(time) * 0.48 if walking else 0.0
 	var lift = abs(sin(time)) * 0.035 if walking else 0.0
 	skeleton.set_bone_pose_position(0, Vector3(0, 0.98 + lift, 0))
@@ -251,3 +270,16 @@ func pose(time: float) -> void:
 		rotate_bone("foot"+suffix, -swing * 0.20)
 		rotate_bone("upper_arm"+suffix, -swing * 0.65, side * 0.08)
 		rotate_bone("forearm"+suffix, -0.12 - abs(swing)*0.15)
+	if frontier_outfit and not walking:
+		match activity:
+			"work":
+				rotate_bone("upper_arm_r",-0.46,0.12)
+				rotate_bone("forearm_r",-0.40)
+			"scan":
+				rotate_bone("upper_arm_l",-0.48,-0.13)
+				rotate_bone("forearm_l",-1.13)
+			"guard":
+				rotate_bone("upper_arm_l",-0.36,0.30)
+				rotate_bone("forearm_l",-0.80)
+				rotate_bone("upper_arm_r",-0.24,-0.19)
+				rotate_bone("forearm_r",-0.63)

@@ -7,6 +7,7 @@ static func specialties(s: Dictionary) -> Array:
 	var result = ["Biologist","Scientist"]
 	if s.has("ecology"): result.append("Medic")
 	if s.has("tactics"): result.append("Soldier")
+	if s.has("exchange"): result.append("Merchant")
 	return result
 
 static func initial() -> Dictionary:
@@ -64,7 +65,7 @@ static func validate(s) -> String:
 	if not s.get("cohorts") is Dictionary: return "Missing people."
 	for id in p.training:
 		var course = p.training[id]
-		if not s.cohorts.has(id) or not course is Dictionary or course.get("qualification") not in (["Biologist","Scientist","Medic"] if s.has("ecology") else ["Biologist","Scientist"]) or not E.R.whole(course.get("remaining"),1,2): return "Invalid training."
+		if not s.cohorts.has(id) or not course is Dictionary or course.get("qualification") not in specialties(s) or not E.R.whole(course.get("remaining"),1,2): return "Invalid training."
 	var seen = []
 	for tech in p.techs:
 		if tech not in G.TECHS or tech in seen: return "Invalid research."

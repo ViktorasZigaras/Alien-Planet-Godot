@@ -19,6 +19,7 @@ var motion_label: Label
 var yaw = -0.45
 var speed = 1.0
 var start_in_field_kit = false
+var frontier_outfits = false
 var built = false
 var construction_ms = 0.0
 var catalogue_world: Node3D
@@ -359,6 +360,7 @@ func show_asset(index: int) -> void:
 	irrigation_choice.visible = entry.kind == "field_farm"
 	if entry.kind == "field_farm": entry.service = irrigation_choice.button_pressed
 	if is_person:
+		entry.frontier = frontier_outfits
 		entry.suit = suit_choice.selected
 		entry.arms = 1 if arms_choice.button_pressed else 0
 	catalogue_actor = Catalogue.create(entry)

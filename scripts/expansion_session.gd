@@ -41,6 +41,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 		"foundOutpost":
 			if stationed != "" or (id not in s.construction.holders and not s.expansion.fieldCrews.has(id)): return "Deploy a builder or select a surviving outpost crew."
 			if s.tiles[site].obstacle != "": return "Clear the obstruction before founding."
+			if s.get("exchange",{}).get("sites",{}).has(site) and site != s.expansion.contact: return "A relay already occupies this site."
 			if site == s.expansion.contact: return "The Survey Compact already occupies this site."
 			var terrain = R.founding_reason(s,site)
 			if terrain != "": return terrain
@@ -60,7 +61,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 			if stationed == "": return "Select the outpost crew."
 			var target: String = cmd.get("tile","")
 			if target == "": return ""
-			if not s.knowledge.visible.has(target) or target == s.settlements.main.tileId or s.expansion.outposts.has(target) or target == s.expansion.contact: return "Select an observed hex outside a settlement center."
+			if not s.knowledge.visible.has(target) or target == s.settlements.main.tileId or s.expansion.outposts.has(target) or target == s.expansion.contact or s.get("exchange",{}).get("sites",{}).has(target): return "Select an observed hex outside a settlement center."
 			if R.distance(s.tiles[stationed],s.tiles[target]) != 1: return "Select an adjacent hex."
 			if s.tiles[target].obstacle != "" or R.tile_yield(s,target).get("food",0) == 0: return "Choose clear land with a Food yield."
 			for other in s.expansion.outposts:
@@ -70,7 +71,7 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 	return ""
 
 static func occupied(s: Dictionary, tile: String) -> bool:
-	return s.expansion.outposts.has(tile) or (tile != "" and tile == s.expansion.contact and s.knowledge.memory.has(tile))
+	return s.expansion.outposts.has(tile) or (s.get("exchange",{}).get("sites",{}).has(tile) and s.knowledge.memory.has(tile)) or (tile != "" and tile == s.expansion.contact and s.knowledge.memory.has(tile))
 
 static func prepare(s: Dictionary) -> Dictionary:
 	var next = s.duplicate(true)

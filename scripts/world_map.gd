@@ -375,13 +375,14 @@ func update_actors() -> void:
 	for tile in visible_people:
 		var id = visible_people[tile]
 		var c = state.cohorts[id]
-		var loadout = str([c.qualification,c.equipment])
+		var frontier = state.has("survey")
+		var loadout = str([c.qualification,c.equipment,frontier])
 		if actors.has(id) and actor_loadouts[id] != loadout:
 			if tweens.has(id): tweens[id].kill(); tweens.erase(id)
 			actors[id].free()
 			actors.erase(id)
 		if not actors.has(id):
-			var actor = A.person(c)
+			var actor = A.person(c,frontier)
 			actor.scale = Vector3.ONE*(0.67 if "rover" in c.equipment else 0.51)
 			actors_root.add_child(actor)
 			actor.set_process(is_visible_in_tree() and not suspended and animated)
@@ -391,6 +392,12 @@ func update_actors() -> void:
 			actor_loadouts[id] = loadout
 			actor_tiles[id] = tile
 		var actor = actors[id]
+		if frontier and actor.has_method("set_activity"):
+			var activity = ""
+			if c.qualification == "Worker" and c.state.get("job") != null: activity = "work"
+			if c.qualification == "Explorer": activity = "scan"
+			if c.qualification == "Soldier" and "small_arms" in c.equipment: activity = "guard"
+			actor.set_activity(activity)
 		if actor_tiles[id] != tile:
 			if tweens.has(id): tweens[id].kill()
 			actor_tiles[id] = tile
@@ -608,7 +615,7 @@ func _draw() -> void:
 	for site in state.settlements.values():
 		if opening_presentation:
 			var population = state.cohorts.values().filter(func(person):return person.home == site.id).size()
-			var caption = "%s  ·  %d" % [site.name,population]
+			var caption = site.name if site.id == "frontier_contact" else "%s  ·  %d" % [site.name,population]
 			var p = screen(surface(site.tileId,Vector3(0,1.82,-0.12)))
 			var width = font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,15).x+24
 			var plaque = Rect2(p-Vector2(width/2,22),Vector2(width,27))
@@ -618,6 +625,15 @@ func _draw() -> void:
 			draw_string(font,plaque.position+Vector2(12,18),caption,HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color("#fff0c8"))
 		else:
 			draw_string(font,screen(surface(site.tileId,Vector3(-0.5,1,0))),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Claims.COLORS[state.get("settlementOwners",{}).get(site.id,"blue")])
+	if opening_presentation:
+		for key in state.neutralSites:
+			var site = state.neutralSites[key]
+			var at = screen(surface(key,Vector3(0,1.04,0)))
+			var width = font.get_string_size(site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,14).x+20
+			var plate = Rect2(at-Vector2(width/2,22),Vector2(width,24))
+			draw_rect(plate,Color("#17272e"))
+			draw_rect(plate,Color("#a6b480"),false,1)
+			draw_string(font,plate.position+Vector2(10,16),site.name,HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color("#fff0c8"))
 	if show_metrics or building: draw_rect(Rect2(8,size.y-30,minf(size.x-16,570),24),Color(0.02,0.06,0.09,0.85))
 	if show_metrics or building: draw_string(font,Vector2(15,size.y-13),progress if building else metrics,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("c2d8d5"))
 

@@ -6,6 +6,7 @@ func _initialize() -> void:
 
 func run() -> void:
 	DirAccess.make_dir_recursive_absolute("res://assets/ui")
+	var frontier = "--frontier" in OS.get_cmdline_user_args()
 	for role in ["civilian","explorer","soldier"]:
 		var view = SubViewport.new()
 		view.size = Vector2i(112,132)
@@ -24,16 +25,17 @@ func run() -> void:
 		sun.rotation_degrees = Vector3(-45,-25,0)
 		sun.light_color = Color("#ffe9c7")
 		view.add_child(sun)
-		var person = Assets.person({"qualification":"Worker" if role == "civilian" else role.capitalize(),"equipment":["small_arms"] if role == "soldier" else []})
+		var person = Assets.person({"qualification":"Worker" if role == "civilian" else role.capitalize(),"equipment":["small_arms"] if role == "soldier" else []},frontier)
 		view.add_child(person)
+		if frontier: person.set_activity({"civilian":"work","explorer":"scan","soldier":"guard"}[role])
 		var camera = Camera3D.new()
 		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-		camera.size = 1.55
+		camera.size = 1.32 if frontier else 1.55
 		view.add_child(camera)
 		camera.position = Vector3(1.2,1.5,3.8)
-		camera.look_at(Vector3(0,1.22,0))
+		camera.look_at(Vector3(0,1.37 if frontier else 1.22,0))
 		for i in range(8): await process_frame
 		await RenderingServer.frame_post_draw
-		view.get_texture().get_image().save_png("res://assets/ui/"+role+".png")
+		view.get_texture().get_image().save_png("res://assets/ui/"+("frontier_" if frontier else "")+role+".png")
 		view.free()
 	quit()

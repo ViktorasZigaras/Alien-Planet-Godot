@@ -43,6 +43,18 @@ func run() -> void:
 	current_scene = app
 	while not app.world.built: await process_frame
 	var s: Dictionary = app.state
+	var worker = app.world.actors["pop_a"]
+	check(worker.frontier_outfit and worker.activity == "work" and worker.skeleton.get_bone_count() == 13,"Map civilian uses the frontier work pose and shared rig")
+	app.choose_person("explorer",false)
+	var scout = app.world.actors["explorer"]
+	check(scout.frontier_outfit and scout.activity == "scan","Selecting Explorer uses the scout model and pose")
+	scout.walk()
+	scout.pose(PI/2)
+	var stride = scout.skeleton.get_bone_pose_rotation(scout.skeleton.find_bone("forearm_l"))
+	scout.stop()
+	check(scout.skeleton.get_bone_pose_rotation(scout.skeleton.find_bone("forearm_l")) != stride,"Shared walking gait returns to the scan pose")
+	app.choose_person("guard",false)
+	check(app.world.actors["guard"].activity == "guard","Equipped soldier uses the rifle stance")
 	check(app.validate_opening(JSON.parse_string(JSON.stringify(s))) == "","Generated opening validates across JSON save")
 	check(s.cohorts.pop_a.state.job != null and s.cohorts.pop_b.state.job != null and s.cohorts.pop_a.state.job != s.cohorts.pop_b.state.job,"Two separate starting jobs")
 	var unseen = s.tiles.keys().filter(func(key): return not s.knowledge.memory.has(key) and s.tiles[key].bonus != "")

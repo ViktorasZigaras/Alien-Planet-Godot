@@ -61,6 +61,8 @@ static func reason(s: Dictionary, cmd: Dictionary) -> String:
 		"assign":
 			if not s.cohorts.has(cmd.get("person", "")): return "Unknown person."
 			var job = cmd.get("job", "")
+			if job is String and job.begins_with("tile:") and s.get("exchange",{}).get("sites",{}).has(job.substr(5)) and s.get("knowledge",{}).get("memory",{}).has(job.substr(5)):
+				return "A foreign site occupies that hex."
 			for camp in s.get("expansion",{}).get("outposts",{}).values():
 				if camp.work != "" and job == "tile:"+camp.work: return "This hex is assigned to a frontier outpost."
 			var c = s.cohorts[cmd.person]
@@ -225,6 +227,7 @@ static func validate(s) -> String:
 		var allowed = ["Worker","Biologist","Scientist"] if s.has("progression") else ["Worker"]
 		if s.has("ecology"): allowed.append("Medic")
 		if s.has("tactics"): allowed.append("Soldier")
+		if s.has("exchange"): allowed.append("Merchant")
 		if s.has("knowledge") and id == "explorer": allowed = ["Explorer"]
 		var gear = c.get("equipment",[])
 		var equipment_ok = gear == [] or (s.has("tactics") and c.get("qualification") == "Soldier" and gear in [["small_arms"],["flamer"]])

@@ -61,9 +61,14 @@ static func step_cost(s: Dictionary,a: String,b: String) -> float:
 	if s.improvements.get(a,{}).get("road",false) and s.improvements.get(b,{}).get("road",false): cost = 1.0/3.0
 	return cost + (1.0 if river_between(s,a,b) else 0.0)
 static func reach(_s: Dictionary,_kind: String) -> int: return 1000000 # Supply ranges disabled.
-static func observed_route_cost(s: Dictionary, from: String, to: String) -> float:
+static func passage_allowed(s: Dictionary, target: String, class_id: String) -> bool:
+	if not s.has("diplomacy") or target != s.expansion.contact: return true
+	return class_id != "soldier" and int(s.diplomacy.passage_until) > int(s.turn)
+
+static func observed_route_cost(s: Dictionary, from: String, to: String, class_id: String = "") -> float:
 	if not s.has("knowledge"): return step_cost(s,from,to)
 	if s.tiles[to].baseTerrain == "water": return INF
+	if s.knowledge.memory.has(to) and not passage_allowed(s,to,class_id): return INF
 	if s.knowledge.visible.has(to) and s.tiles[to].get("hostiles",0)>0: return INF
 	var destination = s.knowledge.memory.get(to,{})
 	var origin = s.knowledge.memory.get(from,{})
@@ -82,7 +87,7 @@ static func routes(s: Dictionary,start: String,class_id: String = "") -> Diction
 			if costs[candidate] < costs[current]: current = candidate
 		open.erase(current)
 		for key in neighbours(s,current):
-			var cost = costs[current]+observed_route_cost(s,current,key)
+			var cost = costs[current]+observed_route_cost(s,current,key,class_id)
 			if cost < costs.get(key,INF):
 				costs[key] = cost
 				previous[key] = current
@@ -109,7 +114,7 @@ static func mobile(s: Dictionary,key: String) -> Dictionary:
 	if not s.cohorts.has(key) or s.cohorts[key].state.kind != "mobile": return {}
 	var c = s.cohorts[key]
 	var u = c.state.duplicate(true)
-	u.merge({"id":c.id,"name":c.name,"classId":"rover" if "rover" in c.equipment else "cohort"})
+	u.merge({"id":c.id,"name":c.name,"classId":"soldier" if s.has("diplomacy") and c.qualification == "Soldier" else ("rover" if "rover" in c.equipment else "cohort")})
 	return u
 static func passengers(s: Dictionary,transport_id: String) -> Array:
 	return s.cohorts.values().filter(func(c): return c is Dictionary and c.get("state") is Dictionary and c.state.get("kind") == "cargo" and c.state.get("transportId", "") == transport_id)
@@ -562,6 +567,10 @@ static func advance_queue(s: Dictionary,key: String) -> String:
 	while not steps.is_empty():
 		var next = steps[0]
 		if s.tiles[next].get("hostiles",0) > 0: return "Route paused: animals block next tile; attack or reroute."
+		if not passage_allowed(s,next,u.classId):
+			s.movementQueues.erase(key)
+			s.moveProgress.erase(key)
+			return "Route stopped at the Survey Compact border."
 		var cost = step_cost(s,entity.tileId,next)
 		if next not in neighbours(s,entity.tileId) or is_inf(cost):
 			s.movementQueues.erase(key)
